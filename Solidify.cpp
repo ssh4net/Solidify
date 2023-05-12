@@ -1,5 +1,18 @@
-// 
-//
+/*
+ * Copyright (c) 2022 Erium Vladlen.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #include <iostream>
 
@@ -19,7 +32,8 @@ int main(int argc, char* argv[]) {
     const char* output_filename = argv[2];
 
     // Create an ImageBuf object for the input file
-    ImageBuf input_buf(input_filename); 
+    ImageBuf input_buf(input_filename);
+
     // Create an ImageBuf object to store the result
     ImageBuf result_buf;
 
@@ -31,9 +45,18 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    // Write the result to the output file
-    result_buf.set_write_format(input_buf.spec().format); // Preserve original bit depth
-    result_buf.write(output_filename, "tiff"); // Write out as TIFF
+    auto out = ImageOutput::create(output_filename);
+    if (!out) {
+        std::cerr << "Could not create output file: " << output_filename << std::endl;
+        return 1;
+    }
+
+    ImageSpec spec = result_buf.spec();
+    spec.nchannels = 3; // Only write RGB channels
+
+    out->open(output_filename, spec, ImageOutput::Create);
+    out->write_image(result_buf.spec().format, result_buf.localpixels(), result_buf.pixel_stride(), result_buf.scanline_stride(), result_buf.z_stride(), nullptr, nullptr);
+    out->close();
 
     return 0;
 }
