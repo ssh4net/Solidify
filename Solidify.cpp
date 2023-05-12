@@ -1,4 +1,5 @@
 /*
+ * Solidify (Push Pull) algorithm implementation using OpenImageIO
  * Copyright (c) 2022 Erium Vladlen.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -15,12 +16,23 @@
  */
 
 #include <iostream>
+#include <iomanip>
+#include <string>
 
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
 
 using namespace OIIO;
+
+bool progress_callback(void* opaque_data, float portion_done)
+{
+    const int width = 40;
+    int dashes = width * portion_done;
+    std::cout << "\r" << std::flush;
+    std::cout << '|' << std::left << std::setw(width) << std::string(dashes, '#') << '|' << std::setw(3);
+    return (portion_done >= 1.f);
+}
 
 int main(int argc, char* argv[]) {
     if (argc != 3) {
@@ -55,8 +67,15 @@ int main(int argc, char* argv[]) {
     spec.nchannels = 3; // Only write RGB channels
 
     out->open(output_filename, spec, ImageOutput::Create);
-    out->write_image(result_buf.spec().format, result_buf.localpixels(), result_buf.pixel_stride(), result_buf.scanline_stride(), result_buf.z_stride(), nullptr, nullptr);
+
+    std::cout << "Writing " << output_filename << std::endl;
+
+    out->write_image(result_buf.spec().format, result_buf.localpixels(), 
+        result_buf.pixel_stride(), result_buf.scanline_stride(), result_buf.z_stride(), 
+        *progress_callback, nullptr);
     out->close();
+
+    std::cout << std::endl;
 
     return 0;
 }
