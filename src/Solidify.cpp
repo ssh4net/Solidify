@@ -19,6 +19,8 @@
 #include <iomanip>
 #include <string>
 
+#include "Timer.h"
+
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
@@ -30,7 +32,7 @@ bool progress_callback(void* opaque_data, float portion_done)
     const int width = 40;
     int dashes = width * portion_done;
     std::cout << "\r" << std::flush;
-    std::cout << '|' << std::left << std::setw(width) << std::string(dashes, '#') << '|' << std::setw(3);
+    std::cout << '|' << std::left << std::setw(width) << std::string(dashes, '#') << '|' << std::setw(1);
     return (portion_done >= 1.f);
 }
 
@@ -39,6 +41,8 @@ int main(int argc, char* argv[]) {
         std::cerr << "Usage: " << argv[0] << " INPUT OUTPUT\n";
         return 1;
     }
+
+    Timer g_timer;
 
     const char* input_filename = argv[1];
     const char* output_filename = argv[2];
@@ -59,12 +63,17 @@ int main(int argc, char* argv[]) {
     ImageBuf result_buf;
 
     // Call fillholes_pushpull
+    std::cout << "Filling holes in process...\n";
+
+    Timer pushpull_timer;
     bool ok = ImageBufAlgo::fillholes_pushpull(result_buf, input_buf);
 
     if (!ok) {
         std::cerr << "Error: " << result_buf.geterror() << std::endl;
         return 1;
     }
+
+    std::cout << "Push-Pull time : " << pushpull_timer.nowText() << std::endl;
 
     auto out = ImageOutput::create(output_filename);
     if (!out) {
@@ -86,6 +95,8 @@ int main(int argc, char* argv[]) {
     out->close();
 
     std::cout << std::endl;
+
+    std::cout << "Total processing time : " << g_timer.nowText() << std::endl;
 
     return 0;
 }
