@@ -64,7 +64,7 @@ protected:
             QFileInfo fileInfo(fileNames[i]);
             QString baseName = fileInfo.baseName();
             QString path = fileInfo.absolutePath();
-            QString outName = path + baseName + "_fill." + fileInfo.completeSuffix();
+            QString outName = path + "/" + baseName + "_fill." + fileInfo.completeSuffix();
 
             // Call the solidify_main function
             if (solidify_main(fileNames[i].toStdString(), outName.toStdString())) {
