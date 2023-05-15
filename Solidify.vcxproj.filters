@@ -18,9 +18,15 @@
     <ClCompile Include="src\Solidify.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\ui.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Timer.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\solidify.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,5 +1,5 @@
 /* 
- * This file is part of the RawGL distribution (https://github.com/ssh4net/RawGL).
+ * This file is part of the Solidify distribution.
  * Copyright (c) 2022 Erium Vladlen.
  * 
  * This program is free software: you can redistribute it and/or modify  

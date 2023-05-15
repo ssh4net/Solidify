@@ -36,22 +36,23 @@ bool progress_callback(void* opaque_data, float portion_done)
     return (portion_done >= 1.f);
 }
 
-int main(int argc, char* argv[]) {
-    if (argc != 3) {
-        std::cerr << "Usage: " << argv[0] << " INPUT OUTPUT\n";
-        return 1;
-    }
+//int main(int argc, char* argv[]) {
+int solidify_main(const std::string& inputFileName, const std::string& outputFileName) {
+    //if (argc != 3) {
+    //    std::cerr << "Usage: " << argv[0] << " INPUT OUTPUT\n";
+    //    return 1;
+    //}
 
     Timer g_timer;
 
-    const char* input_filename = argv[1];
-    const char* output_filename = argv[2];
+    //const char* input_filename = argv[0];
+    //const char* output_filename = argv[1];
 
     // Create an ImageBuf object for the input file
-    ImageBuf input_buf(input_filename);
+    ImageBuf input_buf(inputFileName);
 
     // Read the image with a progress callback
-    std::cout << "Reading " << input_filename << std::endl;
+    std::cout << "Reading " << inputFileName << std::endl;
     bool read_ok = input_buf.read(0, 0, 0, -1, true, TypeUnknown, *progress_callback, nullptr);
     if (!read_ok) {
         std::cerr << "Error: Could not read input image\n";
@@ -75,9 +76,9 @@ int main(int argc, char* argv[]) {
 
     std::cout << "Push-Pull time : " << pushpull_timer.nowText() << std::endl;
 
-    auto out = ImageOutput::create(output_filename);
+    auto out = ImageOutput::create(outputFileName);
     if (!out) {
-        std::cerr << "Could not create output file: " << output_filename << std::endl;
+        std::cerr << "Could not create output file: " << outputFileName << std::endl;
         return 1;
     }
 
@@ -85,18 +86,16 @@ int main(int argc, char* argv[]) {
     spec.nchannels = 3; // Only write RGB channels
     spec.alpha_channel = -1; // No alpha channel
 
-    out->open(output_filename, spec, ImageOutput::Create);
+    out->open(outputFileName, spec, ImageOutput::Create);
 
-    std::cout << "Writing " << output_filename << std::endl;
+    std::cout << "Writing " << outputFileName << std::endl;
 
     out->write_image(result_buf.spec().format, result_buf.localpixels(), 
         result_buf.pixel_stride(), result_buf.scanline_stride(), result_buf.z_stride(), 
         *progress_callback, nullptr);
     out->close();
 
-    std::cout << std::endl;
-
-    std::cout << "Total processing time : " << g_timer.nowText() << std::endl;
+    std::cout << std::endl << "Total processing time : " << g_timer.nowText() << std::endl;
 
     return 0;
 }
