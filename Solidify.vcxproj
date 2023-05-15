@@ -129,10 +129,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\processing.cpp" />
     <ClCompile Include="src\Solidify.cpp" />
     <ClCompile Include="src\ui.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\processing.h" />
     <ClInclude Include="src\solidify.h" />
     <ClInclude Include="src\Timer.h" />
   </ItemGroup>

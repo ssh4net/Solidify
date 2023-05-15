@@ -14,6 +14,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#pragma once
 
-int solidify_main(const std::string& inputFileName, const std::string& outputFileName);
+#pragma once
+#include <QtCore/QFileInfo>
+
+bool doProcessing(QList<QUrl> urls);
