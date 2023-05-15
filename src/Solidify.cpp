@@ -46,6 +46,15 @@ int main(int argc, char* argv[]) {
     // Create an ImageBuf object for the input file
     ImageBuf input_buf(input_filename);
 
+    // Read the image with a progress callback
+    std::cout << "Reading " << input_filename << std::endl;
+    bool read_ok = input_buf.read(0, 0, 0, -1, true, TypeUnknown, *progress_callback, nullptr);
+    if (!read_ok) {
+        std::cerr << "Error: Could not read input image\n";
+        return 1;
+    }
+    std::cout << std::endl;
+
     // Create an ImageBuf object to store the result
     ImageBuf result_buf;
 
@@ -65,6 +74,7 @@ int main(int argc, char* argv[]) {
 
     ImageSpec spec = result_buf.spec();
     spec.nchannels = 3; // Only write RGB channels
+    spec.alpha_channel = -1; // No alpha channel
 
     out->open(output_filename, spec, ImageOutput::Create);
 
