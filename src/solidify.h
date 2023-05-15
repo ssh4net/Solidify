@@ -16,4 +16,4 @@
  */
 #pragma once
 
-int solidify_main(const std::string& inputFileName, const std::string& outputFileName);
+int solidify_main(const std::string& mask_file, const std::string& inputFileName, const std::string& outputFileName);

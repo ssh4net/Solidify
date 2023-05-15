@@ -37,23 +37,29 @@ bool progress_callback(void* opaque_data, float portion_done)
 }
 
 //int main(int argc, char* argv[]) {
-int solidify_main(const std::string& inputFileName, const std::string& outputFileName) {
-    //if (argc != 3) {
-    //    std::cerr << "Usage: " << argv[0] << " INPUT OUTPUT\n";
-    //    return 1;
-    //}
-
+int solidify_main(const std::string& mask_file, const std::string& inputFileName, const std::string& outputFileName) {
     Timer g_timer;
-
-    //const char* input_filename = argv[0];
-    //const char* output_filename = argv[1];
 
     // Create an ImageBuf object for the input file
     ImageBuf input_buf(inputFileName);
+    ImageBuf mask_buf(mask_file);
 
     // Read the image with a progress callback
+
+    int last_channel = -1;
+
+    if (mask_file != "") {
+        last_channel = 3;
+        std::cout << "Reading " << mask_file << std::endl;
+        bool read_ok = mask_buf.read(0, 0, 0, 1, true, TypeDesc::FLOAT, nullptr, nullptr);
+        if (!read_ok) {
+			std::cerr << "Error: Could not read mask image\n";
+			return 1;
+		}
+    }
     std::cout << "Reading " << inputFileName << std::endl;
-    bool read_ok = input_buf.read(0, 0, 0, -1, true, TypeUnknown, *progress_callback, nullptr);
+
+    bool read_ok = input_buf.read(0, 0, 0, last_channel, true, TypeUnknown, *progress_callback, nullptr);
     if (!read_ok) {
         std::cerr << "Error: Could not read input image\n";
         return 1;
@@ -61,13 +67,27 @@ int solidify_main(const std::string& inputFileName, const std::string& outputFil
     std::cout << std::endl;
 
     // Create an ImageBuf object to store the result
-    ImageBuf result_buf;
+    ImageBuf result_buf, rgba_buf;
 
-    // Call fillholes_pushpull
     std::cout << "Filling holes in process...\n";
 
     Timer pushpull_timer;
-    bool ok = ImageBufAlgo::fillholes_pushpull(result_buf, input_buf);
+
+    if (mask_file != "") {
+        ImageBuf alpha_ch, alpha_c3;
+        bool ok = ImageBufAlgo::channel_append(alpha_ch, mask_buf, mask_buf);
+        ok = ok && ImageBufAlgo::channel_append(alpha_c3, alpha_ch, mask_buf);
+        ImageBufAlgo::mul(input_buf, input_buf, alpha_c3);
+        ok = ok && ImageBufAlgo::channel_append(rgba_buf, input_buf, mask_buf);
+        if (!ok) {
+			std::cerr << "Error: " << rgba_buf.geterror() << std::endl;
+			return 1;
+		}
+    }
+
+    // Call fillholes_pushpull
+
+    bool ok = ImageBufAlgo::fillholes_pushpull(result_buf, (mask_file == "") ? input_buf : rgba_buf);
 
     if (!ok) {
         std::cerr << "Error: " << result_buf.geterror() << std::endl;
@@ -94,6 +114,19 @@ int solidify_main(const std::string& inputFileName, const std::string& outputFil
         result_buf.pixel_stride(), result_buf.scanline_stride(), result_buf.z_stride(), 
         *progress_callback, nullptr);
     out->close();
+
+#if 0
+    spec = rgba_buf.spec();
+    spec.nchannels = 4;
+
+    out->open("debug.exr", spec, ImageOutput::Create);
+
+    out->write_image(rgba_buf.spec().format, rgba_buf.localpixels(),
+        rgba_buf.pixel_stride(), rgba_buf.scanline_stride(), rgba_buf.z_stride(),
+        *progress_callback, nullptr);
+    out->close();
+
+#endif
 
     std::cout << std::endl << "Total processing time : " << g_timer.nowText() << std::endl;
 

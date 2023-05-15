@@ -19,3 +19,5 @@
 #include <QtCore/QFileInfo>
 
 bool doProcessing(QList<QUrl> urls);
+
+QString checkAlpha(std::vector<QString> fileNames);
