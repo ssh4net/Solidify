@@ -16,6 +16,8 @@ Tool expecting RGBA image file. Output files will be write in same folder as a s
 From v1.1 possible to use external alpha channel as a single channel file with **_mask.ext** or **_alpha.ext** in name (case insencitive).
 Tool will read external alpha channel file only once per batch.
 
+![Solidify 1 1](https://github.com/ssh4net/Solidify/assets/3924000/24dc9382-e554-44d0-8ed1-2465752a4752)
+
 Dependencies
 ------------
 
