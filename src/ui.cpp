@@ -30,8 +30,16 @@ public:
     DropArea() {
         setAcceptDrops(true);
         resize(400, 400);
-        setText("Drag-n-drop files here"); // Set text
+        setMinimumSize(400, 400);
+        setMaximumSize(400, 400);
+        setWindowFlags(Qt::WindowStaysOnTopHint);
+        setWindowTitle("Solidify 1.1");
+        setText("Drag & drop files here"); // Set text
         setAlignment(Qt::AlignCenter); // Set alignment to center
+
+        QFont font = this->font();
+        font.setPointSize(16);
+        setFont(font);
     }
 
 protected:
@@ -55,6 +63,8 @@ protected:
         bool success = doProcessing(urls);
 
         qDebug() << "Done!";
+
+        return;
     }
 };
 

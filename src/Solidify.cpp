@@ -36,33 +36,51 @@ bool progress_callback(void* opaque_data, float portion_done)
     return (portion_done >= 1.f);
 }
 
-//int main(int argc, char* argv[]) {
-int solidify_main(const std::string& mask_file, const std::string& inputFileName, const std::string& outputFileName) {
+std::pair<ImageBuf, ImageBuf> mask_load(const std::string& mask_file) {
+    ImageBuf mask_buf(mask_file);
+    std::cout << "Reading " << mask_file << std::endl;
+    bool read_ok = mask_buf.read(0, 0, 0, 1, true, TypeDesc::FLOAT, nullptr, nullptr);
+    if (!read_ok) {
+		std::cerr << "Error: Could not read mask image\n";
+		exit(-1);
+	}
+    
+    ImageBuf rgb_alpha, temp_buff;
+
+    bool ok = ImageBufAlgo::channel_append(temp_buff, mask_buf, mask_buf);
+    ok = ok && ImageBufAlgo::channel_append(rgb_alpha, temp_buff, mask_buf);
+    if (!ok) {
+		std::cerr << "Error: Could not append channels\n";
+		exit(-1);
+	}
+
+    temp_buff.clear();
+
+    return { mask_buf, rgb_alpha };
+}
+
+bool solidify_main(const std::string& inputFileName, const std::string& outputFileName, std::pair<ImageBuf, ImageBuf> mask_pair) {
     Timer g_timer;
 
     // Create an ImageBuf object for the input file
     ImageBuf input_buf(inputFileName);
-    ImageBuf mask_buf(mask_file);
+
+    bool external_alpha = false;
+
+    if (mask_pair.first.initialized() && mask_pair.second.initialized()) {
+		external_alpha = true;
+	}
 
     // Read the image with a progress callback
 
-    int last_channel = -1;
+    int last_channel = (external_alpha) ? 3 : -1; // If we have an external alpha, read only 3 channels
 
-    if (mask_file != "") {
-        last_channel = 3;
-        std::cout << "Reading " << mask_file << std::endl;
-        bool read_ok = mask_buf.read(0, 0, 0, 1, true, TypeDesc::FLOAT, nullptr, nullptr);
-        if (!read_ok) {
-			std::cerr << "Error: Could not read mask image\n";
-			return 1;
-		}
-    }
     std::cout << "Reading " << inputFileName << std::endl;
 
     bool read_ok = input_buf.read(0, 0, 0, last_channel, true, TypeUnknown, *progress_callback, nullptr);
     if (!read_ok) {
         std::cerr << "Error: Could not read input image\n";
-        return 1;
+        return false;
     }
     std::cout << std::endl;
 
@@ -73,25 +91,23 @@ int solidify_main(const std::string& mask_file, const std::string& inputFileName
 
     Timer pushpull_timer;
 
-    if (mask_file != "") {
-        ImageBuf alpha_ch, alpha_c3;
-        bool ok = ImageBufAlgo::channel_append(alpha_ch, mask_buf, mask_buf);
-        ok = ok && ImageBufAlgo::channel_append(alpha_c3, alpha_ch, mask_buf);
-        ImageBufAlgo::mul(input_buf, input_buf, alpha_c3);
-        ok = ok && ImageBufAlgo::channel_append(rgba_buf, input_buf, mask_buf);
+    if (external_alpha) {
+        bool ok = ImageBufAlgo::mul(input_buf, input_buf, mask_pair.second);
+        ok = ok && ImageBufAlgo::channel_append(rgba_buf, input_buf, mask_pair.first);
         if (!ok) {
 			std::cerr << "Error: " << rgba_buf.geterror() << std::endl;
-			return 1;
+			return false;
 		}
     }
 
-    // Call fillholes_pushpull
+    ImageBuf* input_buf_ptr = external_alpha ? &rgba_buf : &input_buf; // Use the multiplied RGBA buffer if have an external alpha
 
-    bool ok = ImageBufAlgo::fillholes_pushpull(result_buf, (mask_file == "") ? input_buf : rgba_buf);
+    // Call fillholes_pushpull
+    bool ok = ImageBufAlgo::fillholes_pushpull(result_buf, *input_buf_ptr);
 
     if (!ok) {
         std::cerr << "Error: " << result_buf.geterror() << std::endl;
-        return 1;
+        return false;
     }
 
     std::cout << "Push-Pull time : " << pushpull_timer.nowText() << std::endl;
@@ -99,7 +115,7 @@ int solidify_main(const std::string& mask_file, const std::string& inputFileName
     auto out = ImageOutput::create(outputFileName);
     if (!out) {
         std::cerr << "Could not create output file: " << outputFileName << std::endl;
-        return 1;
+        return false;
     }
 
     ImageSpec spec = result_buf.spec();
@@ -116,6 +132,8 @@ int solidify_main(const std::string& mask_file, const std::string& inputFileName
     out->close();
 
 #if 0
+
+    // Write RGBA buffer for debug
     spec = rgba_buf.spec();
     spec.nchannels = 4;
 
@@ -130,5 +148,5 @@ int solidify_main(const std::string& mask_file, const std::string& inputFileName
 
     std::cout << std::endl << "Total processing time : " << g_timer.nowText() << std::endl;
 
-    return 0;
+    return true;
 }

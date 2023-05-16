@@ -62,8 +62,11 @@ bool doProcessing(QList<QUrl> urls) {
     // Check if there is an alpha channel files
     QString mask_file = checkAlpha(fileNames);
 
+    std::pair<ImageBuf, ImageBuf> mask_pair;
+
     if (mask_file != "") {
         qDebug() << "Mask file: " << mask_file << " will be used.";
+        mask_pair = mask_load(mask_file.toStdString());
 	}
 
     for (int i = 0; i < fileNames.size(); i++) {
@@ -78,7 +81,7 @@ bool doProcessing(QList<QUrl> urls) {
         QString outName = path + "/" + baseName + "_fill." + fileInfo.completeSuffix();
 
         // Call the solidify_main function
-        if (solidify_main(mask_file.toStdString(), fileNames[i].toStdString(), outName.toStdString())) {
+        if (!solidify_main(fileNames[i].toStdString(), outName.toStdString(), mask_pair)) {
             exit(-1);
         };
     }

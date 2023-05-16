@@ -13,6 +13,21 @@ Check console to progress information.
 
 Tool expecting RGBA image file. Output files will be write in same folder as a source files with a name **Source_file_name_fill.ext** as RGB without alpha channel.
 
+From v1.1 possible to use external alpha channel as a single channel file with **_mask.ext** or **_alpha.ext** in name (case insencitive).
+Tool will read external alpha channel file only once per batch.
+
+Dependencies
+------------
+
+### Required dependencies
+* OpenImageIO
+* QT5
+
+Changelog
+---------
+* 1.1 - External alpha/mask channel support. Drag&Drop window always on top.
+* 1.0 - Initial release
+
 License
 -------
 

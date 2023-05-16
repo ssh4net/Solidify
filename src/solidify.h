@@ -16,4 +16,12 @@
  */
 #pragma once
 
-int solidify_main(const std::string& mask_file, const std::string& inputFileName, const std::string& outputFileName);
+#include <OpenImageIO/imageio.h>
+#include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/imagebufalgo.h>
+
+using namespace OIIO;
+
+std::pair<ImageBuf, ImageBuf> mask_load(const std::string& mask_file);
+
+bool solidify_main(const std::string& inputFileName, const std::string& outputFileName, std::pair<ImageBuf, ImageBuf> mask_pair);
