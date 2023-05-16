@@ -82,6 +82,7 @@ bool doProcessing(QList<QUrl> urls) {
 
         // Call the solidify_main function
         if (!solidify_main(fileNames[i].toStdString(), outName.toStdString(), mask_pair)) {
+            system("pause");
             exit(-1);
         };
     }

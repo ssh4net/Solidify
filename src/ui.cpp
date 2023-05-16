@@ -33,7 +33,7 @@ public:
         setMinimumSize(400, 400);
         setMaximumSize(400, 400);
         setWindowFlags(Qt::WindowStaysOnTopHint);
-        setWindowTitle("Solidify 1.1");
+        setWindowTitle("Solidify 1.2");
         setText("Drag & drop files here"); // Set text
         setAlignment(Qt::AlignCenter); // Set alignment to center
 

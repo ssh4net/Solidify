@@ -11,10 +11,12 @@ Check console to progress information.
 
 ![Screenshot](https://github.com/ssh4net/Solidify/assets/3924000/3b8562f6-ca73-49f6-a3b1-b9e1f4cbc8ac)
 
-Tool expecting RGBA image file. Output files will be write in same folder as a source files with a name **Source_file_name_fill.ext** as RGB without alpha channel.
+Tool expecting RGBA or Grayscale with alpha channel image file. Output files will be write in same folder as a source files with a name **Source_file_name_fill.ext** as RGB without alpha channel.
 
-From v1.1 possible to use external alpha channel as a single channel file with **_mask.ext** or **_alpha.ext** in name (case insencitive).
-Tool will read external alpha channel file only once per batch.
+From v1.2 possible to use external alpha channel as a single channel file with **_mask.ext** or **_alpha.ext** in name (case insencitive).
+Supporting for RGB and Grayscale images only with external alpha/mask image file.
+
+Too optimize performance Solidify app reading external alpha channel file once per batch.
 
 ![Solidify 1 1](https://github.com/ssh4net/Solidify/assets/3924000/24dc9382-e554-44d0-8ed1-2465752a4752)
 
@@ -27,7 +29,8 @@ Dependencies
 
 Changelog
 ---------
-* 1.1 - External alpha/mask channel support. Drag&Drop window always on top.
+* 1.2 - Grayscale textures fix
+* 1.1 - External alpha/mask channel support. Drag&Drop window always on top
 * 1.0 - Initial release
 
 License
