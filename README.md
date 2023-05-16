@@ -14,11 +14,14 @@ Check console to progress information.
 Tool expecting RGBA or Grayscale with alpha channel image file. Output files will be write in same folder as a source files with a name **Source_file_name_fill.ext** as RGB without alpha channel.
 
 From v1.2 possible to use external alpha channel as a single channel file with **_mask.ext** or **_alpha.ext** in name (case insencitive).
-Supporting for RGB and Grayscale images only with external alpha/mask image file.
-
-Too optimize performance Solidify app reading external alpha channel file once per batch.
 
 ![Solidify 1 1](https://github.com/ssh4net/Solidify/assets/3924000/24dc9382-e554-44d0-8ed1-2465752a4752)
+
+Supporting for RGB and Grayscale images only with external alpha/mask image file.
+
+![Solidify 1 2](https://github.com/ssh4net/Solidify/assets/3924000/7405f944-59f5-452c-ba9c-aafd7f96c2d7)
+
+Too optimize performance Solidify app reading external alpha channel file once per batch.
 
 Dependencies
 ------------
