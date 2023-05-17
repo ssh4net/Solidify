@@ -46,6 +46,12 @@ std::pair<ImageBuf, ImageBuf> mask_load(const std::string& mask_file) {
 		exit(-1);
 	}
 
+    int width = alpha_buf.spec().width;
+    int height = alpha_buf.spec().height;
+    std::cout << "Mask size: " << width << "x" << height << std::endl;
+    // get bit depth of the image channels
+    //int bit_depth = alpha_buf.spec().format.basesize * 8;
+    
     // rename channel to alpha and set it as an alpha channel
     alpha_buf.specmod().channelnames[0] = "A";
     alpha_buf.specmod().alpha_channel = 0;
@@ -91,10 +97,41 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
     }
 
     std::cout << std::endl;
-    std::cout << "channels: " << input_buf.nchannels() << std::endl;
+
+    // Get the image's spec
+    const ImageSpec& ispec = input_buf.spec();
+
+    // Get the format (bit depth and type)
+    TypeDesc format = ispec.format;
+
+    if (format == TypeDesc::UINT8) {
+        std::cout << "8-bit unsigned int" << std::endl;
+    }
+    else if (format == TypeDesc::UINT16) {
+        std::cout << "16-bit unsigned int" << std::endl;
+    }
+    else if (format == TypeDesc::HALF) {
+        std::cout << "16-bit float" << std::endl;
+    }
+    else if (format == TypeDesc::FLOAT) {
+        std::cout << "32-bit float" << std::endl;
+    }
+    else if (format == TypeDesc::DOUBLE) {
+        std::cout << "64-bit float" << std::endl;
+    }
+    else {
+        std::cout << "Unknown or unsupported format" << std::endl;
+    }
+
+    // get the image size
+    int width = input_buf.spec().width;
+    int height = input_buf.spec().height;
+    std::cout << "Image size: " << width << "x" << height << std::endl;
+
+    std::cout << "Channels: " << input_buf.nchannels() << std::endl;
 
     int alpha_channel = input_buf.spec().alpha_channel;
-    std::cout << "alpha channel: " << alpha_channel << std::endl;
+    std::cout << "Alpha channel: " << alpha_channel << std::endl;
 
     bool isValid = true;
     int inputCh = input_buf.nchannels();
@@ -140,15 +177,23 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
     }
 
     // Create an ImageBuf object to store the result
-    ImageBuf result_buf, rgba_buf;
+    ImageBuf result_buf, rgba_buf, bit_alpha_buf;
 
     std::cout << "Filling holes in process...\n";
 
     Timer pushpull_timer;
 
     if (external_alpha) {
+
+        ImageBuf* alpha_buf_ptr = &mask_pair.first;
+
+        if (format != TypeDesc::FLOAT) {
+            bit_alpha_buf = mask_pair.first.copy(format);
+            alpha_buf_ptr = &bit_alpha_buf;
+        }
+
         bool ok = ImageBufAlgo::mul(input_buf, input_buf, grayscale ? mask_pair.first : mask_pair.second);
-        ok = ok && ImageBufAlgo::channel_append(rgba_buf, input_buf, mask_pair.first);
+        ok = ok && ImageBufAlgo::channel_append(rgba_buf, input_buf, bit_alpha_buf);
         if (!ok) {
 			std::cerr << "Error: " << rgba_buf.geterror() << std::endl;
 			return false;

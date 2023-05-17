@@ -32,7 +32,7 @@ QString checkAlpha(std::vector<QString> fileNames) {
         return str.contains("_mask.", Qt::CaseInsensitive);
         });
     if (it != fileNames.end()) {
-        qDebug() << "Found _mask. in: " << it->toStdString().c_str();
+        //qDebug() << "Found _mask. in: " << it->toStdString().c_str();
         return *it;
     }
 
@@ -41,7 +41,7 @@ QString checkAlpha(std::vector<QString> fileNames) {
         return str.contains("_alpha.", Qt::CaseInsensitive);
         });
     if (it != fileNames.end()) {
-        qDebug() << "Found _alpha. in: " << it->toStdString().c_str();
+        //qDebug() << "Found _alpha. in: " << it->toStdString().c_str();
         return *it;
     }
 

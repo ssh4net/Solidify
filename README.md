@@ -29,9 +29,10 @@ Dependencies
 
 Changelog
 ---------
-* 1.2 - Grayscale textures fix
-* 1.1 - External alpha/mask channel support. Drag&Drop window always on top
-* 1.0 - Initial release
+* 1.21 - Bit depth when using external alpha/mask fix
+* 1.2  - Grayscale textures fix
+* 1.1  - External alpha/mask channel support. Drag&Drop window always on top
+* 1.0  - Initial release
 
 License
 -------
