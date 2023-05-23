@@ -193,7 +193,7 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
         }
 
         bool ok = ImageBufAlgo::mul(input_buf, input_buf, grayscale ? mask_pair.first : mask_pair.second);
-        ok = ok && ImageBufAlgo::channel_append(rgba_buf, input_buf, bit_alpha_buf);
+        ok = ok && ImageBufAlgo::channel_append(rgba_buf, input_buf, *alpha_buf_ptr);
         if (!ok) {
 			std::cerr << "Error: " << rgba_buf.geterror() << std::endl;
 			return false;
