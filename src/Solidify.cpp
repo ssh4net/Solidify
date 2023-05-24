@@ -127,11 +127,7 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
     int width = input_buf.spec().width;
     int height = input_buf.spec().height;
     std::cout << "Image size: " << width << "x" << height << std::endl;
-
-    std::cout << "Channels: " << input_buf.nchannels() << std::endl;
-
-    int alpha_channel = input_buf.spec().alpha_channel;
-    std::cout << "Alpha channel: " << alpha_channel << std::endl;
+    std::cout << "Channels: " << input_buf.nchannels() << " Alpha channel: " << input_buf.spec().alpha_channel << std::endl;
 
     bool isValid = true;
     int inputCh = input_buf.nchannels();
@@ -205,15 +201,6 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
 
     ImageBuf* input_buf_ptr = external_alpha ? &rgba_buf : &input_buf; // Use the multiplied RGBA buffer if have an external alpha
 
-#if 0
-    std::cout << "channels: " << input_buf_ptr->nchannels() << std::endl;
-    //std::vector<std::string> chnames = input_buf_ptr->spec().channelnames;
-    //for (int i = 0; i < input_buf_ptr->nchannels(); ++i)
-    //    std::cout << "channel " << i << " : " << chnames[i] << std::endl;
-
-    std::cout << "alpha channel: " << input_buf_ptr->spec().alpha_channel << std::endl;
-#endif
-
     // Call fillholes_pushpull
     bool ok = ImageBufAlgo::fillholes_pushpull(result_buf, *input_buf_ptr);
 
@@ -231,8 +218,11 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
     }
 
     ImageSpec spec = result_buf.spec();
-    spec.nchannels = grayscale ? 1 : 3; // Only write RGB channels
-    spec.alpha_channel = -1; // No alpha channel
+
+    //std::cout << "Channels: " << spec.nchannels << " Alpha channel: " << spec.alpha_channel << std::endl;
+
+    spec.nchannels = grayscale ? 1 : 4; // Only write RGB channels
+    spec.alpha_channel = 3; // No alpha channel
 
     out->open(outputFileName, spec, ImageOutput::Create);
 
