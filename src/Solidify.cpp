@@ -221,8 +221,8 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
 
     //std::cout << "Channels: " << spec.nchannels << " Alpha channel: " << spec.alpha_channel << std::endl;
 
-    spec.nchannels = grayscale ? 1 : 4; // Only write RGB channels
-    spec.alpha_channel = 3; // No alpha channel
+    spec.nchannels = grayscale ? 1 : 3; // Only write RGB channels
+    spec.alpha_channel = -1; // No alpha channel
 
     out->open(outputFileName, spec, ImageOutput::Create);
 
