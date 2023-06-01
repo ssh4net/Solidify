@@ -129,6 +129,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\processing.cpp" />
     <ClCompile Include="src\Solidify.cpp" />
     <ClCompile Include="src\ui.cpp" />
@@ -137,6 +138,7 @@
     <ClInclude Include="src\processing.h" />
     <ClInclude Include="src\solidify.h" />
     <ClInclude Include="src\Timer.h" />
+    <ClInclude Include="src\ui.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
