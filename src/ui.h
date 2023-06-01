@@ -13,6 +13,9 @@
 #include <QtCore/QDebug>
 #include <QtCore/QFileInfo>
 #include <QtCore/QProcess>
+#include <QtWidgets/QProgressBar>
+#include <QtWidgets/QStatusBar>
+#include <QtWidgets/QVBoxLayout>
 
 #include "processing.h"
 

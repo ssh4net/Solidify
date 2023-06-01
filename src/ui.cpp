@@ -1,29 +1,21 @@
 #include "ui.h"
 
-#include <QtWidgets/QMainWindow>
-#include <QtWidgets/QMenuBar>
-#include <QtWidgets/QMenu>
-#include <QtWidgets/QAction>
-
-#include <QtWidgets/QApplication>
-#include <QtWidgets/QLabel>
-#include <QtGui/QDragEnterEvent>
-#include <QtGui/QDropEvent>
-#include <QtCore/QMimeData>
-#include <QtCore/QDebug>
-#include <QtCore/QFileInfo>
-#include <QtCore/QProcess>
-
 #include "processing.h"
 
 DropArea::DropArea() {
-    setAcceptDrops(true);
-    setText("Drag & drop files here"); // Set text
-    setAlignment(Qt::AlignCenter); // Set alignment to center
+    QVBoxLayout* layout = new QVBoxLayout;
+    QLabel* label = new QLabel("Drag & drop files here");
 
     QFont font = this->font();
     font.setPointSize(16);
-    setFont(font);
+    label->setFont(font);
+
+    label->setAlignment(Qt::AlignCenter); // Set alignment to center
+
+    layout->addWidget(label, 0, Qt::AlignCenter);
+
+    setLayout(layout);
+    setAcceptDrops(true);
 }
 
 void DropArea::dragEnterEvent(QDragEnterEvent* event) {
@@ -36,13 +28,6 @@ void DropArea::dropEvent(QDropEvent* event)  {
         return;
     }
 
-    //QString fileName = urls.first().toLocalFile();
-    //if (fileName.isEmpty()) {
-    //    return;
-    //}
-
-    // Processing
-
     bool success = doProcessing(urls);
 
     qDebug() << "Done!";
@@ -51,12 +36,31 @@ void DropArea::dropEvent(QDropEvent* event)  {
 }
 
 MainWindow::MainWindow() {
-    DropArea* dropArea = new DropArea;
-    dropArea->setFixedSize(400, 400);  // Set the size of the drop area
-    setCentralWidget(dropArea);
+    QVBoxLayout* layout = new QVBoxLayout;  // Create a vertical layout
 
-    setWindowFlags(Qt::WindowStaysOnTopHint);
-    setWindowTitle("Solidify 1.22");
+    DropArea* dropArea = new DropArea;
+    //dropArea->setFixedSize(400, 380);  // Set the size of the drop area
+    // set size of drop area to fill layout area
+    dropArea->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    dropArea->setAutoFillBackground(true);  // Fill the background with the color below
+    dropArea->setStyleSheet("border-radius: 3px; background-color: #E0E0E0; margin-bottom: 4px;");
+
+    layout->addWidget(dropArea);  // Add the drop area to the layout
+
+    QProgressBar* progressBar = new QProgressBar;
+    progressBar->setFixedHeight(20);
+    progressBar->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    progressBar->setRange(0, 100);
+    //progressBar->setValue(75);
+    progressBar->setTextVisible(false);
+    progressBar->setStyleSheet(
+        "QProgressBar {border: 0px solid black; border-radius: 3px; background-color: white; color: black;}"
+    	"QProgressBar::chunk {background-color: #05B8CC;}");
+    layout->addWidget(progressBar);  // Add the progress bar to the layout
+
+    QWidget* centralWidget = new QWidget;
+    centralWidget->setLayout(layout);  // Set the layout for the central widget
+    setCentralWidget(centralWidget);  // Set the central widget of the MainWindow
 
     QMenuBar* menuBar = new QMenuBar;
     QMenu* f_menu = new QMenu("Files", menuBar);
@@ -69,6 +73,10 @@ MainWindow::MainWindow() {
     menuBar->addMenu(r_menu);
     setMenuBar(menuBar);
 
+    setWindowFlags(Qt::WindowStaysOnTopHint);
+    setWindowTitle("Solidify 1.22");
+    setFixedSize(400, 400);
+    
     // Connect the Exit action's triggered signal to QApplication's quit slot
     connect(f_Exit, &QAction::triggered, qApp, &QApplication::quit);
 
