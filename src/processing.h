@@ -16,8 +16,8 @@
  */
 
 #pragma once
-#include <QtCore/QFileInfo>
+#include "ui.h"
 
-bool doProcessing(QList<QUrl> urls);
+bool doProcessing(QList<QUrl> URLs, QProgressBar* progressBar);
 
 QString checkAlpha(std::vector<QString> fileNames);

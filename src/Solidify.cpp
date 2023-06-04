@@ -25,14 +25,32 @@
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
 
+#include "solidify.h"
+
 using namespace OIIO;
+
+//bool progress_callback(void* opaque_data, float portion_done)
+//{
+//    const int width = 40;
+//    int dashes = width * portion_done;
+//    std::cout << "\r" << std::flush;
+//    std::cout << '|' << std::left << std::setw(width) << std::string(dashes, '#') << '|' << std::setw(1);
+//    return (portion_done >= 1.f);
+//}
 
 bool progress_callback(void* opaque_data, float portion_done)
 {
-    const int width = 40;
-    int dashes = width * portion_done;
-    std::cout << "\r" << std::flush;
-    std::cout << '|' << std::left << std::setw(width) << std::string(dashes, '#') << '|' << std::setw(1);
+    // Cast the opaque_data back to a QProgressBar
+    QProgressBar* progressBar = static_cast<QProgressBar*>(opaque_data);
+
+    // Calculate the value to set on the progress bar.
+    // The value is an integer between the minimum and maximum (default 0 and 100).
+    int value = static_cast<int>(portion_done * 100);
+
+    // You need to use QMetaObject::invokeMethod when you are interacting with the GUI thread from a non-GUI thread
+    // Qt::QueuedConnection ensures the change will be made when control returns to the event loop of the GUI thread
+    QMetaObject::invokeMethod(progressBar, "setValue", Qt::QueuedConnection, Q_ARG(int, value));
+
     return (portion_done >= 1.f);
 }
 
@@ -71,9 +89,8 @@ std::pair<ImageBuf, ImageBuf> mask_load(const std::string& mask_file) {
     return { alpha_buf, rgb_alpha };
 }
 
-bool solidify_main(const std::string& inputFileName, const std::string& outputFileName, std::pair<ImageBuf, ImageBuf> mask_pair) {
+bool solidify_main(const std::string& inputFileName, const std::string& outputFileName, std::pair<ImageBuf, ImageBuf> mask_pair, QProgressBar* progressBar) {
     Timer g_timer;
-
     // Create an ImageBuf object for the input file
     ImageBuf input_buf(inputFileName);
 
@@ -90,7 +107,10 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
 
     std::cout << "Reading " << inputFileName << std::endl;
 
-    bool read_ok = input_buf.read(0, 0, 0, last_channel, true, TypeUnknown, *progress_callback, nullptr);
+    // Assuming progressBar is a pointer to your QProgressBar
+    bool read_ok = input_buf.read(0, 0, 0, last_channel, true, TypeUnknown, progress_callback, progressBar);
+
+    //bool read_ok = input_buf.read(0, 0, 0, last_channel, true, TypeUnknown, *progress_callback, nullptr);
     if (!read_ok) {
         std::cerr << "Error: Could not read input image\n";
         return false;
@@ -226,14 +246,17 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
 
     out->open(outputFileName, spec, ImageOutput::Create);
 
+    QMetaObject::invokeMethod(progressBar, "setValue", Qt::QueuedConnection, Q_ARG(int, 0));
+
     std::cout << "Writing " << outputFileName << std::endl;
 
     out->write_image(result_buf.spec().format, result_buf.localpixels(), 
         result_buf.pixel_stride(), result_buf.scanline_stride(), result_buf.z_stride(), 
-        *progress_callback, nullptr);
+        *progress_callback, progressBar);
     out->close();
 
     std::cout << std::endl << "Total processing time : " << g_timer.nowText() << std::endl;
+    QMetaObject::invokeMethod(progressBar, "setValue", Qt::QueuedConnection, Q_ARG(int, 0));
 
     return true;
 }

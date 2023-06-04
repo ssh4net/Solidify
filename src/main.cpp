@@ -16,8 +16,13 @@
  */
 
 #include "ui.h"
+#include "stdafx.h"
 
 int main(int argc, char* argv[]) {
+    // create console
+    AllocConsole();
+    freopen("CONOUT$", "w", stdout);
+    freopen("CONOUT$", "w", stderr);
     QApplication app(argc, argv);
 
     MainWindow window;

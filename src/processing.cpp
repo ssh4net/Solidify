@@ -17,6 +17,7 @@
 
 #include "ui.h"
 #include "solidify.h"
+#include "stdafx.h"
 
 QString checkAlpha(std::vector<QString> fileNames) {
     std::vector<QString>::iterator it;
@@ -43,7 +44,9 @@ QString checkAlpha(std::vector<QString> fileNames) {
     return "";
 }
 
-bool doProcessing(QList<QUrl> urls) {
+bool doProcessing(QList<QUrl> urls, QProgressBar* progressBar) {
+
+
     std::vector<QString> fileNames; // This will hold the names of all files
 
     for (const QUrl& url : urls) {
@@ -74,8 +77,15 @@ bool doProcessing(QList<QUrl> urls) {
         QString path = fileInfo.absolutePath();
         QString outName = path + "/" + baseName + "_fill." + fileInfo.completeSuffix();
 
+        //std::string infile = static_cast<std::string>(fileNames[i].toUtf8().constData());
+        //std::string outfile = static_cast<std::string>(outName.toUtf8().constData());
+        std::string infile = fileNames[i].toStdString();
+        std::string outfile = outName.toStdString();
+
         // Call the solidify_main function
-        if (!solidify_main(fileNames[i].toStdString(), outName.toStdString(), mask_pair)) {
+        bool result = solidify_main(infile, outfile, mask_pair, progressBar);
+
+        if (!result) {
             system("pause");
             exit(-1);
         };

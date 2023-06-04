@@ -20,8 +20,10 @@
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
 
+#include "ui.h"
+
 using namespace OIIO;
 
 std::pair<ImageBuf, ImageBuf> mask_load(const std::string& mask_file);
 
-bool solidify_main(const std::string& inputFileName, const std::string& outputFileName, std::pair<ImageBuf, ImageBuf> mask_pair);
+bool solidify_main(const std::string& inputFileName, const std::string& outputFileName, std::pair<ImageBuf, ImageBuf> mask_pair, QProgressBar* progressBar);

@@ -17,11 +17,19 @@
 #include <QtWidgets/QStatusBar>
 #include <QtWidgets/QVBoxLayout>
 
+#include <QtCore/QFutureWatcher>
+#include <QtConcurrent/QtConcurrentRun>
+
 #include "processing.h"
 
 class DropArea : public QLabel {
+    Q_OBJECT  // Macro needed to handle signals and slots
+
 public:
     DropArea();
+
+signals:
+    void filesDropped(QList<QUrl> urls);  // New signal to be emitted when files are dropped
 
 protected:
     void dragEnterEvent(QDragEnterEvent* event) override;
@@ -29,9 +37,15 @@ protected:
 };
 
 class MainWindow : public QMainWindow {
+    Q_OBJECT  // Macro needed to handle signals and slots
 public:
     MainWindow();
 
 private slots:
     void restartApp();
+    void startProcessing(QList<QUrl> urls);  // New slot
+
+private:
+    QFutureWatcher<bool> processingWatcher;
+    QProgressBar* progressBar;
 };

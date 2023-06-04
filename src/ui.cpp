@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "ui.h"
 
 #include "processing.h"
@@ -22,24 +23,17 @@ void DropArea::dragEnterEvent(QDragEnterEvent* event) {
     event->acceptProposedAction();
 }
 
-void DropArea::dropEvent(QDropEvent* event)  {
+void DropArea::dropEvent(QDropEvent* event) {
     QList<QUrl> urls = event->mimeData()->urls();
-    if (urls.isEmpty()) {
-        return;
+    if (!urls.isEmpty()) {
+        emit filesDropped(urls);  // Emit the signal when files are dropped
     }
-
-    bool success = doProcessing(urls);
-
-    qDebug() << "Done!";
-
-    return;
 }
 
 MainWindow::MainWindow() {
     QVBoxLayout* layout = new QVBoxLayout;  // Create a vertical layout
 
     DropArea* dropArea = new DropArea;
-    //dropArea->setFixedSize(400, 380);  // Set the size of the drop area
     // set size of drop area to fill layout area
     dropArea->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     dropArea->setAutoFillBackground(true);  // Fill the background with the color below
@@ -47,7 +41,19 @@ MainWindow::MainWindow() {
 
     layout->addWidget(dropArea);  // Add the drop area to the layout
 
-    QProgressBar* progressBar = new QProgressBar;
+    // Create a new QPlainTextEdit
+    QPlainTextEdit* textOutput = new QPlainTextEdit;
+    textOutput->setReadOnly(true);  // Make it read-only so users can't edit the text
+    // set the size to fill width and 1/3 of the height
+    textOutput->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    textOutput->setFixedHeight(50);
+    textOutput->setStyleSheet("border-radius: 3px; background-color: #E0E0E0; margin-bottom: 4px;");
+    // add some text to the text output
+    textOutput->setPlainText("Debug:\n");
+
+    layout->addWidget(textOutput);  // Add the textOutput to the layout
+
+    progressBar = new QProgressBar;
     progressBar->setFixedHeight(20);
     progressBar->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     progressBar->setRange(0, 100);
@@ -77,11 +83,23 @@ MainWindow::MainWindow() {
     setWindowTitle("Solidify 1.22");
     setFixedSize(400, 400);
     
+    // Connect the signal from the drop area to the slot in the main window
+    connect(dropArea, &DropArea::filesDropped, this, &MainWindow::startProcessing);
+
     // Connect the Exit action's triggered signal to QApplication's quit slot
     connect(f_Exit, &QAction::triggered, qApp, &QApplication::quit);
 
     // Connect the Restart action's triggered signal to a slot that restarts the app
     connect(f_Restart, &QAction::triggered, this, &MainWindow::restartApp);
+}
+
+void MainWindow::startProcessing(QList<QUrl> urls) {
+    // Move the processing to a separate thread
+    QFuture<bool> future = QtConcurrent::run(doProcessing, urls, progressBar);
+
+    processingWatcher.setFuture(future);
+
+    connect(&processingWatcher, &QFutureWatcher<bool>::progressValueChanged, progressBar, &QProgressBar::setValue);
 }
 
 void MainWindow::restartApp() {
