@@ -18,6 +18,7 @@
 #include <iostream>
 #include <iomanip>
 #include <string>
+#include <math.h>
 
 #include "Timer.h"
 
@@ -29,17 +30,21 @@
 
 using namespace OIIO;
 
-//bool progress_callback(void* opaque_data, float portion_done)
-//{
-//    const int width = 40;
-//    int dashes = width * portion_done;
-//    std::cout << "\r" << std::flush;
-//    std::cout << '|' << std::left << std::setw(width) << std::string(dashes, '#') << '|' << std::setw(1);
-//    return (portion_done >= 1.f);
-//}
+int hue = 186;
 
-bool progress_callback(void* opaque_data, float portion_done)
-{
+void pbar_color_rand(QProgressBar* progressBar) {
+    //hue = QRandomGenerator::global()->bounded(360);
+    hue = (hue + 45) % 360;
+    int saturation = 250;  // Set saturation value
+    int value = 205;       // Set value
+
+    QColor color;
+    color.setHsv(hue, saturation, value);
+
+    setPBarColor(progressBar, color.name());
+}
+
+bool progress_callback(void* opaque_data, float portion_done) {
     // Cast the opaque_data back to a QProgressBar
     QProgressBar* progressBar = static_cast<QProgressBar*>(opaque_data);
 
@@ -54,12 +59,13 @@ bool progress_callback(void* opaque_data, float portion_done)
     return (portion_done >= 1.f);
 }
 
-std::pair<ImageBuf, ImageBuf> mask_load(const std::string& mask_file) {
+std::pair<ImageBuf, ImageBuf> mask_load(const std::string& mask_file, MainWindow* mainWindow) {
     ImageBuf alpha_buf(mask_file);
     std::cout << "Reading " << mask_file << std::endl;
     bool read_ok = alpha_buf.read(0, 0, 0, 1, true, TypeDesc::FLOAT, nullptr, nullptr);
     if (!read_ok) {
 		std::cerr << "Error: Could not read mask image\n";
+        mainWindow->emitUpdateTextSignal("Error! Check console for details");
         system("pause");
 		exit(-1);
 	}
@@ -80,6 +86,7 @@ std::pair<ImageBuf, ImageBuf> mask_load(const std::string& mask_file) {
     ok = ok && ImageBufAlgo::channel_append(rgb_alpha, temp_buff, alpha_buf);
     if (!ok) {
 		std::cerr << "Error: Could not append channels\n";
+        mainWindow->emitUpdateTextSignal("Error! Check console for details");
         system("pause");
 		exit(-1);
 	}
@@ -89,7 +96,8 @@ std::pair<ImageBuf, ImageBuf> mask_load(const std::string& mask_file) {
     return { alpha_buf, rgb_alpha };
 }
 
-bool solidify_main(const std::string& inputFileName, const std::string& outputFileName, std::pair<ImageBuf, ImageBuf> mask_pair, QProgressBar* progressBar) {
+bool solidify_main(const std::string& inputFileName, const std::string& outputFileName, std::pair<ImageBuf, ImageBuf> mask_pair, 
+    QProgressBar* progressBar, MainWindow* mainWindow) {
     Timer g_timer;
     // Create an ImageBuf object for the input file
     ImageBuf input_buf(inputFileName);
@@ -113,6 +121,7 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
     //bool read_ok = input_buf.read(0, 0, 0, last_channel, true, TypeUnknown, *progress_callback, nullptr);
     if (!read_ok) {
         std::cerr << "Error: Could not read input image\n";
+        mainWindow->emitUpdateTextSignal("Error! Check console for details");
         return false;
     }
 
@@ -212,6 +221,7 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
         ok = ok && ImageBufAlgo::channel_append(rgba_buf, input_buf, *alpha_buf_ptr);
         if (!ok) {
 			std::cerr << "Error: " << rgba_buf.geterror() << std::endl;
+            mainWindow->emitUpdateTextSignal("Error! Check console for details");
 			return false;
 		}
         // rename last channel to alpha and set alpha channel
@@ -226,6 +236,7 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
 
     if (!ok) {
         std::cerr << "Error: " << result_buf.geterror() << std::endl;
+        mainWindow->emitUpdateTextSignal("Error! Check console for details");
         return false;
     }
 
@@ -234,6 +245,7 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
     auto out = ImageOutput::create(outputFileName);
     if (!out) {
         std::cerr << "Could not create output file: " << outputFileName << std::endl;
+        mainWindow->emitUpdateTextSignal("Error! Check console for details");
         return false;
     }
 
@@ -256,7 +268,12 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
     out->close();
 
     std::cout << std::endl << "Total processing time : " << g_timer.nowText() << std::endl;
+    
+    pbar_color_rand(progressBar);
     QMetaObject::invokeMethod(progressBar, "setValue", Qt::QueuedConnection, Q_ARG(int, 0));
+
+    //QString DebugText = QString("Total processing time : %1").arg(QString::fromStdString(g_timer.nowText()));
+    //mainWindow->emitUpdateTextSignal(DebugText);
 
     return true;
 }

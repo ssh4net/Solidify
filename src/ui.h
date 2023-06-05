@@ -19,6 +19,7 @@
 
 #include <QtCore/QFutureWatcher>
 #include <QtConcurrent/QtConcurrentRun>
+#include <QtCore/QRandomGenerator>
 
 #include "processing.h"
 
@@ -40,12 +41,19 @@ class MainWindow : public QMainWindow {
     Q_OBJECT  // Macro needed to handle signals and slots
 public:
     MainWindow();
+    void emitUpdateTextSignal(const QString& text) { emit updateTextSignal(text); }  // Public method to emit the signal
+
+signals:
+    void updateTextSignal(const QString& text);
 
 private slots:
     void restartApp();
+    void toggleConsole(bool cheked);
     void startProcessing(QList<QUrl> urls);  // New slot
 
 private:
     QFutureWatcher<bool> processingWatcher;
     QProgressBar* progressBar;
 };
+
+void setPBarColor(QProgressBar* progressBar, const QColor& color = QColor("#05B8CC"));

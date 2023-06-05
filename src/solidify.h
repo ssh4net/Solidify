@@ -24,6 +24,9 @@
 
 using namespace OIIO;
 
-std::pair<ImageBuf, ImageBuf> mask_load(const std::string& mask_file);
+bool progress_callback(void* opaque_data, float portion_done);
 
-bool solidify_main(const std::string& inputFileName, const std::string& outputFileName, std::pair<ImageBuf, ImageBuf> mask_pair, QProgressBar* progressBar);
+std::pair<ImageBuf, ImageBuf> mask_load(const std::string& mask_file, MainWindow* mainWindow);
+
+bool solidify_main(const std::string& inputFileName, const std::string& outputFileName, std::pair<ImageBuf, ImageBuf> mask_pair, 
+	QProgressBar* progressBar, MainWindow* mainWindow);

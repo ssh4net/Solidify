@@ -18,6 +18,8 @@
 #pragma once
 #include "ui.h"
 
-bool doProcessing(QList<QUrl> URLs, QProgressBar* progressBar);
+class MainWindow; // forward declaration
+
+bool doProcessing(QList<QUrl> URLs, QProgressBar* progressBar, MainWindow* mainWindow);
 
 QString checkAlpha(std::vector<QString> fileNames);

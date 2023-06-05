@@ -44,9 +44,7 @@ QString checkAlpha(std::vector<QString> fileNames) {
     return "";
 }
 
-bool doProcessing(QList<QUrl> urls, QProgressBar* progressBar) {
-
-
+bool doProcessing(QList<QUrl> urls, QProgressBar* progressBar, MainWindow* mainWindow) {
     std::vector<QString> fileNames; // This will hold the names of all files
 
     for (const QUrl& url : urls) {
@@ -63,7 +61,7 @@ bool doProcessing(QList<QUrl> urls, QProgressBar* progressBar) {
 
     if (mask_file != "") {
         qDebug() << "Mask file: " << mask_file << " will be used.";
-        mask_pair = mask_load(mask_file.toStdString());
+        mask_pair = mask_load(mask_file.toStdString(), mainWindow);
 	}
 
     for (int i = 0; i < fileNames.size(); i++) {
@@ -76,20 +74,24 @@ bool doProcessing(QList<QUrl> urls, QProgressBar* progressBar) {
         QString baseName = fileInfo.baseName();
         QString path = fileInfo.absolutePath();
         QString outName = path + "/" + baseName + "_fill." + fileInfo.completeSuffix();
-
-        //std::string infile = static_cast<std::string>(fileNames[i].toUtf8().constData());
-        //std::string outfile = static_cast<std::string>(outName.toUtf8().constData());
+        
         std::string infile = fileNames[i].toStdString();
         std::string outfile = outName.toStdString();
 
+        QString DebugText = "Source: " + fileInfo.fileName() + 
+                          "\nTarget: " + baseName + "_fill." + fileInfo.completeSuffix() +
+                          "\nMask:   " + QFileInfo(mask_file).baseName();
+
+        mainWindow->emitUpdateTextSignal(DebugText);
+
         // Call the solidify_main function
-        bool result = solidify_main(infile, outfile, mask_pair, progressBar);
+        bool result = solidify_main(infile, outfile, mask_pair, progressBar, mainWindow);
 
         if (!result) {
             system("pause");
             exit(-1);
         };
     }
-
+    mainWindow->emitUpdateTextSignal("Everything Done!");
     return true;
 }

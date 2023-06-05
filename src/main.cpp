@@ -19,10 +19,13 @@
 #include "stdafx.h"
 
 int main(int argc, char* argv[]) {
-    // create console
+    // Allocate console and redirect std output
     AllocConsole();
     freopen("CONOUT$", "w", stdout);
     freopen("CONOUT$", "w", stderr);
+
+    ShowWindow(GetConsoleWindow(), SW_HIDE);
+
     QApplication app(argc, argv);
 
     MainWindow window;
