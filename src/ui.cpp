@@ -98,7 +98,7 @@ MainWindow::MainWindow() {
     setMenuBar(menuBar);
 
     setWindowFlags(Qt::WindowStaysOnTopHint);
-    setWindowTitle("Solidify 1.30");
+    setWindowTitle(QString("Solidify %1.%2.%3").arg(VERSION_MAJOR).arg(VERSION_MINOR));
     setFixedSize(440, 440);
     
     // Add a flag to indicate whether the console has been allocated

@@ -23,6 +23,9 @@
 
 #include "processing.h"
 
+#define VERSION_MAJOR 1
+#define VERSION_MINOR 30
+
 class DropArea : public QLabel {
     Q_OBJECT  // Macro needed to handle signals and slots
 

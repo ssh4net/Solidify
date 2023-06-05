@@ -25,6 +25,7 @@ int main(int argc, char* argv[]) {
     freopen("CONOUT$", "w", stderr);
 
     ShowWindow(GetConsoleWindow(), SW_HIDE);
+    qDebug() << qPrintable(QString("Solidify %1.%2").arg(VERSION_MAJOR).arg(VERSION_MINOR)) << "Debug output:";
 
     QApplication app(argc, argv);
 
