@@ -14,27 +14,26 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
+#pragma once
 
+#include <iostream>
+#include <iomanip>
+#include <string>
+#include <math.h>
+
+#include "Timer.h"
 #include "ui.h"
-#include "stdafx.h"
-#include "settings.h"
 
-int main(int argc, char* argv[]) {
-    // Allocate console and redirect std output
-    AllocConsole();
-    freopen("CONOUT$", "w", stdout);
-    freopen("CONOUT$", "w", stderr);
+#include <OpenImageIO/imageio.h>
+#include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/imagebufalgo.h>
 
-    ShowWindow(GetConsoleWindow(), SW_HIDE);
-    qDebug() << qPrintable(QString("Solidify %1.%2").arg(VERSION_MAJOR).arg(VERSION_MINOR)) << "Debug output:";
+using namespace OIIO;
 
-    QApplication app(argc, argv);
+void pbar_color_rand(QProgressBar* progressBar);
+bool progress_callback(void* opaque_data, float portion_done);
 
-    MainWindow window;
-    window.show();
+std::pair<ImageBuf, ImageBuf> mask_load(const std::string& mask_file, MainWindow* mainWindow);
+bool img_load(ImageBuf& outBuf, const std::string& inputFileName, bool external_alpha, QProgressBar* progressBar, MainWindow* mainWindow);
 
-    //DropArea dropArea;
-    //dropArea.show();
-
-    return app.exec();
-}
+std::pair<ImageBuf, ImageBuf> mask_load(const std::string& mask_file, MainWindow* mainWindow);

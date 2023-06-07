@@ -24,9 +24,11 @@
 
 using namespace OIIO;
 
-bool progress_callback(void* opaque_data, float portion_done);
+//bool progress_callback(void* opaque_data, float portion_done);
+//
+//std::pair<ImageBuf, ImageBuf> mask_load(const std::string& mask_file, MainWindow* mainWindow);
 
-std::pair<ImageBuf, ImageBuf> mask_load(const std::string& mask_file, MainWindow* mainWindow);
+bool normalize3D(ImageBuf& image_buf);
 
 bool solidify_main(const std::string& inputFileName, const std::string& outputFileName, std::pair<ImageBuf, ImageBuf> mask_pair, 
 	QProgressBar* progressBar, MainWindow* mainWindow);

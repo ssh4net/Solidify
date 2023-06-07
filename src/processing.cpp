@@ -15,9 +15,23 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ui.h"
+//#include "ui.h"
 #include "solidify.h"
 #include "stdafx.h"
+#include "imageio.h"
+#include "processing.h"
+#include "settings.h"
+
+#include <algorithm>
+#include <cctype>
+#include <string>
+
+std::string toLower(const std::string& str) {
+    std::string strCopy = str;
+    std::transform(strCopy.begin(), strCopy.end(), strCopy.begin(),
+        [](unsigned char c) { return std::tolower(c); });
+    return strCopy;
+}
 
 QString checkAlpha(std::vector<QString> fileNames) {
     std::vector<QString>::iterator it;

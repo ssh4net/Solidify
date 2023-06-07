@@ -17,8 +17,11 @@
 
 #pragma once
 #include "ui.h"
+//#include "settings.h"
 
 class MainWindow; // forward declaration
+
+std::string toLower(const std::string& str);
 
 bool doProcessing(QList<QUrl> URLs, QProgressBar* progressBar, MainWindow* mainWindow);
 

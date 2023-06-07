@@ -27,73 +27,74 @@
 #include <OpenImageIO/imagebufalgo.h>
 
 #include "solidify.h"
+#include "imageio.h"
+#include "settings.h"
+#include "processing.h"
 
 using namespace OIIO;
 
-int hue = 186;
+bool normalize3D(ImageBuf& image_buf) {
+	// normalize image
+	std::cout << "Normalizing image..." << std::endl;
 
-void pbar_color_rand(QProgressBar* progressBar) {
-    //hue = QRandomGenerator::global()->bounded(360);
-    hue = (hue + 45) % 360;
-    int saturation = 250;  // Set saturation value
-    int value = 205;       // Set value
+    // ImageBuf::copy RGB as float
+    ImageBuf imgFloat;
+    ImageBuf* imgFloatPtr = &image_buf;
 
-    QColor color;
-    color.setHsv(hue, saturation, value);
+    const ImageSpec& ispec = image_buf.spec();
+    // Get the format (bit depth and type)
+    TypeDesc format = ispec.format;
+	// check if not float
+    if (format != TypeDesc::FLOAT) {
+        imgFloat = image_buf.copy(TypeDesc::FLOAT);
+        imgFloatPtr = &imgFloat;
+    }
 
-    setPBarColor(progressBar, color.name());
-}
-
-bool progress_callback(void* opaque_data, float portion_done) {
-    // Cast the opaque_data back to a QProgressBar
-    QProgressBar* progressBar = static_cast<QProgressBar*>(opaque_data);
-
-    // Calculate the value to set on the progress bar.
-    // The value is an integer between the minimum and maximum (default 0 and 100).
-    int value = static_cast<int>(portion_done * 100);
-
-    // You need to use QMetaObject::invokeMethod when you are interacting with the GUI thread from a non-GUI thread
-    // Qt::QueuedConnection ensures the change will be made when control returns to the event loop of the GUI thread
-    QMetaObject::invokeMethod(progressBar, "setValue", Qt::QueuedConnection, Q_ARG(int, value));
-
-    return (portion_done >= 1.f);
-}
-
-std::pair<ImageBuf, ImageBuf> mask_load(const std::string& mask_file, MainWindow* mainWindow) {
-    ImageBuf alpha_buf(mask_file);
-    std::cout << "Reading " << mask_file << std::endl;
-    bool read_ok = alpha_buf.read(0, 0, 0, 1, true, TypeDesc::FLOAT, nullptr, nullptr);
-    if (!read_ok) {
-		std::cerr << "Error: Could not read mask image\n";
-        mainWindow->emitUpdateTextSignal("Error! Check console for details");
-        system("pause");
-		exit(-1);
+    // RGB -> XYZ: X * 2.0 - 1.0, except for alpha channel
+    bool success = ImageBufAlgo::mad(*imgFloatPtr, *imgFloatPtr, { 2.0f, 2.0f, 2.0f, 1.0f }, { -1.0f, -1.0f, -1.0f, 0.0f });
+    if (!success) {
+		std::cerr << "Error: RGB -> XYZ\n";
+		return false;
 	}
 
-    int width = alpha_buf.spec().width;
-    int height = alpha_buf.spec().height;
-    std::cout << "Mask size: " << width << "x" << height << std::endl;
-    // get bit depth of the image channels
-    //int bit_depth = alpha_buf.spec().format.basesize * 8;
-    
-    // rename channel to alpha and set it as an alpha channel
-    alpha_buf.specmod().channelnames[0] = "A";
-    alpha_buf.specmod().alpha_channel = 0;
+    ImageBuf tempXYZ = ImageBufAlgo::pow(*imgFloatPtr, { 2.0f, 2.0f, 2.0f, 1.0f });
+    if (!success) {
+        std::cerr << "Error: Magnitude 1\n";
+        return false;
+    }
+    ImageBuf tempSingle;
+    success = ImageBufAlgo::channel_sum(tempSingle, tempXYZ, {1.0f,1.0f,1.0f,0.0f});
+    if (!success) {
+        std::cerr << "Error: Magnitude 2\n";
+        return false;
+    }
+    tempXYZ.reset();
 
-    ImageBuf rgb_alpha, temp_buff;
-
-    bool ok = ImageBufAlgo::channel_append(temp_buff, alpha_buf, alpha_buf);
-    ok = ok && ImageBufAlgo::channel_append(rgb_alpha, temp_buff, alpha_buf);
-    if (!ok) {
-		std::cerr << "Error: Could not append channels\n";
-        mainWindow->emitUpdateTextSignal("Error! Check console for details");
-        system("pause");
-		exit(-1);
+    success = ImageBufAlgo::pow(tempSingle, tempSingle, 0.5f);
+    if (!success) {
+		std::cerr << "Error: Magnitude 3\n";
+		return false;
 	}
+    int channelorder[] = { 0, 0, 0, -1 };
+    float channelvalues[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+    ImageBuf magnitude = ImageBufAlgo::channels(tempSingle, 4, channelorder, channelvalues);
+    tempSingle.reset();
 
-    temp_buff.clear();
+    success = ImageBufAlgo::div(*imgFloatPtr, *imgFloatPtr, magnitude);
+    if (!success) {
+		std::cerr << "Error: Normalize\n";
+		return false;
+	}
+    success = ImageBufAlgo::mad(*imgFloatPtr, *imgFloatPtr, { 0.5f, 0.5f, 0.5f, 1.0f }, { 0.5f, 0.5f, 0.5f, 0.0f });
+    if (!success) {
+        std::cerr << "Error: XYZ -> RGB\n";
+        return false;
+    }
 
-    return { alpha_buf, rgb_alpha };
+    if (format != TypeDesc::FLOAT) {
+        image_buf = imgFloat.copy(format);
+    }
+	return true;
 }
 
 bool solidify_main(const std::string& inputFileName, const std::string& outputFileName, std::pair<ImageBuf, ImageBuf> mask_pair, 
@@ -111,21 +112,20 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
 
     // Read the image with a progress callback
 
-    int last_channel = (external_alpha) ? 3 : -1; // If we have an external alpha, read only 3 channels
+    //int last_channel = (external_alpha) ? 3 : -1; // If we have an external alpha, read only 3 channels
 
     std::cout << "Reading " << inputFileName << std::endl;
-
+    bool load_ok = img_load(input_buf, inputFileName, external_alpha, progressBar, mainWindow);
     // Assuming progressBar is a pointer to your QProgressBar
-    bool read_ok = input_buf.read(0, 0, 0, last_channel, true, TypeUnknown, progress_callback, progressBar);
+    //bool read_ok = input_buf.read(0, 0, 0, last_channel, true, TypeUnknown, progress_callback, progressBar);
 
-    //bool read_ok = input_buf.read(0, 0, 0, last_channel, true, TypeUnknown, *progress_callback, nullptr);
-    if (!read_ok) {
-        std::cerr << "Error: Could not read input image\n";
-        mainWindow->emitUpdateTextSignal("Error! Check console for details");
-        return false;
-    }
+    //if (!read_ok) {
+    //    std::cerr << "Error: Could not read input image\n";
+    //    mainWindow->emitUpdateTextSignal("Error! Check console for details");
+    //    return false;
+    //}
 
-    std::cout << std::endl;
+    //std::cout << std::endl;
 
     // Get the image's spec
     const ImageSpec& ispec = input_buf.spec();
@@ -241,22 +241,47 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
     }
 
     std::cout << "Push-Pull time : " << pushpull_timer.nowText() << std::endl;
+    
+    // check if filename have any of settings.normNames as substring, case insensitive
+    bool isNormName = false;
+    // convert std::string to lowercase
+    std::string lowName = toLower(inputFileName);
+
+    for (auto& name : settings.normNames) {
+        if (lowName.find(name, 0) != std::string::npos) {
+			isNormName = true;
+			break;
+		}
+	}
+
+    if ((settings.normMode != 0) && isNormName) {
+        Timer normalize_timer;
+
+        bool success = normalize3D(result_buf);
+        if (!success) {
+            std::cerr << "Error: Could not normalize image" << std::endl;
+            mainWindow->emitUpdateTextSignal("Error! Check console for details");
+            return false;
+        }
+
+        std::cout << "Normalize time : " << normalize_timer.nowText() << std::endl;
+    }
+
+    ImageSpec& rspec = result_buf.specmod();
+
+    rspec.nchannels = grayscale ? 1 : 3; // Only write RGB channels
+    rspec.alpha_channel = -1; // No alpha channel
+
+    rspec.set_format(TypeDesc::FLOAT); // temporary
+    //std::cout << "Channels: " << rspec.nchannels << " Alpha channel: " << rspec.alpha_channel << std::endl;
 
     auto out = ImageOutput::create(outputFileName);
     if (!out) {
         std::cerr << "Could not create output file: " << outputFileName << std::endl;
         mainWindow->emitUpdateTextSignal("Error! Check console for details");
         return false;
-    }
-
-    ImageSpec spec = result_buf.spec();
-
-    //std::cout << "Channels: " << spec.nchannels << " Alpha channel: " << spec.alpha_channel << std::endl;
-
-    spec.nchannels = grayscale ? 1 : 3; // Only write RGB channels
-    spec.alpha_channel = -1; // No alpha channel
-
-    out->open(outputFileName, spec, ImageOutput::Create);
+    }    
+    out->open(outputFileName, rspec, ImageOutput::Create);
 
     QMetaObject::invokeMethod(progressBar, "setValue", Qt::QueuedConnection, Q_ARG(int, 0));
 

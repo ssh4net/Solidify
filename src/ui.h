@@ -24,7 +24,7 @@
 #include "processing.h"
 
 #define VERSION_MAJOR 1
-#define VERSION_MINOR 30
+#define VERSION_MINOR 31
 
 class DropArea : public QLabel {
     Q_OBJECT  // Macro needed to handle signals and slots
@@ -52,11 +52,39 @@ signals:
 private slots:
     void restartApp();
     void toggleConsole(bool cheked);
-    void startProcessing(QList<QUrl> urls);  // New slot
+    void startProcessing(QList<QUrl> urls);
+    void normSettings();
+    void sldfSettings(bool checked);
+    void rngSettings();
+    void frmtSettings();
+    void bitSettings();
 
 private:
     QFutureWatcher<bool> processingWatcher;
     QProgressBar* progressBar;
+
+    QAction* sld_enable;
+    QAction* nrm_Dis;
+    QAction* nrm_Smrt;
+    QAction* nrm_Force;
+    QAction* rng_Unsg;
+    QAction* rng_Sign;
+
+    QAction* frmt_Org; // Original
+    QAction* frmt_Png; // PNG
+    QAction* frmt_Jpg; // JPG
+    QAction* frmt_Tif; // TIFF
+    QAction* frmt_Exr; // OpenEXR
+    QAction* frmt_Jp2; // JPEG 2000
+
+    QAction* bit_orig;
+    QAction* bit_uint8;
+    QAction* bit_uint16;
+    QAction* bit_uint32;
+    QAction* bit_uint64;
+    QAction* bit_flt16;
+    QAction* bit_flt32;
+    QAction* bit_flt64;
 };
 
 void setPBarColor(QProgressBar* progressBar, const QColor& color = QColor("#05B8CC"));

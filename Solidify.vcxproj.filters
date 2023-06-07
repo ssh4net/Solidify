@@ -33,10 +33,16 @@
     <ClCompile Include="src\processing.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="src\Solidify.cpp">
+    <ClCompile Include="src\solidify.cpp">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="src\stdafx.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\imageio.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\settings.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
@@ -56,6 +62,12 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\stdafx.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\imageio.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\settings.h">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
