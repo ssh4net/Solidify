@@ -17,11 +17,14 @@
 
 #pragma once
 #include "ui.h"
-//#include "settings.h"
+#include "settings.h"
 
 class MainWindow; // forward declaration
 
 std::string toLower(const std::string& str);
+void getWritableExt(QString* ext, Settings* settings);
+QString getExtension(const QString& fileName, Settings* settings);
+QString getOutName(const QString& fileName, Settings* settings);
 
 bool doProcessing(QList<QUrl> URLs, QProgressBar* progressBar, MainWindow* mainWindow);
 

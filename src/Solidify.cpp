@@ -33,75 +33,16 @@
 
 using namespace OIIO;
 
-bool normalize3D(ImageBuf& image_buf) {
-	// normalize image
-	std::cout << "Normalizing image..." << std::endl;
-
-    // ImageBuf::copy RGB as float
-    ImageBuf imgFloat;
-    ImageBuf* imgFloatPtr = &image_buf;
-
-    const ImageSpec& ispec = image_buf.spec();
-    // Get the format (bit depth and type)
-    TypeDesc format = ispec.format;
-	// check if not float
-    if (format != TypeDesc::FLOAT) {
-        imgFloat = image_buf.copy(TypeDesc::FLOAT);
-        imgFloatPtr = &imgFloat;
-    }
-
-    // RGB -> XYZ: X * 2.0 - 1.0, except for alpha channel
-    bool success = ImageBufAlgo::mad(*imgFloatPtr, *imgFloatPtr, { 2.0f, 2.0f, 2.0f, 1.0f }, { -1.0f, -1.0f, -1.0f, 0.0f });
-    if (!success) {
-		std::cerr << "Error: RGB -> XYZ\n";
-		return false;
-	}
-
-    ImageBuf tempXYZ = ImageBufAlgo::pow(*imgFloatPtr, { 2.0f, 2.0f, 2.0f, 1.0f });
-    if (!success) {
-        std::cerr << "Error: Magnitude 1\n";
-        return false;
-    }
-    ImageBuf tempSingle;
-    success = ImageBufAlgo::channel_sum(tempSingle, tempXYZ, {1.0f,1.0f,1.0f,0.0f});
-    if (!success) {
-        std::cerr << "Error: Magnitude 2\n";
-        return false;
-    }
-    tempXYZ.reset();
-
-    success = ImageBufAlgo::pow(tempSingle, tempSingle, 0.5f);
-    if (!success) {
-		std::cerr << "Error: Magnitude 3\n";
-		return false;
-	}
-    int channelorder[] = { 0, 0, 0, -1 };
-    float channelvalues[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-    ImageBuf magnitude = ImageBufAlgo::channels(tempSingle, 4, channelorder, channelvalues);
-    tempSingle.reset();
-
-    success = ImageBufAlgo::div(*imgFloatPtr, *imgFloatPtr, magnitude);
-    if (!success) {
-		std::cerr << "Error: Normalize\n";
-		return false;
-	}
-    success = ImageBufAlgo::mad(*imgFloatPtr, *imgFloatPtr, { 0.5f, 0.5f, 0.5f, 1.0f }, { 0.5f, 0.5f, 0.5f, 0.0f });
-    if (!success) {
-        std::cerr << "Error: XYZ -> RGB\n";
-        return false;
-    }
-
-    if (format != TypeDesc::FLOAT) {
-        image_buf = imgFloat.copy(format);
-    }
-	return true;
-}
-
 bool solidify_main(const std::string& inputFileName, const std::string& outputFileName, std::pair<ImageBuf, ImageBuf> mask_pair, 
     QProgressBar* progressBar, MainWindow* mainWindow) {
     Timer g_timer;
     // Create an ImageBuf object for the input file
-    ImageBuf input_buf(inputFileName);
+    ImageSpec config;
+    config["raw:user_flip"] = settings.rawRot;
+
+    ImageBuf input_buf(inputFileName, 0, 0, nullptr, &config, nullptr);
+
+    //ImageBuf::ImageBuf(config, input_buf);
 
     bool external_alpha = false;
     bool grayscale = false;
@@ -112,20 +53,13 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
 
     // Read the image with a progress callback
 
-    //int last_channel = (external_alpha) ? 3 : -1; // If we have an external alpha, read only 3 channels
-
     std::cout << "Reading " << inputFileName << std::endl;
     bool load_ok = img_load(input_buf, inputFileName, external_alpha, progressBar, mainWindow);
-    // Assuming progressBar is a pointer to your QProgressBar
-    //bool read_ok = input_buf.read(0, 0, 0, last_channel, true, TypeUnknown, progress_callback, progressBar);
-
-    //if (!read_ok) {
-    //    std::cerr << "Error: Could not read input image\n";
-    //    mainWindow->emitUpdateTextSignal("Error! Check console for details");
-    //    return false;
-    //}
-
-    //std::cout << std::endl;
+    if (!load_ok) {
+		std::cerr << "Error reading " << inputFileName << std::endl;
+        mainWindow->emitUpdateTextSignal("Error! Check console for details");
+		return false;
+	}
 
     // Get the image's spec
     const ImageSpec& ispec = input_buf.spec();
@@ -133,24 +67,7 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
     // Get the format (bit depth and type)
     TypeDesc format = ispec.format;
 
-    if (format == TypeDesc::UINT8) {
-        std::cout << "8-bit unsigned int" << std::endl;
-    }
-    else if (format == TypeDesc::UINT16) {
-        std::cout << "16-bit unsigned int" << std::endl;
-    }
-    else if (format == TypeDesc::HALF) {
-        std::cout << "16-bit float" << std::endl;
-    }
-    else if (format == TypeDesc::FLOAT) {
-        std::cout << "32-bit float" << std::endl;
-    }
-    else if (format == TypeDesc::DOUBLE) {
-        std::cout << "64-bit float" << std::endl;
-    }
-    else {
-        std::cout << "Unknown or unsupported format" << std::endl;
-    }
+    format2console(format);
 
     // get the image size
     int width = input_buf.spec().width;
@@ -204,47 +121,55 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
     // Create an ImageBuf object to store the result
     ImageBuf result_buf, rgba_buf, bit_alpha_buf;
 
-    std::cout << "Filling holes in process...\n";
+    ImageSpec& rspec = result_buf.specmod();
+    //rspec.format = getTypeDesc(settings.bitDepth);
 
-    Timer pushpull_timer;
+    if (settings.isSolidify && isValid) {
 
-    if (external_alpha) {
+        std::cout << "Filling holes in process...\n";
 
-        ImageBuf* alpha_buf_ptr = &mask_pair.first;
+        Timer pushpull_timer;
 
-        if (format != TypeDesc::FLOAT) {
-            bit_alpha_buf = mask_pair.first.copy(format);
-            alpha_buf_ptr = &bit_alpha_buf;
+        if (external_alpha) {
+
+            ImageBuf* alpha_buf_ptr = &mask_pair.first;
+
+            if (format != TypeDesc::FLOAT) {
+                bit_alpha_buf = mask_pair.first.copy(format);
+                alpha_buf_ptr = &bit_alpha_buf;
+            }
+
+            bool ok = ImageBufAlgo::mul(input_buf, input_buf, grayscale ? mask_pair.first : mask_pair.second);
+            ok = ok && ImageBufAlgo::channel_append(rgba_buf, input_buf, *alpha_buf_ptr);
+            if (!ok) {
+                std::cerr << "Error: " << rgba_buf.geterror() << std::endl;
+                mainWindow->emitUpdateTextSignal("Error! Check console for details");
+                return false;
+            }
+            // rename last channel to alpha and set alpha channel
+            rgba_buf.specmod().channelnames[rgba_buf.nchannels() - 1] = "A";
+            rgba_buf.specmod().alpha_channel = rgba_buf.nchannels() - 1;
         }
 
-        bool ok = ImageBufAlgo::mul(input_buf, input_buf, grayscale ? mask_pair.first : mask_pair.second);
-        ok = ok && ImageBufAlgo::channel_append(rgba_buf, input_buf, *alpha_buf_ptr);
+        ImageBuf* input_buf_ptr = external_alpha ? &rgba_buf : &input_buf; // Use the multiplied RGBA buffer if have an external alpha
+
+        // Call fillholes_pushpull
+        bool ok = ImageBufAlgo::fillholes_pushpull(result_buf, *input_buf_ptr);
+
         if (!ok) {
-			std::cerr << "Error: " << rgba_buf.geterror() << std::endl;
+            std::cerr << "Error: " << result_buf.geterror() << std::endl;
             mainWindow->emitUpdateTextSignal("Error! Check console for details");
-			return false;
-		}
-        // rename last channel to alpha and set alpha channel
-        rgba_buf.specmod().channelnames[rgba_buf.nchannels() - 1] = "A";
-        rgba_buf.specmod().alpha_channel = rgba_buf.nchannels() - 1;
+            return false;
+        }
+
+        std::cout << "Push-Pull time : " << pushpull_timer.nowText() << std::endl;
     }
-
-    ImageBuf* input_buf_ptr = external_alpha ? &rgba_buf : &input_buf; // Use the multiplied RGBA buffer if have an external alpha
-
-    // Call fillholes_pushpull
-    bool ok = ImageBufAlgo::fillholes_pushpull(result_buf, *input_buf_ptr);
-
-    if (!ok) {
-        std::cerr << "Error: " << result_buf.geterror() << std::endl;
-        mainWindow->emitUpdateTextSignal("Error! Check console for details");
-        return false;
-    }
-
-    std::cout << "Push-Pull time : " << pushpull_timer.nowText() << std::endl;
-    
+    else {
+		result_buf = input_buf;
+        std::cout << "Filling holes skipped\n";
+	}
     // check if filename have any of settings.normNames as substring, case insensitive
     bool isNormName = false;
-    // convert std::string to lowercase
     std::string lowName = toLower(inputFileName);
 
     for (auto& name : settings.normNames) {
@@ -254,10 +179,21 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
 		}
 	}
 
-    if ((settings.normMode != 0) && isNormName) {
-        Timer normalize_timer;
+    bool doNormalize = false;
 
-        bool success = normalize3D(result_buf);
+    if ((settings.normMode == 2) || (isNormName && settings.normMode != 0)) {
+        doNormalize = true;
+    }
+
+    if (doNormalize) {
+        Timer normalize_timer;
+        bool success = true;
+
+        ROI roi(0, result_buf.spec().width, 0, result_buf.spec().height, 0, 1, 0, result_buf.spec().nchannels);
+        int nthreads = 0; // debug time 1 thread, for release use 0
+        bool fullRange = settings.rngMode;
+        success = normalize(result_buf, result_buf, fullRange, roi, nthreads);
+
         if (!success) {
             std::cerr << "Error: Could not normalize image" << std::endl;
             mainWindow->emitUpdateTextSignal("Error! Check console for details");
@@ -266,14 +202,32 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
 
         std::cout << "Normalize time : " << normalize_timer.nowText() << std::endl;
     }
+    else {
+		std::cout << "Normalize skipped\n";
+	}
 
-    ImageSpec& rspec = result_buf.specmod();
+    rspec = result_buf.specmod();
+    if (settings.expAlpha) {
+        rspec.nchannels = grayscale ? 2 : 4; // Only write RGB channels
+    }
+    else {
+		rspec.nchannels = grayscale ? 1 : 3; // Write RGB and alpha channels
+	}
 
-    rspec.nchannels = grayscale ? 1 : 3; // Only write RGB channels
     rspec.alpha_channel = -1; // No alpha channel
+    //int bits = settings.bitDepth != -1 ? settings.getBitDepth() : 2;
 
-    rspec.set_format(TypeDesc::FLOAT); // temporary
+    //rspec.attribute("oiio:BitsPerSample", bits);
+    rspec.attribute("pnm:binary", 1);
+    rspec.attribute("oiio:UnassociatedAlpha", 1);
+    rspec.attribute("jpeg:subsampling", "4:4:4");
+    rspec.attribute("Compression", "jpeg:100");
+    rspec.attribute("png:compressionLevel", 4);
+    //rspec.attribute("tiff:bigtiff", 1);
+    //rspec.set_format(TypeDesc::FLOAT); // temporary
     //std::cout << "Channels: " << rspec.nchannels << " Alpha channel: " << rspec.alpha_channel << std::endl;
+
+    format2console(rspec.format);
 
     auto out = ImageOutput::create(outputFileName);
     if (!out) {

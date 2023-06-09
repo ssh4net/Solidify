@@ -27,13 +27,26 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
+#include <OpenImageIO/imagebufalgo_util.h>
+#include <Imath/half.h>
+#include <OpenImageIO/half.h>
 
 using namespace OIIO;
 
 void pbar_color_rand(QProgressBar* progressBar);
 bool progress_callback(void* opaque_data, float portion_done);
 
+TypeDesc getTypeDesc(int bit_depth);
+void format2console(TypeDesc format);
+void formatFromBuff(ImageBuf& buf);
+
 std::pair<ImageBuf, ImageBuf> mask_load(const std::string& mask_file, MainWindow* mainWindow);
 bool img_load(ImageBuf& outBuf, const std::string& inputFileName, bool external_alpha, QProgressBar* progressBar, MainWindow* mainWindow);
 
 std::pair<ImageBuf, ImageBuf> mask_load(const std::string& mask_file, MainWindow* mainWindow);
+
+//bool NormalizeMap(ImageBuf& img, bool fullRange);
+//bool mulNormalizeMap(ImageBuf& img, bool fullRange);
+
+bool normalize(ImageBuf& dst, const ImageBuf& A, bool fullRange, ROI roi, int nthreads);
+ImageBuf normalize(const ImageBuf& A, bool fullRange, ROI roi, int nthreads);

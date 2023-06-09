@@ -108,6 +108,10 @@ MainWindow::MainWindow() {
     sld_enable = new QAction("Solidify", s_menu);
     sld_enable->setCheckable(true);
     sld_enable->setChecked(true);
+    // preserve alpha
+    alf_enable = new QAction("With Alpha", s_menu);
+    alf_enable->setCheckable(true);
+    alf_enable->setChecked(false);
 
     QAction* con_enable = new QAction("Enable Console", s_menu);
     con_enable->setCheckable(true);
@@ -118,10 +122,12 @@ MainWindow::MainWindow() {
     QMenu* rng_submenu = new QMenu("Floats type", s_menu);
     QMenu* fmt_submenu = new QMenu("Formats", s_menu);
     QMenu* bit_submenu = new QMenu("Bits Depth", s_menu);
+    QMenu* raw_submenu = new QMenu("Camera Raw", s_menu);
     QActionGroup* NormGroup = new QActionGroup(nm_submenu);
     QActionGroup* RangeGroup = new QActionGroup(rng_submenu);
     QActionGroup* FrmtGroup = new QActionGroup(fmt_submenu);
     QActionGroup* BitsGroup = new QActionGroup(bit_submenu);
+    QActionGroup* RawGroup = new QActionGroup(raw_submenu);
     // Normals
     nrm_Dis = new QAction("Disable", nm_submenu);
     nrm_Dis->setCheckable(true);
@@ -172,6 +178,10 @@ MainWindow::MainWindow() {
     frmt_Jp2->setCheckable(true);
     FrmtGroup->addAction(frmt_Jp2);
     fmt_submenu->addAction(frmt_Jp2);
+    frmt_Ppm = new QAction("PPM", fmt_submenu);
+    frmt_Ppm->setCheckable(true);
+    FrmtGroup->addAction(frmt_Ppm);
+    fmt_submenu->addAction(frmt_Ppm);
     // Bits Depth
     bit_orig = new QAction("Original", bit_submenu);
     bit_orig->setCheckable(true);
@@ -208,14 +218,40 @@ MainWindow::MainWindow() {
     bit_flt64->setCheckable(true);
     BitsGroup->addAction(bit_flt64);
     bit_submenu->addAction(bit_flt64);
+    // camera raw rotation
+    raw_rot_A = new QAction("Auto EXIF", s_menu);
+    raw_rot_A->setCheckable(true);
+    raw_rot_A->setChecked(true);
+    RawGroup->addAction(raw_rot_A);
+    raw_submenu->addAction(raw_rot_A);
+    raw_rot_0 = new QAction("0 Horizontal", s_menu);
+    raw_rot_0->setCheckable(true);
+    RawGroup->addAction(raw_rot_0);
+    raw_submenu->addAction(raw_rot_0);
+    raw_rot_90 = new QAction("-90 Vertical", s_menu);
+    raw_rot_90->setCheckable(true);
+    RawGroup->addAction(raw_rot_90);
+    raw_submenu->addAction(raw_rot_90);
+    raw_rot_270 = new QAction("+90 Vertical", s_menu);
+    raw_rot_270->setCheckable(true);
+    RawGroup->addAction(raw_rot_270);
+    raw_submenu->addAction(raw_rot_270);
+    raw_rot_180 = new QAction("180 Horizontal", s_menu);
+    raw_rot_180->setCheckable(true);
+    RawGroup->addAction(raw_rot_180);
+    raw_submenu->addAction(raw_rot_180);
 
     s_menu->addAction(sld_enable);
+    s_menu->addSeparator();
+    s_menu->addAction(alf_enable);
     s_menu->addSeparator();
     s_menu->addMenu(nm_submenu);
     s_menu->addMenu(rng_submenu);
     s_menu->addSeparator();
     s_menu->addMenu(fmt_submenu);
     s_menu->addMenu(bit_submenu);
+    s_menu->addSeparator();
+    s_menu->addMenu(raw_submenu);
     s_menu->addSeparator();
     s_menu->addAction(con_enable);
     //
@@ -228,15 +264,14 @@ MainWindow::MainWindow() {
 
     setWindowFlags(Qt::WindowStaysOnTopHint);
     setWindowTitle(QString("Solidify %1.%2").arg(VERSION_MAJOR).arg(VERSION_MINOR));
-    setFixedSize(440, 440);
+    setFixedSize(500, 500);
 
     // Connect the signal from the drop area to the slot in the main window
     connect(dropArea, &DropArea::filesDropped, this, &MainWindow::startProcessing);
 
-    // Connect the Settings action's triggered signal to a slot that toggles the console
-    connect(con_enable, &QAction::toggled, this, &MainWindow::toggleConsole);
-    
+    // Connect the Settings action's triggered signal
     connect(sld_enable, &QAction::toggled, this, &MainWindow::sldfSettings);
+    connect(alf_enable, &QAction::toggled, this, &MainWindow::alfSettings);
 
     connect(nrm_Dis, &QAction::triggered, this, &MainWindow::normSettings);
     connect(nrm_Smrt, &QAction::triggered, this, &MainWindow::normSettings);
@@ -251,6 +286,7 @@ MainWindow::MainWindow() {
     connect(frmt_Png, &QAction::triggered, this, &MainWindow::frmtSettings);
     connect(frmt_Jpg, &QAction::triggered, this, &MainWindow::frmtSettings);
     connect(frmt_Jp2, &QAction::triggered, this, &MainWindow::frmtSettings);
+    connect(frmt_Ppm, &QAction::triggered, this, &MainWindow::frmtSettings);
 
     connect(bit_orig, &QAction::triggered, this, &MainWindow::bitSettings);
     connect(bit_uint8, &QAction::triggered, this, &MainWindow::bitSettings);
@@ -261,6 +297,13 @@ MainWindow::MainWindow() {
     connect(bit_flt32, &QAction::triggered, this, &MainWindow::bitSettings);
     connect(bit_flt64, &QAction::triggered, this, &MainWindow::bitSettings);
 
+    connect(raw_rot_A, &QAction::triggered, this, &MainWindow::rawSettings);
+    connect(raw_rot_0, &QAction::triggered, this, &MainWindow::rawSettings);
+    connect(raw_rot_90, &QAction::triggered, this, &MainWindow::rawSettings);
+    connect(raw_rot_180, &QAction::triggered, this, &MainWindow::rawSettings);
+    connect(raw_rot_270, &QAction::triggered, this, &MainWindow::rawSettings);
+
+    connect(con_enable, &QAction::toggled, this, &MainWindow::toggleConsole);
     // Add new connection for updating the textOutput
     connect(this, &MainWindow::updateTextSignal, textOutput, &QPlainTextEdit::setPlainText);
 
@@ -347,6 +390,11 @@ void MainWindow::frmtSettings() {
 		emit updateTextSignal("File format set to JPEG-2000");
 		qDebug() << "File format set to JPEG-2000";
 	}
+    else if (action == frmt_Ppm) {
+        settings.fileFormat = 5;
+        emit updateTextSignal("File format set to PPM");
+        qDebug() << "File format set to PPM";
+    }
 }
 
 void MainWindow::normSettings() {
@@ -371,13 +419,33 @@ void MainWindow::normSettings() {
 void MainWindow::sldfSettings(bool checked) {
     settings.isSolidify = sld_enable->isChecked();
     if (checked) {
+        alf_enable->setChecked(false);
         emit updateTextSignal("Solidify Enabled");
         qDebug() << "Solidify Enabled";
+        emit updateTextSignal("Export Alpha Disabled");
+        qDebug() << "Export Alpha Disabled";
     }
     else {
+        nrm_Smrt->setChecked(false);
+        nrm_Dis->setChecked(true);
+        settings.normMode = 0;
         emit updateTextSignal("Solidify Disabled");
+        emit updateTextSignal("Normalizing disabled");
+        qDebug() << "Normalizing disabled";
         qDebug() << "Solidify Disabled";
     }
+}
+
+void MainWindow::alfSettings(bool checked) {
+    settings.expAlpha = alf_enable->isChecked();
+    if (checked) {
+		emit updateTextSignal("Export Alpha Enabled");
+		qDebug() << "Export Alpha Enabled";
+	}
+    else {
+		emit updateTextSignal("Export Alpha Disabled");
+		qDebug() << "Export Alpha Disabled";
+	}
 }
 
 void MainWindow::rngSettings() {
@@ -392,6 +460,36 @@ void MainWindow::rngSettings() {
 		emit updateTextSignal("Signed floats");
         qDebug() << "32/16 bit floats Normals are in [-1.0 ~ 1.0] range";
 	}
+}
+
+void MainWindow::rawSettings() {
+    QAction* action = qobject_cast<QAction*>(sender());
+    if (action == raw_rot_A) {
+        settings.rawRot = settings.raw_rot[0];
+        emit updateTextSignal("Camera Raw rotation - Auto");
+        qDebug() << "Camera Raw rotation set to EXIF Auto";
+    }
+    else if (action == raw_rot_0) {
+        settings.rawRot = settings.raw_rot[1];
+        emit updateTextSignal("Camera Raw rotation - 0 (Unrotate)");
+        qDebug() << "Camera Raw rotation set to 0 degree - Unrotatate/Horizontal";
+    }
+    else if (action == raw_rot_90) {
+		settings.rawRot = settings.raw_rot[3];
+        emit updateTextSignal("Camera Raw rotation - 90 CW (Vertical)");
+		qDebug() << "Camera Raw rotation set to 90 degree CW - Vertical";
+	}
+    else if (action == raw_rot_180) {
+		settings.rawRot = settings.raw_rot[2];
+		emit updateTextSignal("Camera Raw rotation - 180 (Horizontal)");
+        qDebug() << "Camera Raw rotation set to 180 degree (Horizontal)";
+	}
+    else if (action == raw_rot_270) {
+		settings.rawRot = settings.raw_rot[4];
+		emit updateTextSignal("Camera Raw rotation - 90 CW (Vertical)");
+		qDebug() << "Camera Raw rotation set to 90 degree CW (Vertical)";
+	}
+    
 }
 
 void MainWindow::startProcessing(QList<QUrl> urls) {

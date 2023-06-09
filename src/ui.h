@@ -58,12 +58,15 @@ private slots:
     void rngSettings();
     void frmtSettings();
     void bitSettings();
+    void alfSettings(bool checked);
+    void rawSettings();
 
 private:
     QFutureWatcher<bool> processingWatcher;
     QProgressBar* progressBar;
 
     QAction* sld_enable;
+    QAction* alf_enable;
     QAction* nrm_Dis;
     QAction* nrm_Smrt;
     QAction* nrm_Force;
@@ -76,6 +79,7 @@ private:
     QAction* frmt_Tif; // TIFF
     QAction* frmt_Exr; // OpenEXR
     QAction* frmt_Jp2; // JPEG 2000
+    QAction* frmt_Ppm; // PPM
 
     QAction* bit_orig;
     QAction* bit_uint8;
@@ -85,6 +89,12 @@ private:
     QAction* bit_flt16;
     QAction* bit_flt32;
     QAction* bit_flt64;
+
+    QAction* raw_rot_A;
+    QAction* raw_rot_0;
+    QAction* raw_rot_90;
+    QAction* raw_rot_180;
+    QAction* raw_rot_270;
 };
 
 void setPBarColor(QProgressBar* progressBar, const QColor& color = QColor("#05B8CC"));

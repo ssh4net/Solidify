@@ -36,26 +36,81 @@ std::string toLower(const std::string& str) {
 QString checkAlpha(std::vector<QString> fileNames) {
     std::vector<QString>::iterator it;
 
-    // Find "_mask."
-    it = std::find_if(fileNames.begin(), fileNames.end(), [](const QString& str) {
-        return str.contains("_mask.", Qt::CaseInsensitive);
-        });
-    if (it != fileNames.end()) {
-        //qDebug() << "Found _mask. in: " << it->toStdString().c_str();
-        return *it;
-    }
-
-    // Find "_alpha."
-    it = std::find_if(fileNames.begin(), fileNames.end(), [](const QString& str) {
-        return str.contains("_alpha.", Qt::CaseInsensitive);
-        });
-    if (it != fileNames.end()) {
-        //qDebug() << "Found _alpha. in: " << it->toStdString().c_str();
-        return *it;
-    }
-
+    for (std::string ss : settings.mask_substr) {
+		it = std::find_if(fileNames.begin(), fileNames.end(), [&ss](const QString& str) { 
+            return str.contains(QString::fromStdString(ss), Qt::CaseInsensitive); });
+        if (it != fileNames.end()) {
+			return *it;
+		}
+	}
     // If we reach this point, we did not find a match.
     return "";
+}
+
+void getWritableExt(QString* ext, Settings* settings) {
+    std::unique_ptr<ImageOutput> probe;
+    QString fn = "probename." + *ext;
+    probe = ImageOutput::create(fn.toStdString());
+    if (probe) {
+        std::cout << ext->toStdString() << " is writable" << std::endl;
+    }
+    else {
+        std::cout << ext->toStdString() << " is readonly" << std::endl;
+        std::cout << "Output format changed to TIFF" << std::endl;
+        *ext = "." + QString::fromStdString(settings->out_formats[0]);
+    }
+    probe.reset();
+}
+
+QString getExtension(const QString& fileName, Settings* settings) {
+    QFileInfo fileInfo(fileName);
+	QString extension = "." + fileInfo.completeSuffix();
+    extension = extension.toLower();
+    switch (settings->fileFormat) {
+    //-1 - original, 0 - TIFF, 1 - OpenEXR, 2 - PNG, 3 - JPEG, 4 - JPEG-2000, 5 - PPM
+    case 0:
+        return ".tif";
+    case 1:
+        return ".exr";
+    case 2:
+        return ".png";
+    case 3:
+        return ".jpg";
+    case 4:
+        return ".jp2";
+    case 5:
+        return ".ppm";
+    }
+    getWritableExt(&extension, settings);
+
+    return extension;
+}
+
+QString getOutName(const QString& fileName, Settings* settings) {
+	QFileInfo fileInfo(fileName);
+	QString baseName = fileInfo.baseName();
+	QString path = fileInfo.absolutePath();
+    QString proc_sfx = "";
+    if (settings->isSolidify) {
+		proc_sfx += "_fill";
+	}
+    else if (settings->normMode > 0) 
+    {
+        // check if filename have any of settings.normNames as substring, case insensitive
+        std::string lowName = toLower(baseName.toStdString());
+
+        for (auto& name : settings->normNames) {
+            if (lowName.find(name, 0) != std::string::npos) {
+                proc_sfx += "_norm";
+                break;
+            }
+        }
+    }
+    else {
+        proc_sfx += "_conv";
+    }
+	QString outName = path + "/" + baseName + proc_sfx + getExtension(fileName, settings);
+	return outName;
 }
 
 bool doProcessing(QList<QUrl> urls, QProgressBar* progressBar, MainWindow* mainWindow) {
@@ -84,17 +139,18 @@ bool doProcessing(QList<QUrl> urls, QProgressBar* progressBar, MainWindow* mainW
 			continue;
 		}
 
-        QFileInfo fileInfo(fileNames[i]);
-        QString baseName = fileInfo.baseName();
-        QString path = fileInfo.absolutePath();
-        QString outName = path + "/" + baseName + "_fill." + fileInfo.completeSuffix();
+        QString outName = getOutName(fileNames[i], &settings);
+        //QFileInfo fileInfo(fileNames[i]);
+        //QString baseName = fileInfo.baseName();
+        //QString path = fileInfo.absolutePath();
+        //QString outName = path + "/" + baseName + "_fill." + fileInfo.completeSuffix();
         
         std::string infile = fileNames[i].toStdString();
         std::string outfile = outName.toStdString();
 
-        QString DebugText = "Source: " + fileInfo.fileName() + 
-                          "\nTarget: " + baseName + "_fill." + fileInfo.completeSuffix() +
-                          "\nMask:   " + QFileInfo(mask_file).baseName();
+        QString DebugText = "Source: " + QFileInfo(fileNames[i]).fileName() +
+                          "\nTarget: " + QFileInfo(outName).fileName() +
+                          "\nMask:   " + QFileInfo(mask_file).fileName();
 
         mainWindow->emitUpdateTextSignal(DebugText);
 
