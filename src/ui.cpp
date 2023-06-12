@@ -58,8 +58,7 @@ MainWindow::MainWindow() {
     dropArea->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     dropArea->setAutoFillBackground(true);  // Fill the background with the color below
     dropArea->setStyleSheet("border-radius: 3px; background-color: #E0E0E0; margin-bottom: 4px;");
-
-    layout->addWidget(dropArea);  // Add the drop area to the layout
+    layout->addWidget(dropArea);
 
     // Progress bar
     progressBar = new QProgressBar;
@@ -128,118 +127,51 @@ MainWindow::MainWindow() {
     QActionGroup* FrmtGroup = new QActionGroup(fmt_submenu);
     QActionGroup* BitsGroup = new QActionGroup(bit_submenu);
     QActionGroup* RawGroup = new QActionGroup(raw_submenu);
+
+    auto createAction = [](const QString& title, QActionGroup* group, QMenu* menu, bool checkable = true, bool checked = false) {
+        QAction* action = new QAction(title, menu);
+        action->setCheckable(checkable);
+        action->setChecked(checked);
+        group->addAction(action);
+        menu->addAction(action);
+        return action;
+    };
     // Normals
-    nrm_Dis = new QAction("Disable", nm_submenu);
-    nrm_Dis->setCheckable(true);
-    NormGroup->addAction(nrm_Dis);
-    nm_submenu->addAction(nrm_Dis);
-    nrm_Smrt = new QAction("Smart", nm_submenu);
-    nrm_Smrt->setCheckable(true);
-    nrm_Smrt->setChecked(true);
-    NormGroup->addAction(nrm_Smrt);
-    nm_submenu->addAction(nrm_Smrt);
-    nrm_Force = new QAction("Force", nm_submenu);
-    nrm_Force->setCheckable(true);
-    NormGroup->addAction(nrm_Force);
-    nm_submenu->addAction(nrm_Force);
+    nrm_Dis = createAction("Disable", NormGroup, nm_submenu);
+    nrm_Smrt = createAction("Smart", NormGroup, nm_submenu, true, true);
+    nrm_Force = createAction("Force", NormGroup, nm_submenu);
+
     // Range
-    rng_Unsg = new QAction("Unsigned", rng_submenu);
-    rng_Unsg->setCheckable(true);
-    rng_Unsg->setChecked(true);
-    RangeGroup->addAction(rng_Unsg);
-    rng_submenu->addAction(rng_Unsg);
-    rng_Sign = new QAction("Signed", rng_submenu);
-    rng_Sign->setCheckable(true);
-    RangeGroup->addAction(rng_Sign);
-    rng_submenu->addAction(rng_Sign);
+    rng_Unsg = createAction("Unsigned", RangeGroup, rng_submenu, true, true);
+    rng_Sign = createAction("Signed", RangeGroup, rng_submenu);
+    rng_SU = createAction("Signed <> Unsigned", RangeGroup, rng_submenu);
+    rng_US = createAction("Unsigned <> Signed", RangeGroup, rng_submenu);
+
     // File Formats
-    frmt_Org = new QAction("Original", fmt_submenu);
-    frmt_Org->setCheckable(true);
-    frmt_Org->setChecked(true);
-    FrmtGroup->addAction(frmt_Org);
-    fmt_submenu->addAction(frmt_Org);
-    frmt_Tif = new QAction("TIFF", fmt_submenu);
-    frmt_Tif->setCheckable(true);
-    FrmtGroup->addAction(frmt_Tif);
-    fmt_submenu->addAction(frmt_Tif);
-    frmt_Exr = new QAction("OpenEXR", fmt_submenu);
-    frmt_Exr->setCheckable(true);
-    FrmtGroup->addAction(frmt_Exr);
-    fmt_submenu->addAction(frmt_Exr);
-    frmt_Png = new QAction("PNG", fmt_submenu);
-    frmt_Png->setCheckable(true);
-    FrmtGroup->addAction(frmt_Png);
-    fmt_submenu->addAction(frmt_Png);
-    frmt_Jpg = new QAction("JPEG", fmt_submenu);
-    frmt_Jpg->setCheckable(true);
-    FrmtGroup->addAction(frmt_Jpg);
-    fmt_submenu->addAction(frmt_Jpg);
-    frmt_Jp2 = new QAction("JPEG-2000", fmt_submenu);
-    frmt_Jp2->setCheckable(true);
-    FrmtGroup->addAction(frmt_Jp2);
-    fmt_submenu->addAction(frmt_Jp2);
-    frmt_Ppm = new QAction("PPM", fmt_submenu);
-    frmt_Ppm->setCheckable(true);
-    FrmtGroup->addAction(frmt_Ppm);
-    fmt_submenu->addAction(frmt_Ppm);
+    frmt_Org = createAction("Original", FrmtGroup, fmt_submenu, true, true);
+    frmt_Tif = createAction("TIFF", FrmtGroup, fmt_submenu);
+    frmt_Exr = createAction("OpenEXR", FrmtGroup, fmt_submenu);
+    frmt_Png = createAction("PNG", FrmtGroup, fmt_submenu);
+    frmt_Jpg = createAction("JPEG", FrmtGroup, fmt_submenu);
+    frmt_Jp2 = createAction("JPEG-2000", FrmtGroup, fmt_submenu);
+    frmt_Ppm = createAction("PPM", FrmtGroup, fmt_submenu);
+
     // Bits Depth
-    bit_orig = new QAction("Original", bit_submenu);
-    bit_orig->setCheckable(true);
-    bit_orig->setChecked(true);
-    BitsGroup->addAction(bit_orig);
-    bit_submenu->addAction(bit_orig);
-    bit_submenu->addSeparator();
-    bit_uint8 = new QAction("8 bits int", bit_submenu);
-    bit_uint8->setCheckable(true);
-    BitsGroup->addAction(bit_uint8);
-    bit_submenu->addAction(bit_uint8);
-    bit_uint16 = new QAction("16 bits int", bit_submenu);
-    bit_uint16->setCheckable(true);
-    BitsGroup->addAction(bit_uint16);
-    bit_submenu->addAction(bit_uint16);
-    bit_uint32 = new QAction("32 bits int", bit_submenu);
-    bit_uint32->setCheckable(true);
-    BitsGroup->addAction(bit_uint32);
-    bit_submenu->addAction(bit_uint32);
-    bit_uint64 = new QAction("64 bits int", bit_submenu);
-    bit_uint64->setCheckable(true);
-    BitsGroup->addAction(bit_uint64);
-    bit_submenu->addAction(bit_uint64);
-    bit_submenu->addSeparator();
-    bit_flt16 = new QAction("16 bits float", bit_submenu);
-    bit_flt16->setCheckable(true);
-    BitsGroup->addAction(bit_flt16);
-    bit_submenu->addAction(bit_flt16);
-    bit_flt32 = new QAction("32 bits float", bit_submenu);
-    bit_flt32->setCheckable(true);
-    BitsGroup->addAction(bit_flt32);
-    bit_submenu->addAction(bit_flt32);
-	bit_flt64 = new QAction("64 bits float", bit_submenu);
-    bit_flt64->setCheckable(true);
-    BitsGroup->addAction(bit_flt64);
-    bit_submenu->addAction(bit_flt64);
+    bit_orig = createAction("Original", BitsGroup, bit_submenu, true, true);
+    bit_uint8 = createAction("8 bits int", BitsGroup, bit_submenu);
+    bit_uint16 = createAction("16 bits int", BitsGroup, bit_submenu);
+    bit_uint32 = createAction("32 bits int", BitsGroup, bit_submenu);
+    bit_uint64 = createAction("64 bits int", BitsGroup, bit_submenu);
+    bit_flt16 = createAction("16 bits float", BitsGroup, bit_submenu);
+    bit_flt32 = createAction("32 bits float", BitsGroup, bit_submenu);
+	bit_flt64 = createAction("64 bits float", BitsGroup, bit_submenu);
+
     // camera raw rotation
-    raw_rot_A = new QAction("Auto EXIF", s_menu);
-    raw_rot_A->setCheckable(true);
-    raw_rot_A->setChecked(true);
-    RawGroup->addAction(raw_rot_A);
-    raw_submenu->addAction(raw_rot_A);
-    raw_rot_0 = new QAction("0 Horizontal", s_menu);
-    raw_rot_0->setCheckable(true);
-    RawGroup->addAction(raw_rot_0);
-    raw_submenu->addAction(raw_rot_0);
-    raw_rot_90 = new QAction("-90 Vertical", s_menu);
-    raw_rot_90->setCheckable(true);
-    RawGroup->addAction(raw_rot_90);
-    raw_submenu->addAction(raw_rot_90);
-    raw_rot_270 = new QAction("+90 Vertical", s_menu);
-    raw_rot_270->setCheckable(true);
-    RawGroup->addAction(raw_rot_270);
-    raw_submenu->addAction(raw_rot_270);
-    raw_rot_180 = new QAction("180 Horizontal", s_menu);
-    raw_rot_180->setCheckable(true);
-    RawGroup->addAction(raw_rot_180);
-    raw_submenu->addAction(raw_rot_180);
+    raw_rot_A = createAction("Auto EXIF", RawGroup, raw_submenu, true, true);
+    raw_rot_0 = createAction("0 Horizontal", RawGroup, raw_submenu);
+    raw_rot_90 = createAction("-90 Vertical", RawGroup, raw_submenu);
+    raw_rot_270 = createAction("+90 Vertical", RawGroup, raw_submenu);
+    raw_rot_180 = createAction("180 Horizontal", RawGroup, raw_submenu);
 
     s_menu->addAction(sld_enable);
     s_menu->addSeparator();
@@ -270,38 +202,30 @@ MainWindow::MainWindow() {
     connect(dropArea, &DropArea::filesDropped, this, &MainWindow::startProcessing);
 
     // Connect the Settings action's triggered signal
+
     connect(sld_enable, &QAction::toggled, this, &MainWindow::sldfSettings);
     connect(alf_enable, &QAction::toggled, this, &MainWindow::alfSettings);
 
-    connect(nrm_Dis, &QAction::triggered, this, &MainWindow::normSettings);
-    connect(nrm_Smrt, &QAction::triggered, this, &MainWindow::normSettings);
-    connect(nrm_Force, &QAction::triggered, this, &MainWindow::normSettings);
-
-    connect(rng_Unsg, &QAction::triggered, this, &MainWindow::rngSettings);
-    connect(rng_Sign, &QAction::triggered, this, &MainWindow::rngSettings);
-
-    connect(frmt_Org, &QAction::triggered, this, &MainWindow::frmtSettings);
-    connect(frmt_Tif, &QAction::triggered, this, &MainWindow::frmtSettings);
-    connect(frmt_Exr, &QAction::triggered, this, &MainWindow::frmtSettings);
-    connect(frmt_Png, &QAction::triggered, this, &MainWindow::frmtSettings);
-    connect(frmt_Jpg, &QAction::triggered, this, &MainWindow::frmtSettings);
-    connect(frmt_Jp2, &QAction::triggered, this, &MainWindow::frmtSettings);
-    connect(frmt_Ppm, &QAction::triggered, this, &MainWindow::frmtSettings);
-
-    connect(bit_orig, &QAction::triggered, this, &MainWindow::bitSettings);
-    connect(bit_uint8, &QAction::triggered, this, &MainWindow::bitSettings);
-    connect(bit_uint16, &QAction::triggered, this, &MainWindow::bitSettings);
-    connect(bit_uint32, &QAction::triggered, this, &MainWindow::bitSettings);
-    connect(bit_uint64, &QAction::triggered, this, &MainWindow::bitSettings);
-    connect(bit_flt16, &QAction::triggered, this, &MainWindow::bitSettings);
-    connect(bit_flt32, &QAction::triggered, this, &MainWindow::bitSettings);
-    connect(bit_flt64, &QAction::triggered, this, &MainWindow::bitSettings);
-
-    connect(raw_rot_A, &QAction::triggered, this, &MainWindow::rawSettings);
-    connect(raw_rot_0, &QAction::triggered, this, &MainWindow::rawSettings);
-    connect(raw_rot_90, &QAction::triggered, this, &MainWindow::rawSettings);
-    connect(raw_rot_180, &QAction::triggered, this, &MainWindow::rawSettings);
-    connect(raw_rot_270, &QAction::triggered, this, &MainWindow::rawSettings);
+    QList<QAction*> norm_act = { nrm_Dis, nrm_Smrt, nrm_Force };
+    for (QAction* action : norm_act) {
+		connect(action, &QAction::triggered, this, &MainWindow::normSettings);
+	}
+    QList<QAction*> rng_act = { rng_Unsg, rng_Sign, rng_US, rng_SU };
+    for (QAction* action : rng_act) {
+        connect(action, &QAction::triggered, this, &MainWindow::rngSettings);
+    }
+    QList<QAction*> format_act = { frmt_Org, frmt_Tif, frmt_Exr, frmt_Png, frmt_Jpg, frmt_Jp2, frmt_Ppm };
+    for (QAction* action : format_act) {
+        connect(action, &QAction::triggered, this, &MainWindow::frmtSettings);
+    }
+    QList<QAction*> bits_act = { bit_orig, bit_uint8, bit_uint16, bit_uint32, bit_uint64, bit_flt16, bit_flt32, bit_flt64 };
+    for (QAction* action : bits_act) {
+		connect(action, &QAction::triggered, this, &MainWindow::bitSettings);
+	}
+    QList<QAction*> raw_act = { raw_rot_A, raw_rot_0, raw_rot_90, raw_rot_270, raw_rot_180 };
+    for (QAction* action : raw_act) {
+		connect(action, &QAction::triggered, this, &MainWindow::rawSettings);
+	}
 
     connect(con_enable, &QAction::toggled, this, &MainWindow::toggleConsole);
     // Add new connection for updating the textOutput
@@ -460,6 +384,16 @@ void MainWindow::rngSettings() {
 		emit updateTextSignal("Signed floats");
         qDebug() << "32/16 bit floats Normals are in [-1.0 ~ 1.0] range";
 	}
+    else if (action == rng_SU) {
+		settings.rngMode = 2;
+        emit updateTextSignal("Signed <> Unsigned");
+        qDebug() << "32/16 bit floats Normals are in [-1.0 ~ 1.0] range converted to [0.0 ~ 1.0]";
+    }
+    else if (action == rng_US) {
+        settings.rngMode = 3;
+        emit updateTextSignal("Unsigned <> Signed");
+        qDebug() << "32/16 bit floats Normals are in [0.0 ~ 1.0] range converted to [-1.0 ~ 1.0]";
+    }
 }
 
 void MainWindow::rawSettings() {

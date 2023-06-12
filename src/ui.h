@@ -67,11 +67,15 @@ private:
 
     QAction* sld_enable;
     QAction* alf_enable;
+    QAction* con_enable;
+
     QAction* nrm_Dis;
     QAction* nrm_Smrt;
     QAction* nrm_Force;
     QAction* rng_Unsg;
     QAction* rng_Sign;
+    QAction* rng_SU;
+    QAction* rng_US;
 
     QAction* frmt_Org; // Original
     QAction* frmt_Png; // PNG

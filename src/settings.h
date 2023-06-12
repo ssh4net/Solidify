@@ -23,6 +23,7 @@ struct Settings {
 	const std::string mask_substr[4] = { "_mask.", "_mask_", "_alpha.", "_alpha_" };
 	const std::string out_formats[6] = {"tif", "exr", "png", "jpg", "jp2", "ppm"};
 	const int raw_rot[5] = { -1, 0, 3, 5, 6 }; // -1 - Auto EXIF, 0 - Unrotated/Horisontal, 3 - 180 Horisontal, 5 - 90 CW Vertical, 6 - 90 CCW Vertical
+	const uint rngConv[4] = { 0, 1, 2, 3}; // 0 - unsigned, 1 - signed, 2 - unsigned -> signed, 3 - signed -> unsigned
 
 	Settings() {
 		isSolidify = true; // Solidify enabled/disabled

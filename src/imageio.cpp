@@ -101,30 +101,32 @@ TypeDesc getTypeDesc(int bit_depth) {
 	}
 }
 
-void format2console(TypeDesc format) {
-    if (format == TypeDesc::UINT8) {
-        std::cout << "8-bit unsigned int" << std::endl;
-    }
-    else if (format == TypeDesc::UINT16) {
-        std::cout << "16-bit unsigned int" << std::endl;
-    }
-    else if (format == TypeDesc::UINT32) {
-        std::cout << "32-bit unsigned int" << std::endl;
-    }
-    else if (format == TypeDesc::UINT64) {
-        std::cout << "64-bit unsigned int" << std::endl;
-    }
-    else if (format == TypeDesc::HALF) {
-        std::cout << "16-bit float" << std::endl;
-    }
-    else if (format == TypeDesc::FLOAT) {
-        std::cout << "32-bit float" << std::endl;
-    }
-    else if (format == TypeDesc::DOUBLE) {
-        std::cout << "64-bit float" << std::endl;
-    }
-    else {
-        std::cout << "Unknown or unsupported format" << std::endl;
+std::string formatText(TypeDesc format) {
+    switch (format.basetype) {
+    case TypeDesc::UINT8:
+        return "8bit integer";
+    case TypeDesc::UINT16:
+        return "16bit integer";
+    case TypeDesc::UINT32:
+        return "32bit integer";
+    case TypeDesc::UINT64:
+        return "64bit integer";
+    case TypeDesc::INT8:
+        return "8bit integer (signed)";
+    case TypeDesc::INT16:
+        return "16bit integer (signed)";
+    case TypeDesc::INT32:
+        return "32bit integer (signed)";
+    case TypeDesc::INT64:
+        return "64bit integer (signed)";
+    case TypeDesc::HALF:
+        return "16bit (half) float";
+    case TypeDesc::FLOAT:
+        return "32bit float";
+    case TypeDesc::DOUBLE:
+        return "64bit (double) float";
+    default:
+        return "UNKNOWN bit depth";
     }
 }
 
@@ -194,15 +196,25 @@ bool img_load(ImageBuf& outBuf, const std::string& inputFileName, bool external_
             last_channel = 1;
         }
     }
-    outBuf.specmod().attribute("oiio:UnassociatedAlpha", 0);
-    outBuf.specmod().attribute("tiff:UnassociatedAlpha", 0);
-    outBuf.specmod().attribute("oiio:ColorSpace", "Linear");
 //    outBuf.specmod().attribute("raw:user_flip", settings.rawRot);
 //    outBuf.specmod().extra_attribs["raw:user_flip"] = settings.rawRot;
 
     std::cout << "Rotations: " << settings.rawRot << std::endl;
+    
+    TypeDesc o_format = spec.format; //getTypeDesc(settings.bitDepth);
 
-    TypeDesc o_format = getTypeDesc(settings.bitDepth);//TypeUnknown; //TypeDesc::FLOAT
+    switch (o_format.basetype) {
+        case TypeDesc::UINT8:
+            o_format = TypeDesc::UINT16;
+			break;
+        case TypeDesc::HALF:
+            o_format = TypeDesc::FLOAT;
+            break;
+		default:
+			break;
+    } 
+
+    // = TypeDesc::FLOAT;// getTypeDesc(settings.bitDepth);//TypeUnknown; //TypeDesc::FLOAT
 
     bool read_ok = outBuf.read(0, 0, 0, last_channel, true, o_format, progress_callback, progressBar);
     if (!read_ok) {
@@ -237,7 +249,7 @@ bool img_load(ImageBuf& outBuf, const std::string& inputFileName, bool external_
 }
 
 template<class Rtype>
-static bool normalize_impl(ImageBuf& R, const ImageBuf& A, bool fullRange, ROI roi, int nthreads)
+static bool normalize_impl(ImageBuf& R, const ImageBuf& A, float inCenter, float outCenter, float scale, ROI roi, int nthreads)
 {
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         ImageBuf::ConstIterator<Rtype> a(A, roi);
@@ -247,9 +259,9 @@ static bool normalize_impl(ImageBuf& R, const ImageBuf& A, bool fullRange, ROI r
             float y = a[1];
             float z = a[2];
 
-            x = !fullRange ? 2.0f * x - 1.0f : x;
-            y = !fullRange ? 2.0f * y - 1.0f : y;
-            z = !fullRange ? 2.0f * z - 1.0f : z;
+            x = x - inCenter;
+            y = y - inCenter;
+            z = z - inCenter;
 
             float length = std::hypot(x, y, z);
 
@@ -259,9 +271,9 @@ static bool normalize_impl(ImageBuf& R, const ImageBuf& A, bool fullRange, ROI r
                 z /= length;
             }
 
-            r[0] = !fullRange ? x * 0.5f + 0.5f : x;
-            r[1] = !fullRange ? y * 0.5f + 0.5f : y;
-            r[2] = !fullRange ? z * 0.5f + 0.5f : z;
+            r[0] = x * scale + outCenter;
+            r[1] = y * scale + outCenter;
+            r[2] = z * scale + outCenter;
             
             if (A.spec().nchannels == 4) {
                 r[3] = a[3];
@@ -271,7 +283,7 @@ static bool normalize_impl(ImageBuf& R, const ImageBuf& A, bool fullRange, ROI r
     return true;
 }
 
-bool normalize(ImageBuf& dst, const ImageBuf& A, bool fullRange, ROI roi, int nthreads)
+bool normalize(ImageBuf& dst, const ImageBuf& A, float inCenter, float outCenter, float scale, ROI roi, int nthreads)
 {
     if (!ImageBufAlgo::IBAprep(roi, &dst, &A))
         return false;
@@ -279,22 +291,22 @@ bool normalize(ImageBuf& dst, const ImageBuf& A, bool fullRange, ROI roi, int nt
     //OIIO_DISPATCH_COMMON_TYPES(ok, "normalize", normalize_impl, dst.spec().format, dst, A, fullRange, roi, nthreads);
     switch (dst.spec().format.basetype) {
         case TypeDesc::FLOAT: 
-            ok = normalize_impl<float>(dst, A, fullRange, roi, nthreads); 
+            ok = normalize_impl<float>(dst, A, inCenter, outCenter, scale, roi, nthreads); 
             break; 
         case TypeDesc::UINT8: 
-            ok = normalize_impl<unsigned char>(dst, A, fullRange, roi, nthreads); 
+            ok = normalize_impl<unsigned char>(dst, A, inCenter, outCenter, scale, roi, nthreads);
             break; 
         case TypeDesc::HALF: // should be half but it give me an error
-            ok = normalize_impl<float>(dst, A, fullRange, roi, nthreads);
+            ok = normalize_impl<float>(dst, A, inCenter, outCenter, scale, roi, nthreads);
             break; 
         case TypeDesc::UINT16: 
-            ok = normalize_impl<unsigned short>(dst, A, fullRange, roi, nthreads); 
+            ok = normalize_impl<unsigned short>(dst, A, inCenter, outCenter, scale, roi, nthreads);
             break; 
         default: 
             { 
             ImageBuf Rtmp; 
             if ((dst).initialized()) Rtmp.copy(dst, TypeDesc::FLOAT); 
-                ok = normalize_impl<float>(Rtmp, A, fullRange, roi, nthreads); 
+                ok = normalize_impl<float>(Rtmp, A, inCenter, outCenter, scale, roi, nthreads);
             if (ok) (dst).copy(Rtmp); 
                 else (dst).errorfmt("{}", Rtmp.geterror()); 
             }
@@ -302,11 +314,10 @@ bool normalize(ImageBuf& dst, const ImageBuf& A, bool fullRange, ROI roi, int nt
     return ok;
 }
 
-
-ImageBuf normalize(const ImageBuf& A, bool fullRange, ROI roi, int nthreads)
+ImageBuf normalize(const ImageBuf& A, float inCenter, float outCenter, float scale, ROI roi, int nthreads)
 {
     ImageBuf result;
-    bool ok = normalize(result, A, fullRange, roi, nthreads);
+    bool ok = normalize(result, A, inCenter, outCenter, scale, roi, nthreads);
     if (!ok && !result.has_error())
         result.errorfmt("normalize error");
     return result;

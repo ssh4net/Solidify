@@ -36,11 +36,27 @@ using namespace OIIO;
 bool solidify_main(const std::string& inputFileName, const std::string& outputFileName, std::pair<ImageBuf, ImageBuf> mask_pair, 
     QProgressBar* progressBar, MainWindow* mainWindow) {
     Timer g_timer;
-    // Create an ImageBuf object for the input file
+    TypeDesc out_format;
+    
     ImageSpec config;
     config["raw:user_flip"] = settings.rawRot;
+    
+    config["oiio:UnassociatedAlpha"] = 0;
+    config["tiff:UnassociatedAlpha"] = 0;
+    config["oiio:ColorSpace"] = "Linear";
 
     ImageBuf input_buf(inputFileName, 0, 0, nullptr, &config, nullptr);
+
+    if (!input_buf.init_spec(inputFileName, 0, 0)){
+		std::cerr << "Error reading " << inputFileName << std::endl;
+        std::cerr << input_buf.geterror() << std::endl;
+		mainWindow->emitUpdateTextSignal("Error! Check console for details");
+		return false;
+	}
+
+    TypeDesc orig_format = input_buf.spec().format;
+
+    std::cout << "File bith depth: " << formatText(orig_format) << std::endl;
 
     //ImageBuf::ImageBuf(config, input_buf);
 
@@ -65,9 +81,10 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
     const ImageSpec& ispec = input_buf.spec();
 
     // Get the format (bit depth and type)
-    TypeDesc format = ispec.format;
+    TypeDesc load_format = ispec.format;
+    out_format = load_format; // copy latest buffer format as an output format
 
-    format2console(format);
+    std::cout << "File loaded bit depth: " << formatText(load_format) << std::endl;
 
     // get the image size
     int width = input_buf.spec().width;
@@ -119,23 +136,31 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
     }
 
     // Create an ImageBuf object to store the result
-    ImageBuf result_buf, rgba_buf, bit_alpha_buf;
+    ImageBuf result_buf, out_buf, rgba_buf, bit_alpha_buf;
 
-    ImageSpec& rspec = result_buf.specmod();
+    // check if filename have any of settings.normNames as substring, case insensitive
+    bool isNormName = false;
+    bool doNormalize = false;
+    std::string lowName = toLower(inputFileName);
+
+    for (auto& name : settings.normNames) {
+        if (lowName.find(name, 0) != std::string::npos) {
+            isNormName = true;
+            break;
+        }
+    }
+    //rspec.format = TypeDesc::FLOAT;
     //rspec.format = getTypeDesc(settings.bitDepth);
 
     if (settings.isSolidify && isValid) {
-
         std::cout << "Filling holes in process...\n";
-
         Timer pushpull_timer;
 
         if (external_alpha) {
-
             ImageBuf* alpha_buf_ptr = &mask_pair.first;
 
-            if (format != TypeDesc::FLOAT) {
-                bit_alpha_buf = mask_pair.first.copy(format);
+            if (load_format != TypeDesc::FLOAT) {
+                bit_alpha_buf = mask_pair.first.copy(load_format);
                 alpha_buf_ptr = &bit_alpha_buf;
             }
 
@@ -162,24 +187,14 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
             return false;
         }
 
+        out_format = result_buf.spec().format; // copy latest buffer format as an output format
+        std::cout << "Push-Pull format: " << formatText(out_format) << std::endl;
         std::cout << "Push-Pull time : " << pushpull_timer.nowText() << std::endl;
     }
     else {
 		result_buf = input_buf;
         std::cout << "Filling holes skipped\n";
 	}
-    // check if filename have any of settings.normNames as substring, case insensitive
-    bool isNormName = false;
-    std::string lowName = toLower(inputFileName);
-
-    for (auto& name : settings.normNames) {
-        if (lowName.find(name, 0) != std::string::npos) {
-			isNormName = true;
-			break;
-		}
-	}
-
-    bool doNormalize = false;
 
     if ((settings.normMode == 2) || (isNormName && settings.normMode != 0)) {
         doNormalize = true;
@@ -191,43 +206,76 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
 
         ROI roi(0, result_buf.spec().width, 0, result_buf.spec().height, 0, 1, 0, result_buf.spec().nchannels);
         int nthreads = 0; // debug time 1 thread, for release use 0
-        bool fullRange = settings.rngMode;
-        success = normalize(result_buf, result_buf, fullRange, roi, nthreads);
+        float inCenter = 0.5f, outCenter = 0.5f, outScale = 0.5f;
+        switch (settings.rngMode) {
+        case 0:
+			inCenter = 0.5f;
+			outCenter = 0.5f;
+			outScale = 0.5f;
+			break;
+        case 1:
+            inCenter = 0.0f;
+            outCenter = 0.0f;
+            outScale = 1.0f;
+            break;
+        case 2:
+			inCenter = 0.0f;
+			outCenter = 0.5f;
+			outScale = 0.5f;
+			break;
+        case 3:
+            inCenter = 0.5f;
+            outCenter = 0.0f;
+            outScale = 1.0f;
+            break;
+        default:
+			break;
+        }
 
+        success = normalize(out_buf, result_buf, inCenter, outCenter, outScale, roi, nthreads);
         if (!success) {
             std::cerr << "Error: Could not normalize image" << std::endl;
             mainWindow->emitUpdateTextSignal("Error! Check console for details");
             return false;
         }
-
+        out_format = out_buf.spec().format; // copy latest buffer format as an output format
+        std::cout << "Normalized format: " << formatText(out_format) << std::endl;
         std::cout << "Normalize time : " << normalize_timer.nowText() << std::endl;
     }
     else {
+        out_buf = result_buf;
 		std::cout << "Normalize skipped\n";
 	}
 
-    rspec = result_buf.specmod();
+    ImageSpec& ospec = out_buf.specmod();
     if (settings.expAlpha) {
-        rspec.nchannels = grayscale ? 2 : 4; // Only write RGB channels
+        ospec.nchannels = grayscale ? 2 : 4; // Only write RGB channels
     }
     else {
-		rspec.nchannels = grayscale ? 1 : 3; // Write RGB and alpha channels
+		ospec.nchannels = grayscale ? 1 : 3; // Write RGB and alpha channels
 	}
 
-    rspec.alpha_channel = -1; // No alpha channel
+    ospec.alpha_channel = -1; // No alpha channel
     //int bits = settings.bitDepth != -1 ? settings.getBitDepth() : 2;
 
     //rspec.attribute("oiio:BitsPerSample", bits);
-    rspec.attribute("pnm:binary", 1);
-    rspec.attribute("oiio:UnassociatedAlpha", 1);
-    rspec.attribute("jpeg:subsampling", "4:4:4");
-    rspec.attribute("Compression", "jpeg:100");
-    rspec.attribute("png:compressionLevel", 4);
+    ospec.attribute("pnm:binary", 1);
+    ospec.attribute("oiio:UnassociatedAlpha", 1);
+    ospec.attribute("jpeg:subsampling", "4:4:4");
+    ospec.attribute("Compression", "jpeg:100");
+    ospec.attribute("png:compressionLevel", 4);
     //rspec.attribute("tiff:bigtiff", 1);
     //rspec.set_format(TypeDesc::FLOAT); // temporary
     //std::cout << "Channels: " << rspec.nchannels << " Alpha channel: " << rspec.alpha_channel << std::endl;
+//
+    //ospec.format = getTypeDesc(settings.bitDepth);
+    if (getTypeDesc(settings.bitDepth) == TypeDesc::UNKNOWN) {
+        ospec.set_format(orig_format);
+	} else {
+		ospec.set_format(getTypeDesc(settings.bitDepth));
+    }
 
-    format2console(rspec.format);
+    std::cout << "Output file format: " << formatText(ospec.format) << std::endl;
 
     auto out = ImageOutput::create(outputFileName);
     if (!out) {
@@ -235,15 +283,13 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
         mainWindow->emitUpdateTextSignal("Error! Check console for details");
         return false;
     }    
-    out->open(outputFileName, rspec, ImageOutput::Create);
+    out->open(outputFileName, ospec, ImageOutput::Create);
 
     QMetaObject::invokeMethod(progressBar, "setValue", Qt::QueuedConnection, Q_ARG(int, 0));
 
     std::cout << "Writing " << outputFileName << std::endl;
 
-    out->write_image(result_buf.spec().format, result_buf.localpixels(), 
-        result_buf.pixel_stride(), result_buf.scanline_stride(), result_buf.z_stride(), 
-        *progress_callback, progressBar);
+    out->write_image(out_format, out_buf.localpixels(),out_buf.pixel_stride(), out_buf.scanline_stride(), out_buf.z_stride(), *progress_callback, progressBar);
     out->close();
 
     std::cout << std::endl << "Total processing time : " << g_timer.nowText() << std::endl;

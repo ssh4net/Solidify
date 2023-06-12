@@ -37,7 +37,7 @@ void pbar_color_rand(QProgressBar* progressBar);
 bool progress_callback(void* opaque_data, float portion_done);
 
 TypeDesc getTypeDesc(int bit_depth);
-void format2console(TypeDesc format);
+std::string formatText(TypeDesc format);
 void formatFromBuff(ImageBuf& buf);
 
 std::pair<ImageBuf, ImageBuf> mask_load(const std::string& mask_file, MainWindow* mainWindow);
@@ -48,5 +48,5 @@ std::pair<ImageBuf, ImageBuf> mask_load(const std::string& mask_file, MainWindow
 //bool NormalizeMap(ImageBuf& img, bool fullRange);
 //bool mulNormalizeMap(ImageBuf& img, bool fullRange);
 
-bool normalize(ImageBuf& dst, const ImageBuf& A, bool fullRange, ROI roi, int nthreads);
-ImageBuf normalize(const ImageBuf& A, bool fullRange, ROI roi, int nthreads);
+bool normalize(ImageBuf& dst, const ImageBuf& A, float inCenter, float outCenter, float scale, ROI roi, int nthreads);
+ImageBuf normalize(const ImageBuf& A, float inCenter, float outCenter, float scale, ROI roi, int nthreads);
