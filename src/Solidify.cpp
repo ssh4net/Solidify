@@ -207,7 +207,7 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
         ROI roi(0, result_buf.spec().width, 0, result_buf.spec().height, 0, 1, 0, result_buf.spec().nchannels);
         int nthreads = 0; // debug time 1 thread, for release use 0
         float inCenter = 0.5f, outCenter = 0.5f, outScale = 0.5f;
-        switch (settings.rngMode) {
+        switch (settings.rangeMode) {
         case 0:
 			inCenter = 0.5f;
 			outCenter = 0.5f;

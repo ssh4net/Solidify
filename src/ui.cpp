@@ -106,15 +106,15 @@ MainWindow::MainWindow() {
     // settings menu
     sld_enable = new QAction("Solidify", s_menu);
     sld_enable->setCheckable(true);
-    sld_enable->setChecked(true);
+    sld_enable->setChecked(settings.isSolidify);
     // preserve alpha
     alf_enable = new QAction("With Alpha", s_menu);
     alf_enable->setCheckable(true);
-    alf_enable->setChecked(false);
+    alf_enable->setChecked(settings.expAlpha);
 
     QAction* con_enable = new QAction("Enable Console", s_menu);
     con_enable->setCheckable(true);
-    con_enable->setChecked(false);
+    con_enable->setChecked(settings.conEnable);
 
     // Submenu
     QMenu* nm_submenu = new QMenu("Normalize", s_menu);
@@ -375,22 +375,22 @@ void MainWindow::alfSettings(bool checked) {
 void MainWindow::rngSettings() {
 	QAction* action = qobject_cast<QAction*>(sender());
     if (action == rng_Unsg) {
-        settings.rngMode = 0;
+        settings.rangeMode = 0;
 		emit updateTextSignal("Unsigned floats");
         qDebug() << "32/16 bit float Normals are in [0.0 ~ 1.0] range";
 	}
     else if (action == rng_Sign) {
-        settings.rngMode = 1;
+        settings.rangeMode = 1;
 		emit updateTextSignal("Signed floats");
         qDebug() << "32/16 bit floats Normals are in [-1.0 ~ 1.0] range";
 	}
     else if (action == rng_SU) {
-		settings.rngMode = 2;
+		settings.rangeMode = 2;
         emit updateTextSignal("Signed <> Unsigned");
         qDebug() << "32/16 bit floats Normals are in [-1.0 ~ 1.0] range converted to [0.0 ~ 1.0]";
     }
     else if (action == rng_US) {
-        settings.rngMode = 3;
+        settings.rangeMode = 3;
         emit updateTextSignal("Unsigned <> Signed");
         qDebug() << "32/16 bit floats Normals are in [0.0 ~ 1.0] range converted to [-1.0 ~ 1.0]";
     }

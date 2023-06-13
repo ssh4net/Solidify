@@ -76,4 +76,9 @@
       <Filter>src</Filter>
     </QtMoc>
   </ItemGroup>
+  <ItemGroup>
+    <CopyFileToFolders Include="src\app_config.toml">
+      <Filter>Resource Files</Filter>
+    </CopyFileToFolders>
+  </ItemGroup>
 </Project>

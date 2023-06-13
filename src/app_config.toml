@@ -1,0 +1,63 @@
+[Global]
+# Global app settings
+Solidify = true
+ExportAlpha = false
+MaskNames = ["_mask.", "_mask_", "_alpha.", "_alpha_"]
+Console = true
+
+[Normalize]
+# Normalization settings
+# NormalizeMode:
+# 0 - disabled
+# 1 - smart
+# 2 - force
+NormalizeMode = 1
+# Normas substring to search in smart mode
+NormalsNames = ["normal", "tangent", "object", "world"]
+
+[Range]
+# Range conversion mode
+# 0 - Unsigned [0.0 ~ 1.0]
+# 1 - Signed [-1.0 ~ 1.0]
+# 2 - Signed to Unsigned [-1.0~1.0] -> [0.0~1.0]
+# 3 - Unsigned to Signed [0.0~1.0] -> [-1.0~1.0]
+RangeMode = 0
+
+[Transform]
+# Transform image
+empty = true
+
+[Export]
+# Export settings
+# FileFormat:
+# -1 - Same as input. If input format can't be
+#    used for export (for example CameraRAWs) 
+#    app will use default 
+# 0 - TIFF
+# 1 - OpenEXR
+# 2 - PNG
+# 3 - JPEG
+# 4 - JPEG-2000
+# 5 - PPM
+DefaultFormat = 0
+FileFormat = -1
+# Bit depth: 
+# -1 - Original
+# 0 - uint8 (8bit unsigned int)
+# 1 - uint16 (16bit unsigned int)
+# 2 - uint32 (64bit unsigned int) !! most file formats have not support 32bit unsigned int
+# 3 - uint64 (64bit unsigned int) !! most file formats have not support double precision
+# 4 - half (16bit float)
+# 5 - float (32bit float)
+# 6 - double (64bit float) !! most file formats have not support double precision
+DefaultBit = 1
+BitDepth = -1
+
+[CameraRaw]
+# Raw rotation:
+# -1 - Auto EXIF
+# 0 - Unrotated/Horisontal
+# 3 - 180 Horisontal
+# 5 - 90 CW Vertical
+# 6 - 90 CCW Vertical
+RawRotation = -1
