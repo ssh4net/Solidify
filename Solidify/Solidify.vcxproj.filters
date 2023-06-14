@@ -45,6 +45,9 @@
     <ClCompile Include="src\settings.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="src\Log.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="src\gui.ui">
@@ -70,6 +73,18 @@
     <ClInclude Include="src\settings.h">
       <Filter>src</Filter>
     </ClInclude>
+    <ClInclude Include="src\threadpool.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\LOG.H">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Common.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Resource Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="src\ui.h">
@@ -77,8 +92,13 @@
     </QtMoc>
   </ItemGroup>
   <ItemGroup>
-    <CopyFileToFolders Include="src\app_config.toml">
+    <CopyFileToFolders Include="src\sldf_config.toml">
       <Filter>Resource Files</Filter>
     </CopyFileToFolders>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Solidify.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

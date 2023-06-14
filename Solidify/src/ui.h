@@ -1,3 +1,19 @@
+/*
+ * Solidify (Push Pull) algorithm implementation using OpenImageIO
+ * Copyright (c) 2023 Erium Vladlen.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 #pragma once
 
 #include <QtWidgets/QMainWindow>
@@ -24,7 +40,9 @@
 #include "processing.h"
 
 #define VERSION_MAJOR 1
-#define VERSION_MINOR 31
+#define VERSION_MINOR 34
+
+void setPBarColor(QProgressBar* progressBar, const QColor& color = QColor("#05B8CC"));
 
 class DropArea : public QLabel {
     Q_OBJECT  // Macro needed to handle signals and slots
@@ -48,6 +66,11 @@ public:
 
 signals:
     void updateTextSignal(const QString& text);
+    void changeProgressBarColorSignal(QColor color);
+
+public slots:
+    void setProgressBarValueSlot(int value) { progressBar->setValue(value); }
+    void changeProgressBarColorSlot(const QColor& color) { setPBarColor(progressBar, color); }
 
 private slots:
     void restartApp();
@@ -85,6 +108,7 @@ private:
     QAction* frmt_Jp2; // JPEG 2000
     QAction* frmt_Ppm; // PPM
 
+    //std::vector<QAction*> bitActions;
     QAction* bit_orig;
     QAction* bit_uint8;
     QAction* bit_uint16;
@@ -101,4 +125,3 @@ private:
     QAction* raw_rot_270;
 };
 
-void setPBarColor(QProgressBar* progressBar, const QColor& color = QColor("#05B8CC"));

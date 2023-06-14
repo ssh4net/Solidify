@@ -1,6 +1,6 @@
 /*
  * Solidify (Push Pull) algorithm implementation using OpenImageIO
- * Copyright (c) 2022 Erium Vladlen.
+ * Copyright (c) 2023 Erium Vladlen.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,10 +21,16 @@
 #include "imageio.h"
 #include "processing.h"
 #include "settings.h"
+#include "Log.h"
 
 #include <algorithm>
 #include <cctype>
 #include <string>
+
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include "threadpool.h"
 
 std::string toLower(const std::string& str) {
     std::string strCopy = str;
@@ -52,12 +58,12 @@ void getWritableExt(QString* ext, Settings* settings) {
     QString fn = "probename." + *ext;
     probe = ImageOutput::create(fn.toStdString());
     if (probe) {
-        std::cout << ext->toStdString() << " is writable" << std::endl;
+        LOG(info) << ext->toStdString() << " is writable" << std::endl;
     }
     else {
-        std::cout << ext->toStdString() << " is readonly" << std::endl;
-        std::cout << "Output format changed to TIFF" << std::endl;
-        *ext = "." + QString::fromStdString(settings->out_formats[0]);
+        LOG(info) << ext->toStdString() << " is readonly" << std::endl;
+        LOG(info) << "Output format changed to " << settings->out_formats[settings->defFormat] << std::endl;
+        *ext = "." + QString::fromStdString(settings->out_formats[settings->defFormat]);
     }
     probe.reset();
 }
@@ -115,6 +121,7 @@ QString getOutName(const QString& fileName, Settings* settings) {
 
 bool doProcessing(QList<QUrl> urls, QProgressBar* progressBar, MainWindow* mainWindow) {
     std::vector<QString> fileNames; // This will hold the names of all files
+    Timer f_timer;
 
     for (const QUrl& url : urls) {
         QString fileName = url.toLocalFile();
@@ -133,6 +140,10 @@ bool doProcessing(QList<QUrl> urls, QProgressBar* progressBar, MainWindow* mainW
         mask_pair = mask_load(mask_file.toStdString(), mainWindow);
 	}
 
+    std::vector< std::future<bool> > results;
+    // Create a pool with 5 threads
+    ThreadPool pool(settings.numThreads > 0 ? settings.numThreads : 1);
+    //for (auto& thr_file : fileNames) {
     for (int i = 0; i < fileNames.size(); i++) {
         //qDebug() << "File name: " << fileName;
         if (fileNames[i] == mask_file) {
@@ -154,14 +165,23 @@ bool doProcessing(QList<QUrl> urls, QProgressBar* progressBar, MainWindow* mainW
 
         mainWindow->emitUpdateTextSignal(DebugText);
 
-        // Call the solidify_main function
-        bool result = solidify_main(infile, outfile, mask_pair, progressBar, mainWindow);
 
-        if (!result) {
-            system("pause");
-            exit(-1);
-        };
+        results.emplace_back(pool.enqueue(solidify_main, infile, outfile, mask_pair, progressBar, mainWindow));
+
+        // Call the solidify_main function
+        //bool result = solidify_main(infile, outfile, mask_pair, progressBar, mainWindow);
+        //bool result_ok = result.get();
+
+        //if (!result_ok) {
+         //   system("pause");
+         //   exit(-1);
+        //};
     }
+    for (auto&& result : results) {
+        result.get();
+    }
+
     mainWindow->emitUpdateTextSignal("Everything Done!");
+    LOG(info) << "Total processing time : " << f_timer.nowText() << " for " << fileNames.size() << " files." << std::endl;
     return true;
 }

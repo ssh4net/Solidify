@@ -1,6 +1,6 @@
 /*
  * Solidify (Push Pull) algorithm implementation using OpenImageIO
- * Copyright (c) 2022 Erium Vladlen.
+ * Copyright (c) 2023 Erium Vladlen.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,8 +33,9 @@
 
 using namespace OIIO;
 
-void pbar_color_rand(QProgressBar* progressBar);
-bool progress_callback(void* opaque_data, float portion_done);
+//void pbar_color_rand(QProgressBar* progressBar);
+void pbar_color_rand(MainWindow* mainWindow);
+bool m_progress_callback(void* opaque_data, float portion_done);
 
 TypeDesc getTypeDesc(int bit_depth);
 std::string formatText(TypeDesc format);
@@ -43,7 +44,7 @@ void formatFromBuff(ImageBuf& buf);
 std::pair<ImageBuf, ImageBuf> mask_load(const std::string& mask_file, MainWindow* mainWindow);
 bool img_load(ImageBuf& outBuf, const std::string& inputFileName, bool external_alpha, QProgressBar* progressBar, MainWindow* mainWindow);
 
-std::pair<ImageBuf, ImageBuf> mask_load(const std::string& mask_file, MainWindow* mainWindow);
+void debugImageBufWrite(const ImageBuf& buf, const std::string& filename);
 
 //bool NormalizeMap(ImageBuf& img, bool fullRange);
 //bool mulNormalizeMap(ImageBuf& img, bool fullRange);

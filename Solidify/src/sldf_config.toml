@@ -4,6 +4,7 @@ Solidify = true
 ExportAlpha = false
 MaskNames = ["_mask.", "_mask_", "_alpha.", "_alpha_"]
 Console = true
+Threads = 3
 
 [Normalize]
 # Normalization settings

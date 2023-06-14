@@ -1,10 +1,27 @@
+/*
+ * Solidify (Push Pull) algorithm implementation using OpenImageIO
+ * Copyright (c) 2023 Erium Vladlen.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 #pragma once
-
-#ifndef SETTINGS_H
-#define SETTINGS_H
 
 #include <string>
 #include <vector>
+#include "ui.h"
+#include "LOG.H"
+#ifndef SETTINGS_H
+#define SETTINGS_H
 
 typedef unsigned char uchar;
 typedef unsigned short ushort;
@@ -17,6 +34,7 @@ struct Settings {
 	int fileFormat, defFormat;
 	int bitDepth, defBDepth;
 	int rawRot;
+	uint numThreads;
 
 	std::vector<std::string> normNames, mask_substr, out_formats;
 
@@ -32,8 +50,9 @@ struct Settings {
 		conEnable = false;	// Console enabled/disabled
 		isSolidify = true;	// Solidify enabled/disabled
 		expAlpha = false;	// Export alpha channel
+		numThreads = 3;		// Number of threads: 0 - auto, >0 - number of threads
 		normMode = 1;		// Normalize mode: 0 - disabled, 1 - smart, 2 - force
-		rangeMode = 0;		// Float type: 0 - unsigned, 1 - signed
+		rangeMode = 0;		// Float type: 0 - unsigned, 1 - signed, 2 - unsigned -> signed, 3 - signed -> unsigned
 		fileFormat = -1;	// File format: -1 - original, 0 - TIFF, 1 - OpenEXR, 2 - PNG, 3 - JPEG, 4 - JPEG-2000, 5 - PPM
 		defFormat = 0;		// Default file format = TIFF
 		bitDepth = -1;		// Bit depth: -1 - Original, 0 - uint8, 1 - uint16, 2 - uint32, 3 - uint64, 4 - half, 5 - float, 6 - double
@@ -69,4 +88,6 @@ struct Settings {
 
 extern Settings settings;
 
+bool loadSettings(Settings& settings, const std::string& filename);
+void printSettings(Settings& settings);
 #endif

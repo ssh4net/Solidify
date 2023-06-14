@@ -1,6 +1,6 @@
 /*
  * Solidify (Push Pull) algorithm implementation using OpenImageIO
- * Copyright (c) 2022 Erium Vladlen.
+ * Copyright (c) 2023 Erium Vladlen.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
 
+#include "Log.h"
 #include "solidify.h"
 #include "imageio.h"
 #include "settings.h"
@@ -36,6 +37,16 @@ using namespace OIIO;
 bool solidify_main(const std::string& inputFileName, const std::string& outputFileName, std::pair<ImageBuf, ImageBuf> mask_pair, 
     QProgressBar* progressBar, MainWindow* mainWindow) {
     Timer g_timer;
+
+//
+    // Generate a random delay
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> distr(1, 1000); // delay range in milliseconds
+
+    // Sleep for the random delay
+    std::this_thread::sleep_for(std::chrono::milliseconds(distr(gen)));
+//
     TypeDesc out_format;
     
     ImageSpec config;
@@ -48,15 +59,15 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
     ImageBuf input_buf(inputFileName, 0, 0, nullptr, &config, nullptr);
 
     if (!input_buf.init_spec(inputFileName, 0, 0)){
-		std::cerr << "Error reading " << inputFileName << std::endl;
-        std::cerr << input_buf.geterror() << std::endl;
+		LOG(error) << "Error reading " << inputFileName << std::endl;
+        LOG(error) << input_buf.geterror() << std::endl;
 		mainWindow->emitUpdateTextSignal("Error! Check console for details");
 		return false;
 	}
 
     TypeDesc orig_format = input_buf.spec().format;
 
-    std::cout << "File bith depth: " << formatText(orig_format) << std::endl;
+    LOG(info) << "File bith depth: " << formatText(orig_format) << std::endl;
 
     //ImageBuf::ImageBuf(config, input_buf);
 
@@ -69,10 +80,10 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
 
     // Read the image with a progress callback
 
-    std::cout << "Reading " << inputFileName << std::endl;
+    LOG(info) << "Reading " << inputFileName << std::endl;
     bool load_ok = img_load(input_buf, inputFileName, external_alpha, progressBar, mainWindow);
     if (!load_ok) {
-		std::cerr << "Error reading " << inputFileName << std::endl;
+		LOG(error) << "Error reading " << inputFileName << std::endl;
         mainWindow->emitUpdateTextSignal("Error! Check console for details");
 		return false;
 	}
@@ -84,13 +95,13 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
     TypeDesc load_format = ispec.format;
     out_format = load_format; // copy latest buffer format as an output format
 
-    std::cout << "File loaded bit depth: " << formatText(load_format) << std::endl;
+    LOG(info) << "File loaded bit depth: " << formatText(load_format) << std::endl;
 
     // get the image size
     int width = input_buf.spec().width;
     int height = input_buf.spec().height;
-    std::cout << "Image size: " << width << "x" << height << std::endl;
-    std::cout << "Channels: " << input_buf.nchannels() << " Alpha channel: " << input_buf.spec().alpha_channel << std::endl;
+    LOG(info) << "Image size: " << width << "x" << height << std::endl;
+    LOG(info) << "Channels: " << input_buf.nchannels() << " Alpha channel index: " << input_buf.spec().alpha_channel << std::endl;
 
     bool isValid = true;
     int inputCh = input_buf.nchannels();
@@ -129,14 +140,15 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
 		break;
     default:
         isValid = false;
-        std::cerr << "Error: Only Grayscale, RGB and RGBA images are supported" << std::endl;
-        std::cerr << "Grayscale and RGB images must have an external alpha channel or use external alpha file" << std::endl;
+        LOG(error) << "Error: Only Grayscale, RGB and RGBA images are supported" << std::endl;
+        LOG(error) << "Grayscale and RGB images must have an external alpha channel or use external alpha file" << std::endl;
         return false;
         break;
     }
 
     // Create an ImageBuf object to store the result
-    ImageBuf result_buf, out_buf, rgba_buf, bit_alpha_buf;
+
+    ImageBuf result_buf, out_buf, rgba_buf, original_alpha, bit_alpha_buf;
 
     // check if filename have any of settings.normNames as substring, case insensitive
     bool isNormName = false;
@@ -153,7 +165,7 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
     //rspec.format = getTypeDesc(settings.bitDepth);
 
     if (settings.isSolidify && isValid) {
-        std::cout << "Filling holes in process...\n";
+        LOG(info) << "Filling holes in process...\n";
         Timer pushpull_timer;
 
         if (external_alpha) {
@@ -163,17 +175,28 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
                 bit_alpha_buf = mask_pair.first.copy(load_format);
                 alpha_buf_ptr = &bit_alpha_buf;
             }
+            else {
+                bit_alpha_buf = mask_pair.first;
+			}
 
             bool ok = ImageBufAlgo::mul(input_buf, input_buf, grayscale ? mask_pair.first : mask_pair.second);
+            if (!ok) {
+                LOG(error) << "multiplication error: " << rgba_buf.geterror() << std::endl;
+                mainWindow->emitUpdateTextSignal("Error! Check console for details");
+                return false;
+            }
             ok = ok && ImageBufAlgo::channel_append(rgba_buf, input_buf, *alpha_buf_ptr);
             if (!ok) {
-                std::cerr << "Error: " << rgba_buf.geterror() << std::endl;
+                LOG(error) << "channel_append error: " << rgba_buf.geterror() << std::endl;
                 mainWindow->emitUpdateTextSignal("Error! Check console for details");
                 return false;
             }
             // rename last channel to alpha and set alpha channel
             rgba_buf.specmod().channelnames[rgba_buf.nchannels() - 1] = "A";
             rgba_buf.specmod().alpha_channel = rgba_buf.nchannels() - 1;
+        }
+        else if (settings.expAlpha) { // if Export alpha channel is enabled, copy the original alpha channel to a separate buffer
+            original_alpha = ImageBufAlgo::channels(input_buf, 1, 3);
         }
 
         ImageBuf* input_buf_ptr = external_alpha ? &rgba_buf : &input_buf; // Use the multiplied RGBA buffer if have an external alpha
@@ -182,18 +205,34 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
         bool ok = ImageBufAlgo::fillholes_pushpull(result_buf, *input_buf_ptr);
 
         if (!ok) {
-            std::cerr << "Error: " << result_buf.geterror() << std::endl;
+            LOG(error) << "fillholes_pushpull error: " << result_buf.geterror() << std::endl;
             mainWindow->emitUpdateTextSignal("Error! Check console for details");
             return false;
         }
 
+        if (settings.expAlpha) {
+            ImageBufAlgo::paste(result_buf, 0, 0, 0, result_buf.spec().alpha_channel, external_alpha ? bit_alpha_buf : original_alpha);
+            if (result_buf.has_error()) {
+                LOG(error) << "paste error: " << result_buf.geterror() << std::endl;
+                mainWindow->emitUpdateTextSignal("Error! Check console for details");
+                return false;
+            }
+        }
+        // reset unused buffers
+        rgba_buf.clear();
+        external_alpha ? bit_alpha_buf.clear() : original_alpha.clear();
+        
+#if 0
+        debugImageBufWrite(result_buf, "d:/result_buf.tif");
+#endif
+
         out_format = result_buf.spec().format; // copy latest buffer format as an output format
-        std::cout << "Push-Pull format: " << formatText(out_format) << std::endl;
-        std::cout << "Push-Pull time : " << pushpull_timer.nowText() << std::endl;
+        LOG(info) << "Push-Pull format: " << formatText(out_format) << std::endl;
+        LOG(info) << "Push-Pull time : " << pushpull_timer.nowText() << std::endl;
     }
     else {
 		result_buf = input_buf;
-        std::cout << "Filling holes skipped\n";
+        LOG(info) << "Filling holes skipped\n";
 	}
 
     if ((settings.normMode == 2) || (isNormName && settings.normMode != 0)) {
@@ -234,17 +273,17 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
 
         success = normalize(out_buf, result_buf, inCenter, outCenter, outScale, roi, nthreads);
         if (!success) {
-            std::cerr << "Error: Could not normalize image" << std::endl;
+            LOG(error) << "Error: Could not normalize image" << std::endl;
             mainWindow->emitUpdateTextSignal("Error! Check console for details");
             return false;
         }
         out_format = out_buf.spec().format; // copy latest buffer format as an output format
-        std::cout << "Normalized format: " << formatText(out_format) << std::endl;
-        std::cout << "Normalize time : " << normalize_timer.nowText() << std::endl;
+        LOG(info) << "Normalized format: " << formatText(out_format) << std::endl;
+        LOG(info) << "Normalize time : " << normalize_timer.nowText() << std::endl;
     }
     else {
         out_buf = result_buf;
-		std::cout << "Normalize skipped\n";
+		LOG(info) << "Normalize skipped\n";
 	}
 
     ImageSpec& ospec = out_buf.specmod();
@@ -266,7 +305,7 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
     ospec.attribute("png:compressionLevel", 4);
     //rspec.attribute("tiff:bigtiff", 1);
     //rspec.set_format(TypeDesc::FLOAT); // temporary
-    //std::cout << "Channels: " << rspec.nchannels << " Alpha channel: " << rspec.alpha_channel << std::endl;
+    //LOG(info) << "Channels: " << rspec.nchannels << " Alpha channel: " << rspec.alpha_channel << std::endl;
 //
     //ospec.format = getTypeDesc(settings.bitDepth);
     if (getTypeDesc(settings.bitDepth) == TypeDesc::UNKNOWN) {
@@ -275,11 +314,11 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
 		ospec.set_format(getTypeDesc(settings.bitDepth));
     }
 
-    std::cout << "Output file format: " << formatText(ospec.format) << std::endl;
+    LOG(info) << "Output file format: " << formatText(ospec.format) << std::endl;
 
     auto out = ImageOutput::create(outputFileName);
     if (!out) {
-        std::cerr << "Could not create output file: " << outputFileName << std::endl;
+        LOG(error) << "Could not create output file: " << outputFileName << std::endl;
         mainWindow->emitUpdateTextSignal("Error! Check console for details");
         return false;
     }    
@@ -287,14 +326,15 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
 
     QMetaObject::invokeMethod(progressBar, "setValue", Qt::QueuedConnection, Q_ARG(int, 0));
 
-    std::cout << "Writing " << outputFileName << std::endl;
+    LOG(info) << "Writing " << outputFileName << std::endl;
 
-    out->write_image(out_format, out_buf.localpixels(),out_buf.pixel_stride(), out_buf.scanline_stride(), out_buf.z_stride(), *progress_callback, progressBar);
+    out->write_image(out_format, out_buf.localpixels(),out_buf.pixel_stride(), out_buf.scanline_stride(), out_buf.z_stride(), *m_progress_callback, progressBar);
     out->close();
 
-    std::cout << std::endl << "Total processing time : " << g_timer.nowText() << std::endl;
+    LOG(info) << "File processing time : " << g_timer.nowText() << std::endl;
     
-    pbar_color_rand(progressBar);
+    //pbar_color_rand(progressBar);
+    pbar_color_rand(mainWindow);
     QMetaObject::invokeMethod(progressBar, "setValue", Qt::QueuedConnection, Q_ARG(int, 0));
 
     //QString DebugText = QString("Total processing time : %1").arg(QString::fromStdString(g_timer.nowText()));

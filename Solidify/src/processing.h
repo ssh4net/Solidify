@@ -1,6 +1,6 @@
 /*
  * Solidify (Push Pull) algorithm implementation using OpenImageIO
- * Copyright (c) 2022 Erium Vladlen.
+ * Copyright (c) 2023 Erium Vladlen.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 #include "settings.h"
 
 class MainWindow; // forward declaration
+struct Settings;  // forward declaration
 
 std::string toLower(const std::string& str);
 void getWritableExt(QString* ext, Settings* settings);

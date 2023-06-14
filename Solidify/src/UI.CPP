@@ -1,6 +1,6 @@
 /*
  * Solidify (Push Pull) algorithm implementation using OpenImageIO
- * Copyright (c) 2022 Erium Vladlen.
+ * Copyright (c) 2023 Erium Vladlen.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -137,41 +137,41 @@ MainWindow::MainWindow() {
         return action;
     };
     // Normals
-    nrm_Dis = createAction("Disable", NormGroup, nm_submenu);
-    nrm_Smrt = createAction("Smart", NormGroup, nm_submenu, true, true);
-    nrm_Force = createAction("Force", NormGroup, nm_submenu);
+    nrm_Dis = createAction("Disable", NormGroup, nm_submenu, true, (settings.normMode == 0));
+    nrm_Smrt = createAction("Smart", NormGroup, nm_submenu, true, (settings.normMode == 1));
+    nrm_Force = createAction("Force", NormGroup, nm_submenu, true, (settings.normMode == 2));
 
     // Range
-    rng_Unsg = createAction("Unsigned", RangeGroup, rng_submenu, true, true);
-    rng_Sign = createAction("Signed", RangeGroup, rng_submenu);
-    rng_SU = createAction("Signed <> Unsigned", RangeGroup, rng_submenu);
-    rng_US = createAction("Unsigned <> Signed", RangeGroup, rng_submenu);
+    rng_Unsg = createAction("Unsigned", RangeGroup, rng_submenu, true, (settings.rangeMode == 0));
+    rng_Sign = createAction("Signed", RangeGroup, rng_submenu, true, (settings.rangeMode == 1));
+    rng_SU = createAction("Signed <> Unsigned", RangeGroup, rng_submenu, true, (settings.rangeMode == 2));
+    rng_US = createAction("Unsigned <> Signed", RangeGroup, rng_submenu), true, (settings.rangeMode == 3);
 
     // File Formats
-    frmt_Org = createAction("Original", FrmtGroup, fmt_submenu, true, true);
-    frmt_Tif = createAction("TIFF", FrmtGroup, fmt_submenu);
-    frmt_Exr = createAction("OpenEXR", FrmtGroup, fmt_submenu);
-    frmt_Png = createAction("PNG", FrmtGroup, fmt_submenu);
-    frmt_Jpg = createAction("JPEG", FrmtGroup, fmt_submenu);
-    frmt_Jp2 = createAction("JPEG-2000", FrmtGroup, fmt_submenu);
-    frmt_Ppm = createAction("PPM", FrmtGroup, fmt_submenu);
+    frmt_Org = createAction("Original", FrmtGroup, fmt_submenu, true, (settings.fileFormat == -1));
+    frmt_Tif = createAction("TIFF", FrmtGroup, fmt_submenu, true, (settings.fileFormat == 0));
+    frmt_Exr = createAction("OpenEXR", FrmtGroup, fmt_submenu, true, (settings.fileFormat == 1));
+    frmt_Png = createAction("PNG", FrmtGroup, fmt_submenu, true, (settings.fileFormat == 2));
+    frmt_Jpg = createAction("JPEG", FrmtGroup, fmt_submenu, true, (settings.fileFormat == 3));
+    frmt_Jp2 = createAction("JPEG-2000", FrmtGroup, fmt_submenu, true, (settings.fileFormat == 4));
+    frmt_Ppm = createAction("PPM", FrmtGroup, fmt_submenu, true, (settings.fileFormat == 5));
 
     // Bits Depth
-    bit_orig = createAction("Original", BitsGroup, bit_submenu, true, true);
-    bit_uint8 = createAction("8 bits int", BitsGroup, bit_submenu);
-    bit_uint16 = createAction("16 bits int", BitsGroup, bit_submenu);
-    bit_uint32 = createAction("32 bits int", BitsGroup, bit_submenu);
-    bit_uint64 = createAction("64 bits int", BitsGroup, bit_submenu);
-    bit_flt16 = createAction("16 bits float", BitsGroup, bit_submenu);
-    bit_flt32 = createAction("32 bits float", BitsGroup, bit_submenu);
-	bit_flt64 = createAction("64 bits float", BitsGroup, bit_submenu);
+    bit_orig = createAction("Original", BitsGroup, bit_submenu, true, (settings.bitDepth == -1));
+    bit_uint8 = createAction("8 bits int", BitsGroup, bit_submenu, true, (settings.bitDepth == 0));
+    bit_uint16 = createAction("16 bits int", BitsGroup, bit_submenu, true, (settings.bitDepth == 1));
+    bit_uint32 = createAction("32 bits int", BitsGroup, bit_submenu, true, (settings.bitDepth == 2));
+    bit_uint64 = createAction("64 bits int", BitsGroup, bit_submenu, true, (settings.bitDepth == 3));
+    bit_flt16 = createAction("16 bits float", BitsGroup, bit_submenu, true, (settings.bitDepth == 4));
+    bit_flt32 = createAction("32 bits float", BitsGroup, bit_submenu, true, (settings.bitDepth == 5));
+	bit_flt64 = createAction("64 bits float", BitsGroup, bit_submenu, true, (settings.bitDepth == 6));
 
     // camera raw rotation
-    raw_rot_A = createAction("Auto EXIF", RawGroup, raw_submenu, true, true);
-    raw_rot_0 = createAction("0 Horizontal", RawGroup, raw_submenu);
-    raw_rot_90 = createAction("-90 Vertical", RawGroup, raw_submenu);
-    raw_rot_270 = createAction("+90 Vertical", RawGroup, raw_submenu);
-    raw_rot_180 = createAction("180 Horizontal", RawGroup, raw_submenu);
+    raw_rot_A = createAction("Auto EXIF", RawGroup, raw_submenu, true, (settings.rawRot == -1));
+    raw_rot_0 = createAction("0 Horizontal", RawGroup, raw_submenu, true, (settings.rawRot == 0));
+    raw_rot_90 = createAction("-90 Vertical", RawGroup, raw_submenu, true, (settings.rawRot == 3));
+    raw_rot_270 = createAction("+90 Vertical", RawGroup, raw_submenu, true, (settings.rawRot == 5));
+    raw_rot_180 = createAction("180 Horizontal", RawGroup, raw_submenu, true, (settings.rawRot == 6));
 
     s_menu->addAction(sld_enable);
     s_menu->addSeparator();
@@ -195,7 +195,7 @@ MainWindow::MainWindow() {
     setMenuBar(menuBar);
 
     setWindowFlags(Qt::WindowStaysOnTopHint);
-    setWindowTitle(QString("Solidify %1.%2").arg(VERSION_MAJOR).arg(VERSION_MINOR));
+    setWindowTitle(QString("Solidify ToolBox %1.%2").arg(VERSION_MAJOR).arg(VERSION_MINOR));
     setFixedSize(500, 500);
 
     // Connect the signal from the drop area to the slot in the main window
@@ -236,6 +236,8 @@ MainWindow::MainWindow() {
 
     // Connect the Restart action's triggered signal to a slot that restarts the app
     connect(f_Restart, &QAction::triggered, this, &MainWindow::restartApp);
+
+    connect(this, &MainWindow::changeProgressBarColorSignal, this, &MainWindow::changeProgressBarColorSlot);
 }
 
 void MainWindow::bitSettings() {
@@ -448,6 +450,10 @@ void MainWindow::toggleConsole(bool checked) {
 
 void MainWindow::restartApp() {
     QStringList arguments;
+
+    ShowWindow(GetConsoleWindow(), SW_HIDE);
+    FreeConsole();
+
     QProcess::startDetached(QApplication::applicationFilePath(), arguments);
 
     QApplication::quit();
