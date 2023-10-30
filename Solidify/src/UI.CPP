@@ -122,7 +122,10 @@ MainWindow::MainWindow() {
     QMenu* fmt_submenu = new QMenu("Formats", s_menu);
     QMenu* bit_submenu = new QMenu("Bits Depth", s_menu);
     QMenu* raw_submenu = new QMenu("Camera Raw", s_menu);
+    QMenu* rep_submenu = new QMenu("Repair", s_menu);
+
     QActionGroup* NormGroup = new QActionGroup(nm_submenu);
+    QActionGroup* RepairGroup = new QActionGroup(rep_submenu);
     QActionGroup* RangeGroup = new QActionGroup(rng_submenu);
     QActionGroup* FrmtGroup = new QActionGroup(fmt_submenu);
     QActionGroup* BitsGroup = new QActionGroup(bit_submenu);
@@ -140,6 +143,15 @@ MainWindow::MainWindow() {
     nrm_Dis = createAction("Disable", NormGroup, nm_submenu, true, (settings.normMode == 0));
     nrm_Smrt = createAction("Smart", NormGroup, nm_submenu, true, (settings.normMode == 1));
     nrm_Force = createAction("Force", NormGroup, nm_submenu, true, (settings.normMode == 2));
+
+    // Repair
+    rep_Dis = createAction("Disable", RepairGroup, rep_submenu, true, (settings.repairMode == 0));
+    rep_Z = createAction("X", RepairGroup, rep_submenu, true, (settings.repairMode == 1));
+    rep_Y = createAction("Y", RepairGroup, rep_submenu, true, (settings.repairMode == 2));
+    rep_X = createAction("Z", RepairGroup, rep_submenu, true, (settings.repairMode == 3));
+    rep_mZ = createAction("-X", RepairGroup, rep_submenu, true, (settings.repairMode == 4));
+    rep_mY = createAction("-Y", RepairGroup, rep_submenu, true, (settings.repairMode == 5));
+    rep_mX = createAction("-Z", RepairGroup, rep_submenu, true, (settings.repairMode == 6));
 
     // Range
     rng_Unsg = createAction("Unsigned", RangeGroup, rng_submenu, true, (settings.rangeMode == 0));
@@ -178,6 +190,7 @@ MainWindow::MainWindow() {
     s_menu->addAction(alf_enable);
     s_menu->addSeparator();
     s_menu->addMenu(nm_submenu);
+    s_menu->addMenu(rep_submenu);
     s_menu->addMenu(rng_submenu);
     s_menu->addSeparator();
     s_menu->addMenu(fmt_submenu);
@@ -210,6 +223,10 @@ MainWindow::MainWindow() {
     for (QAction* action : norm_act) {
 		connect(action, &QAction::triggered, this, &MainWindow::normSettings);
 	}
+    QList<QAction*> rep_act = { rep_Dis, rep_Z, rep_Y, rep_X, rep_mZ, rep_mY, rep_mX };
+    for (QAction* action : rep_act) {
+        connect(action, &QAction::triggered, this, &MainWindow::repSettings);
+    }
     QList<QAction*> rng_act = { rng_Unsg, rng_Sign, rng_US, rng_SU };
     for (QAction* action : rng_act) {
         connect(action, &QAction::triggered, this, &MainWindow::rngSettings);
@@ -340,6 +357,21 @@ void MainWindow::normSettings() {
         emit updateTextSignal("Force Normalizing - all maps are Normals");
         qDebug() << "Force Normalizing - all maps are normals regardless of name";
     }
+}
+
+void MainWindow::repSettings() {
+    std::vector<std::pair<QString, uint>> actionMap = 
+    { { "Disable", 0 }, { "X", 1 }, { "Y", 2 }, { "Z", 3 },
+	{ "-X", 4 }, { "-Y", 5 }, { "-Z", 6 } };
+    QAction* action = qobject_cast<QAction*>(sender());
+    for (int i = 0; i < actionMap.size(); i++) {
+        if (action->text() == actionMap[i].first) {
+			settings.repairMode = actionMap[i].second;
+			emit updateTextSignal(QString("Repair mode set to %1").arg(actionMap[i].first));
+			qDebug() << QString("Repair mode set to %1").arg(actionMap[i].first);
+			break;
+		}
+	}
 }
 
 void MainWindow::sldfSettings(bool checked) {

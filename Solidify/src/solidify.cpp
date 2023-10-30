@@ -239,6 +239,53 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
         doNormalize = true;
     }
 
+    if (settings.repairMode > 0) {
+        Timer normalize_timer;
+        bool success = true;
+        int sign = 1;
+
+        LOG(info) << "Repairing normals in process...\n";
+
+        uint channel = settings.repairMode - 1;
+
+        if (settings.repairMode > 4) {
+			sign = -1;
+            channel = settings.repairMode - 4;
+		}
+
+        ROI roi(0, result_buf.spec().width, 0, result_buf.spec().height, 0, 1, 0, result_buf.spec().nchannels);
+        int nthreads = 0; // debug time 1 thread, for release use 0
+        float inCenter = 0.5f, outCenter = 0.5f, outScale = 0.5f;
+
+        switch (settings.rangeMode) {
+        case 0:
+            inCenter = 0.5f;
+            outCenter = 0.5f;
+            outScale = 0.5f;
+            break;
+        case 1:
+            inCenter = 0.0f;
+            outCenter = 0.0f;
+            outScale = 1.0f;
+            break;
+        case 2:
+            inCenter = 0.0f;
+            outCenter = 0.5f;
+            outScale = 0.5f;
+            break;
+        case 3:
+            inCenter = 0.5f;
+            outCenter = 0.0f;
+            outScale = 1.0f;
+            break;
+        default:
+            break;
+        }
+
+        success = recalc_normal(out_buf, result_buf, channel, sign, inCenter, outCenter, outScale, roi, nthreads);
+        doNormalize = false;
+    }
+
     if (doNormalize) {
         Timer normalize_timer;
         bool success = true;
@@ -271,7 +318,7 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
 			break;
         }
 
-        success = normalize(out_buf, result_buf, inCenter, outCenter, outScale, roi, nthreads);
+        success = ImageBufAlgo::normalize(out_buf, result_buf, inCenter, outCenter, outScale, roi, nthreads);
         if (!success) {
             LOG(error) << "Error: Could not normalize image" << std::endl;
             mainWindow->emitUpdateTextSignal("Error! Check console for details");
@@ -281,7 +328,7 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
         LOG(info) << "Normalized format: " << formatText(out_format) << std::endl;
         LOG(info) << "Normalize time : " << normalize_timer.nowText() << std::endl;
     }
-    else {
+    else if (settings.repairMode == 0) {
         out_buf = result_buf;
 		LOG(info) << "Normalize skipped\n";
 	}
@@ -293,6 +340,77 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
     else {
 		ospec.nchannels = grayscale ? 1 : 3; // Write RGB and alpha channels
 	}
+    
+    ospec.erase_attribute("Exif:LensSpecification");
+    LOG(info) << "OIIO Libtiff EXIF fix deleting: " << "Exif:LensSpecification" << std::endl;
+
+/*
+    // Debug. Output all EXIF tags to console
+    // Initialize a vector to hold names of attributes to be removed
+    std::vector<std::string> attrs_to_remove;
+
+    for (auto& attr : ospec.extra_attribs) {
+        std::string name = attr.name().string();
+
+        // Check if the attribute name starts with the prefixes you want to remove
+        if ( name.rfind("Exif:LensSpecification", 0) == 0) {
+            LOG(info) << "OIIO Libtiff EXIF fix deleting: " << name << " : " << attr.get_string() << std::endl;
+            attrs_to_remove.push_back(name);
+        }
+        else
+        {
+            //LOG(info) << name << " : " << attr.get_string() << std::endl;
+        }
+    }
+    
+    // Remove the selected attributes
+    for (const auto& name : attrs_to_remove) {
+        ospec.erase_attribute(name);
+    }
+*/
+///////
+/*
+    // Initialize a vector to hold pairs of old and new attribute names
+    std::vector<std::pair<std::string, std::string>> attrs_to_rename;
+
+    // Loop through all metadata attributes in the ImageSpec
+    for (const auto& attr : ospec.extra_attribs) {
+        std::string name = attr.name().string();
+
+        // Check if the attribute name starts with "Exif:"
+        if (name.rfind("Exif:", 0) == 0) {
+            // Generate new attribute name with lowercase "exif:"
+            std::string new_name = "exif:" + name.substr(5);
+            attrs_to_rename.emplace_back(name, new_name);
+        }
+    }
+
+    // Rename the selected attributes
+    for (const auto& name_pair : attrs_to_rename) {
+        // Get old and new names
+        const std::string& old_name = name_pair.first;
+        const std::string& new_name = name_pair.second;
+
+        // Retrieve the value of the old attribute
+        const OIIO::ParamValue* param = ospec.find_attribute(old_name);
+        OIIO::TypeDesc type = param->type();
+        const void* value = param->data();
+
+        // Create a copy of the attribute data
+        void* non_const_value = malloc(type.size());
+        memcpy(non_const_value, value, type.size());
+
+        // Remove old attribute and insert new one
+        ospec.erase_attribute(old_name);
+        ospec.attribute(new_name, type, non_const_value);
+
+        // Free the allocated memory
+        free(non_const_value);
+    }
+*/
+////////////////////
+
+
 
     ospec.alpha_channel = -1; // No alpha channel
     //int bits = settings.bitDepth != -1 ? settings.getBitDepth() : 2;
@@ -303,6 +421,7 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
     ospec.attribute("jpeg:subsampling", "4:4:4");
     ospec.attribute("Compression", "jpeg:100");
     ospec.attribute("png:compressionLevel", 4);
+    //ospec.attribute("tiff:write_exif", 0);
     //rspec.attribute("tiff:bigtiff", 1);
     //rspec.set_format(TypeDesc::FLOAT); // temporary
     //LOG(info) << "Channels: " << rspec.nchannels << " Alpha channel: " << rspec.alpha_channel << std::endl;
@@ -321,14 +440,20 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
         LOG(error) << "Could not create output file: " << outputFileName << std::endl;
         mainWindow->emitUpdateTextSignal("Error! Check console for details");
         return false;
-    }    
+    }
     out->open(outputFileName, ospec, ImageOutput::Create);
 
     QMetaObject::invokeMethod(progressBar, "setValue", Qt::QueuedConnection, Q_ARG(int, 0));
 
     LOG(info) << "Writing " << outputFileName << std::endl;
 
-    out->write_image(out_format, out_buf.localpixels(),out_buf.pixel_stride(), out_buf.scanline_stride(), out_buf.z_stride(), *m_progress_callback, progressBar);
+    auto ok = out->write_image(out_format, out_buf.localpixels(),out_buf.pixel_stride(), out_buf.scanline_stride(), out_buf.z_stride(), *m_progress_callback, progressBar);
+    if (!ok) {
+		LOG(error) << "Error writing " << outputFileName << std::endl;
+		LOG(error) << out->geterror() << std::endl;
+		mainWindow->emitUpdateTextSignal("Error! Check console for details");
+		return false;
+	}
     out->close();
 
     LOG(info) << "File processing time : " << g_timer.nowText() << std::endl;

@@ -264,27 +264,39 @@ bool img_load(ImageBuf& outBuf, const std::string& inputFileName, bool external_
 }
 
 template<class Rtype>
-static bool normalize_impl(ImageBuf& R, const ImageBuf& A, float inCenter, float outCenter, float scale, ROI roi, int nthreads)
+static bool recalc_normal_impl(ImageBuf& R, const ImageBuf& A, uint channel, int sign, float inCenter, float outCenter, float scale, ROI roi, int nthreads)
 {
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         ImageBuf::ConstIterator<Rtype> a(A, roi);
         for (ImageBuf::Iterator<Rtype> r(R, roi); !r.done(); ++r, ++a)
         {
-            float x = a[0];
-            float y = a[1];
-            float z = a[2];
 
-            x = x - inCenter;
-            y = y - inCenter;
-            z = z - inCenter;
+            // axis = sqrt(1 - (x^2 + y^2))
+            // axs = sqrt(1 - (x*x + y*y + z*z))
 
-            float length = std::hypot(x, y, z);
+            float t[3];
+
+            t[0] = channel == 0 ? 0.0f : (a[0] - inCenter) / scale;
+            t[1] = channel == 1 ? 0.0f : (a[1] - inCenter) / scale;
+            t[2] = channel == 2 ? 0.0f : (a[2] - inCenter) / scale;
+
+            bool isZero = (abs(t[0]) + abs(t[1]) + abs(t[2])) == 0.0f;
+
+            float recomp = 0.0f;
+
+            if (!isZero) {
+                recomp = sqrt(1.0f - (t[0] * t[0] + t[1] * t[1] + t[2] * t[2]));
+			}
+
+            t[channel] = sign * recomp;
+
+            float length = sqrt(t[0] * t[0] + t[1] * t[1] + t[2] * t[2]);
 
             float s = (length > 0.0f) ? scale / length : scale;
 
-            r[0] = x * s + outCenter;
-            r[1] = y * s + outCenter;
-            r[2] = z * s + outCenter;
+            r[0] = t[0] * s + outCenter;
+            r[1] = t[1] * s + outCenter;
+            r[2] = t[2] * s + outCenter;
             
             if (A.spec().nchannels == 4) {
                 r[3] = a[3];
@@ -294,42 +306,21 @@ static bool normalize_impl(ImageBuf& R, const ImageBuf& A, float inCenter, float
     return true;
 }
 
-bool normalize(ImageBuf& dst, const ImageBuf& A, float inCenter, float outCenter, float scale, ROI roi, int nthreads)
+bool recalc_normal(ImageBuf& dst, const ImageBuf& A, uint channel, int sign, float inCenter, float outCenter, float scale, ROI roi, int nthreads)
 {
     if (!ImageBufAlgo::IBAprep(roi, &dst, &A))
         return false;
     bool ok;
-    //OIIO_DISPATCH_COMMON_TYPES(ok, "normalize", normalize_impl, dst.spec().format, dst, A, fullRange, roi, nthreads);
-    switch (dst.spec().format.basetype) {
-        case TypeDesc::FLOAT: 
-            ok = normalize_impl<float>(dst, A, inCenter, outCenter, scale, roi, nthreads); 
-            break; 
-        case TypeDesc::UINT8: 
-            ok = normalize_impl<unsigned char>(dst, A, inCenter, outCenter, scale, roi, nthreads);
-            break; 
-        case TypeDesc::HALF: // should be half but it give me an error
-            ok = normalize_impl<float>(dst, A, inCenter, outCenter, scale, roi, nthreads);
-            break; 
-        case TypeDesc::UINT16: 
-            ok = normalize_impl<unsigned short>(dst, A, inCenter, outCenter, scale, roi, nthreads);
-            break; 
-        default: 
-            { 
-            ImageBuf Rtmp; 
-            if ((dst).initialized()) Rtmp.copy(dst, TypeDesc::FLOAT); 
-                ok = normalize_impl<float>(Rtmp, A, inCenter, outCenter, scale, roi, nthreads);
-            if (ok) (dst).copy(Rtmp); 
-                else (dst).errorfmt("{}", Rtmp.geterror()); 
-            }
-        };
+    OIIO_DISPATCH_COMMON_TYPES(ok, "recalc_normal", recalc_normal_impl, dst.spec().format, dst, A,
+                              channel, sign, inCenter, outCenter, scale, roi, nthreads);
     return ok;
 }
 
-ImageBuf normalize(const ImageBuf& A, float inCenter, float outCenter, float scale, ROI roi, int nthreads)
+ImageBuf recalc_normal(const ImageBuf& A, uint channel, int sign, float inCenter, float outCenter, float scale, ROI roi, int nthreads)
 {
     ImageBuf result;
-    bool ok = normalize(result, A, inCenter, outCenter, scale, roi, nthreads);
+    bool ok = recalc_normal(result, A, channel, sign, inCenter, outCenter, scale, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorfmt("normalize error");
+        result.errorfmt("recalculation error");
     return result;
 }

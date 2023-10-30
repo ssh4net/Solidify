@@ -77,6 +77,7 @@ private slots:
     void toggleConsole(bool cheked);
     void startProcessing(QList<QUrl> urls);
     void normSettings();
+    void repSettings();
     void sldfSettings(bool checked);
     void rngSettings();
     void frmtSettings();
@@ -95,6 +96,15 @@ private:
     QAction* nrm_Dis;
     QAction* nrm_Smrt;
     QAction* nrm_Force;
+
+    QAction* rep_Dis;
+    QAction* rep_Z;
+    QAction* rep_Y;
+    QAction* rep_X;
+    QAction* rep_mZ;
+    QAction* rep_mY;
+    QAction* rep_mX;
+
     QAction* rng_Unsg;
     QAction* rng_Sign;
     QAction* rng_SU;

@@ -30,7 +30,7 @@ typedef unsigned long ulong;
 
 struct Settings {
 	bool isSolidify, expAlpha, conEnable;
-	uint normMode, rangeMode;
+	uint normMode, rangeMode, repairMode;
 	int fileFormat, defFormat;
 	int bitDepth, defBDepth;
 	int rawRot;
@@ -52,6 +52,8 @@ struct Settings {
 		expAlpha = false;	// Export alpha channel
 		numThreads = 3;		// Number of threads: 0 - auto, >0 - number of threads
 		normMode = 1;		// Normalize mode: 0 - disabled, 1 - smart, 2 - force
+		repairMode = 0;		// Repair mode: 0 - disabled, 1 - Z, 2 - Y, 3 - X, 4 - -Z, 5 - -Y, 6 - -X
+
 		rangeMode = 0;		// Float type: 0 - unsigned, 1 - signed, 2 - unsigned -> signed, 3 - signed -> unsigned
 		fileFormat = -1;	// File format: -1 - original, 0 - TIFF, 1 - OpenEXR, 2 - PNG, 3 - JPEG, 4 - JPEG-2000, 5 - PPM
 		defFormat = 0;		// Default file format = TIFF

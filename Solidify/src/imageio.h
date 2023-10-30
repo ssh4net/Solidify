@@ -49,5 +49,5 @@ void debugImageBufWrite(const ImageBuf& buf, const std::string& filename);
 //bool NormalizeMap(ImageBuf& img, bool fullRange);
 //bool mulNormalizeMap(ImageBuf& img, bool fullRange);
 
-bool normalize(ImageBuf& dst, const ImageBuf& A, float inCenter, float outCenter, float scale, ROI roi, int nthreads);
-ImageBuf normalize(const ImageBuf& A, float inCenter, float outCenter, float scale, ROI roi, int nthreads);
+bool recalc_normal(ImageBuf& dst, const ImageBuf& A, uint channel, int sign, float inCenter, float outCenter, float scale, ROI roi, int nthreads);
+ImageBuf recalc_normal(const ImageBuf& A, uint channel, int sign, float inCenter, float outCenter, float scale, ROI roi, int nthreads);
