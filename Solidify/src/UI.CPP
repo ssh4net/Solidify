@@ -108,23 +108,25 @@ MainWindow::MainWindow() {
     sld_enable->setCheckable(true);
     sld_enable->setChecked(settings.isSolidify);
     // preserve alpha
-    alf_enable = new QAction("With Alpha", s_menu);
-    alf_enable->setCheckable(true);
-    alf_enable->setChecked(settings.expAlpha);
+    //alf_enable = new QAction("With Alpha", s_menu);
+    //alf_enable->setCheckable(true);
+    //alf_enable->setChecked(settings.alphaMode == 1);
 
     QAction* con_enable = new QAction("Enable Console", s_menu);
     con_enable->setCheckable(true);
     con_enable->setChecked(settings.conEnable);
 
     // Submenu
+    QMenu* alf_submenu = new QMenu("Alpha/Mask", s_menu);
     QMenu* nm_submenu = new QMenu("Normalize", s_menu);
+    QMenu* rep_submenu = new QMenu("Repair", s_menu);
     QMenu* rng_submenu = new QMenu("Floats type", s_menu);
     QMenu* fmt_submenu = new QMenu("Formats", s_menu);
     QMenu* bit_submenu = new QMenu("Bits Depth", s_menu);
     QMenu* raw_submenu = new QMenu("Camera Raw", s_menu);
-    QMenu* rep_submenu = new QMenu("Repair", s_menu);
 
     QActionGroup* NormGroup = new QActionGroup(nm_submenu);
+    QActionGroup* AlfGroup = new QActionGroup(alf_submenu);
     QActionGroup* RepairGroup = new QActionGroup(rep_submenu);
     QActionGroup* RangeGroup = new QActionGroup(rng_submenu);
     QActionGroup* FrmtGroup = new QActionGroup(fmt_submenu);
@@ -139,6 +141,11 @@ MainWindow::MainWindow() {
         menu->addAction(action);
         return action;
     };
+    // Alpha/Mask
+    alf_Disb = createAction("Disable", AlfGroup, alf_submenu, true, (settings.alphaMode == 0));
+    alf_Embed = createAction("Preserve", AlfGroup, alf_submenu, true, (settings.alphaMode == 1));
+    alf_Only = createAction("Export", AlfGroup, alf_submenu, true, (settings.alphaMode == 2));
+
     // Normals
     nrm_Dis = createAction("Disable", NormGroup, nm_submenu, true, (settings.normMode == 0));
     nrm_Smrt = createAction("Smart", NormGroup, nm_submenu, true, (settings.normMode == 1));
@@ -187,8 +194,7 @@ MainWindow::MainWindow() {
 
     s_menu->addAction(sld_enable);
     s_menu->addSeparator();
-    s_menu->addAction(alf_enable);
-    s_menu->addSeparator();
+    s_menu->addMenu(alf_submenu);
     s_menu->addMenu(nm_submenu);
     s_menu->addMenu(rep_submenu);
     s_menu->addMenu(rng_submenu);
@@ -216,9 +222,12 @@ MainWindow::MainWindow() {
 
     // Connect the Settings action's triggered signal
 
-    connect(sld_enable, &QAction::toggled, this, &MainWindow::sldfSettings);
-    connect(alf_enable, &QAction::toggled, this, &MainWindow::alfSettings);
-
+    //connect(sld_enable, &QAction::toggled, this, &MainWindow::sldfSettings);
+    //connect(alf_enable, &QAction::toggled, this, &MainWindow::alfSettings);
+    QList<QAction*> alf_act = { alf_Disb, alf_Embed, alf_Only };
+    for (QAction* action : alf_act) {
+		connect(action, &QAction::triggered, this, &MainWindow::alfSettings);
+	}
     QList<QAction*> norm_act = { nrm_Dis, nrm_Smrt, nrm_Force };
     for (QAction* action : norm_act) {
 		connect(action, &QAction::triggered, this, &MainWindow::normSettings);
@@ -377,7 +386,7 @@ void MainWindow::repSettings() {
 void MainWindow::sldfSettings(bool checked) {
     settings.isSolidify = sld_enable->isChecked();
     if (checked) {
-        alf_enable->setChecked(false);
+        //alf_enable->setChecked(false);
         emit updateTextSignal("Solidify Enabled");
         qDebug() << "Solidify Enabled";
         emit updateTextSignal("Export Alpha Disabled");
@@ -394,16 +403,17 @@ void MainWindow::sldfSettings(bool checked) {
     }
 }
 
-void MainWindow::alfSettings(bool checked) {
-    settings.expAlpha = alf_enable->isChecked();
-    if (checked) {
-		emit updateTextSignal("Export Alpha Enabled");
-		qDebug() << "Export Alpha Enabled";
-	}
-    else {
-		emit updateTextSignal("Export Alpha Disabled");
-		qDebug() << "Export Alpha Disabled";
-	}
+void MainWindow::alfSettings() {
+    std::vector<std::pair<QString, uint>> actionMap ={ { "Disable", 0 }, { "Preserve", 1 }, { "Export", 2 } };
+    QAction* action = qobject_cast<QAction*>(sender());
+    for (int i = 0; i < actionMap.size(); i++) {
+        if (action->text() == actionMap[i].first) {
+            settings.alphaMode = actionMap[i].second;
+            emit updateTextSignal(QString("Alpha/Mask set to %1").arg(actionMap[i].first));
+            qDebug() << QString("Alpha/Mask set to %1").arg(actionMap[i].first);
+            break;
+        }
+    }
 }
 
 void MainWindow::rngSettings() {

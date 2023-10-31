@@ -1,7 +1,7 @@
 [Global]
 # Global app settings
 Solidify = true
-ExportAlpha = false
+ExportAlpha = 0
 MaskNames = ["_mask.", "_mask_", "_alpha.", "_alpha_"]
 Console = true
 Threads = 3

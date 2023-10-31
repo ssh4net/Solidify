@@ -63,7 +63,11 @@ bool loadSettings(Settings& settings, const std::string& filename) {
         settings.isSolidify = parsed["Global"]["Solidify"].as_boolean();
 
         if (!check("Global", "ExportAlpha")) return false;
-        settings.expAlpha = parsed["Global"]["ExportAlpha"].as_boolean();
+        settings.alphaMode = parsed["Global"]["ExportAlpha"].as_integer();
+        if (settings.alphaMode < 0 || settings.alphaMode > 2) {
+			LOG(error) << "Error parsing settings file: [Global] section: \"ExportAlpha\" key value is out of range." << std::endl;
+			return false;
+		}
 
         settings.mask_substr.clear();
         auto it = parsed["Global"]["MaskNames"].as_array();
@@ -158,7 +162,7 @@ bool loadSettings(Settings& settings, const std::string& filename) {
 void printSettings(Settings& settings) {
     QString mode;
     qDebug() << "Solidify: " << (settings.isSolidify ? "Enabled" : "Disabled");
-    qDebug() << "Export with Alpha/Mask: " << (settings.expAlpha ? "Enabled" : "Disabled");
+    qDebug() << "Export Alpha/Mask: " << (settings.alphaMode == 0 ? "Remove Alpha" : (settings.alphaMode == 1 ? "Preserver Alpha" : "Export Alpha only"));
     qDebug() << "Parallel Threads: " << settings.numThreads;
     qDebug() << "Normalize Mode: " << (settings.normMode == 0 ? "Disabled" : (settings.normMode == 1 ? "Smart" : "Force"));
     switch (settings.rangeMode)

@@ -195,7 +195,7 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
             rgba_buf.specmod().channelnames[rgba_buf.nchannels() - 1] = "A";
             rgba_buf.specmod().alpha_channel = rgba_buf.nchannels() - 1;
         }
-        else if (settings.expAlpha) { // if Export alpha channel is enabled, copy the original alpha channel to a separate buffer
+        else if (settings.alphaMode == 1) { // if Export alpha channel is enabled, copy the original alpha channel to a separate buffer
             original_alpha = ImageBufAlgo::channels(input_buf, 1, 3);
         }
 
@@ -210,7 +210,7 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
             return false;
         }
 
-        if (settings.expAlpha) {
+        if (settings.alphaMode == 1) {
             ImageBufAlgo::paste(result_buf, 0, 0, 0, result_buf.spec().alpha_channel, external_alpha ? bit_alpha_buf : original_alpha);
             if (result_buf.has_error()) {
                 LOG(error) << "paste error: " << result_buf.geterror() << std::endl;
@@ -334,7 +334,7 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
 	}
 
     ImageSpec& ospec = out_buf.specmod();
-    if (settings.expAlpha) {
+    if (settings.alphaMode == 1) {
         ospec.nchannels = grayscale ? 2 : 4; // Only write RGB channels
     }
     else {

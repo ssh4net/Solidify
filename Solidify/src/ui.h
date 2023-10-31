@@ -40,7 +40,7 @@
 #include "processing.h"
 
 #define VERSION_MAJOR 1
-#define VERSION_MINOR 34
+#define VERSION_MINOR 38
 
 void setPBarColor(QProgressBar* progressBar, const QColor& color = QColor("#05B8CC"));
 
@@ -82,7 +82,7 @@ private slots:
     void rngSettings();
     void frmtSettings();
     void bitSettings();
-    void alfSettings(bool checked);
+    void alfSettings();
     void rawSettings();
 
 private:
@@ -90,7 +90,11 @@ private:
     QProgressBar* progressBar;
 
     QAction* sld_enable;
-    QAction* alf_enable;
+
+    QAction* alf_Disb;
+    QAction* alf_Embed;
+    QAction* alf_Only;
+
     QAction* con_enable;
 
     QAction* nrm_Dis;

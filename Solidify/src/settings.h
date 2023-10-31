@@ -29,8 +29,8 @@ typedef unsigned int uint;
 typedef unsigned long ulong;
 
 struct Settings {
-	bool isSolidify, expAlpha, conEnable;
-	uint normMode, rangeMode, repairMode;
+	bool isSolidify, conEnable;
+	uint normMode, rangeMode, repairMode, alphaMode;
 	int fileFormat, defFormat;
 	int bitDepth, defBDepth;
 	int rawRot;
@@ -49,7 +49,8 @@ struct Settings {
 	void reSettings() {
 		conEnable = false;	// Console enabled/disabled
 		isSolidify = true;	// Solidify enabled/disabled
-		expAlpha = false;	// Export alpha channel
+
+		alphaMode = 0;		// Alpha mode: 0 - without alpha, 1 - with alpha, 2 - alpha only
 		numThreads = 3;		// Number of threads: 0 - auto, >0 - number of threads
 		normMode = 1;		// Normalize mode: 0 - disabled, 1 - smart, 2 - force
 		repairMode = 0;		// Repair mode: 0 - disabled, 1 - Z, 2 - Y, 3 - X, 4 - -Z, 5 - -Y, 6 - -X
