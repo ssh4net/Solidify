@@ -2,28 +2,31 @@
 
 # Solidify
 Small GUI utility on top of OpenImageIO and QT5 to Solidify (fill, push-pull) empty areas in textures.
+Can be used to Normalize normal maps and export alpha/mask channels as single-channel Grayscale images.
+Possible to use to unpack/repair the third channel for packed two-channel tangent space normals.
 
 Usage
 ------------
+On start, set desired app settings would be used in the current batch.
 
-Run Solidify.exe and drag&drop images into open window.
-Check console to progress information.
+![Solidify138_1](https://github.com/ssh4net/Solidify/assets/3924000/33f41b89-0a97-48fd-93f9-a3e9113e7887) ![Solidify138_2](https://github.com/ssh4net/Solidify/assets/3924000/716fcf13-2ae9-451e-a0f4-afd221326ca8)
 
-![vncagent_Vmg0EReqAk](https://github.com/ssh4net/Solidify/assets/3924000/64ad327f-b174-45ef-8779-cecd43762ee2)
+Run Solidify.exe and drag and drop images into the open window.
+Check the console for progress information.
 
 ![Screenshot](https://github.com/ssh4net/Solidify/assets/3924000/3b8562f6-ca73-49f6-a3b1-b9e1f4cbc8ac)
 
-Tool expecting RGBA or Grayscale with alpha channel image file. Output files will be write in same folder as a source files with a name **Source_file_name_fill.ext** as RGB without alpha channel.
+Tool expecting RGBA or Grayscale with the alpha channel image file. Output files will be written in the same folder as source files with the name **Source_file_name_fill.ext** as RGB without an alpha channel.
 
-From v1.2 possible to use external alpha channel as a single channel file with **_mask.ext** or **_alpha.ext** in name (case insencitive).
+From v1.2 possible to use the external alpha channel as a single channel file with **_mask.ext** or **_alpha.ext** in name (case insencitive).
 
 ![Solidify 1 1](https://github.com/ssh4net/Solidify/assets/3924000/24dc9382-e554-44d0-8ed1-2465752a4752)
 
-Supporting for RGB and Grayscale images only with external alpha/mask image file.
+Supporting for RGB and Grayscale images only with external alpha/mask image files.
 
 ![Solidify 1 2](https://github.com/ssh4net/Solidify/assets/3924000/7405f944-59f5-452c-ba9c-aafd7f96c2d7)
 
-Too optimize performance Solidify app reading external alpha channel file once per batch.
+To optimize performance Solidify app reads external alpha channel file once per batch.
 
 Dependencies
 ------------
