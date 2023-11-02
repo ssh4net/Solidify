@@ -222,7 +222,7 @@ MainWindow::MainWindow() {
 
     // Connect the Settings action's triggered signal
 
-    //connect(sld_enable, &QAction::toggled, this, &MainWindow::sldfSettings);
+    connect(sld_enable, &QAction::toggled, this, &MainWindow::sldfSettings);
     //connect(alf_enable, &QAction::toggled, this, &MainWindow::alfSettings);
     QList<QAction*> alf_act = { alf_Disb, alf_Embed, alf_Only };
     for (QAction* action : alf_act) {
@@ -381,6 +381,12 @@ void MainWindow::repSettings() {
 			break;
 		}
 	}
+    if (action != rep_Dis) {
+        nrm_Dis->setChecked(true);
+        settings.normMode = 0;
+        emit updateTextSignal("Normalizing are part of Repair");
+        qDebug() << "Normalizing are part of Repair";
+    }
 }
 
 void MainWindow::sldfSettings(bool checked) {
@@ -393,12 +399,12 @@ void MainWindow::sldfSettings(bool checked) {
         qDebug() << "Export Alpha Disabled";
     }
     else {
-        nrm_Smrt->setChecked(false);
-        nrm_Dis->setChecked(true);
-        settings.normMode = 0;
+        //nrm_Smrt->setChecked(false);
+        //nrm_Dis->setChecked(true);
+        //settings.normMode = 0;
         emit updateTextSignal("Solidify Disabled");
-        emit updateTextSignal("Normalizing disabled");
-        qDebug() << "Normalizing disabled";
+        //emit updateTextSignal("Normalizing disabled");
+        //qDebug() << "Normalizing disabled";
         qDebug() << "Solidify Disabled";
     }
 }
@@ -413,6 +419,22 @@ void MainWindow::alfSettings() {
             qDebug() << QString("Alpha/Mask set to %1").arg(actionMap[i].first);
             break;
         }
+    }
+    if (action == alf_Only) {
+        sld_enable->setChecked(false);
+        emit updateTextSignal("Solidify Disabled");
+        qDebug() << "Solidify Disabled";
+        settings.isSolidify = false;
+
+        nrm_Dis->setChecked(true);
+        settings.normMode = 0;
+        emit updateTextSignal("Normalizing disabled");
+        qDebug() << "Normalizing disabled";
+
+        rep_Dis->setChecked(true);
+        settings.repairMode = 0;
+        emit updateTextSignal("Repair mode set to Disable");
+        qDebug() << "Repair mode set to Disable";
     }
 }
 

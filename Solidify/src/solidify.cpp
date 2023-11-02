@@ -34,6 +34,27 @@
 
 using namespace OIIO;
 
+void* getTypedPointer(OIIO::ImageBuf& buf, const OIIO::TypeDesc& type) {
+    switch (type.basetype) {
+        case OIIO::TypeDesc::UINT8:
+		    return (uint8_t*)buf.localpixels();
+        case OIIO::TypeDesc::UINT16:
+            return (uint16_t*)buf.localpixels();
+        case OIIO::TypeDesc::UINT32:
+			return (uint32_t*)buf.localpixels();
+        case OIIO::TypeDesc::UINT64:
+            return (uint64_t*)buf.localpixels();
+        case OIIO::TypeDesc::HALF:
+			return (half*)buf.localpixels();
+        case OIIO::TypeDesc::FLOAT:
+			return (float*)buf.localpixels();
+        case OIIO::TypeDesc::DOUBLE:
+            return (double*)buf.localpixels();
+        default:
+			return nullptr;
+    }
+}
+
 bool solidify_main(const std::string& inputFileName, const std::string& outputFileName, std::pair<ImageBuf, ImageBuf> mask_pair, 
     QProgressBar* progressBar, MainWindow* mainWindow) {
     Timer g_timer;
@@ -42,7 +63,7 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
     // Generate a random delay
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_int_distribution<> distr(1, 1000); // delay range in milliseconds
+    std::uniform_int_distribution<> distr(1, 500); // delay range in milliseconds
 
     // Sleep for the random delay
     std::this_thread::sleep_for(std::chrono::milliseconds(distr(gen)));
@@ -335,11 +356,14 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
 
     ImageSpec& ospec = out_buf.specmod();
     if (settings.alphaMode == 1) {
-        ospec.nchannels = grayscale ? 2 : 4; // Only write RGB channels
+        ospec.nchannels = grayscale ? 2 : 4; // Write RGB and alpha channels
+    }
+    else if (settings.alphaMode == 0) {
+		ospec.nchannels = grayscale ? 1 : 3; // Only write RGB channels
     }
     else {
-		ospec.nchannels = grayscale ? 1 : 3; // Write RGB and alpha channels
-	}
+        ospec.nchannels = 1; // Only write alpha channel
+    }
     
     ospec.erase_attribute("Exif:LensSpecification");
     LOG(info) << "OIIO Libtiff EXIF fix deleting: " << "Exif:LensSpecification" << std::endl;
@@ -368,7 +392,6 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
         ospec.erase_attribute(name);
     }
 */
-///////
 /*
     // Initialize a vector to hold pairs of old and new attribute names
     std::vector<std::pair<std::string, std::string>> attrs_to_rename;
@@ -414,7 +437,6 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
 
     ospec.alpha_channel = -1; // No alpha channel
     //int bits = settings.bitDepth != -1 ? settings.getBitDepth() : 2;
-
     //rspec.attribute("oiio:BitsPerSample", bits);
     ospec.attribute("pnm:binary", 1);
     ospec.attribute("oiio:UnassociatedAlpha", 1);
@@ -447,7 +469,24 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
 
     LOG(info) << "Writing " << outputFileName << std::endl;
 
-    auto ok = out->write_image(out_format, out_buf.localpixels(),out_buf.pixel_stride(), out_buf.scanline_stride(), out_buf.z_stride(), *m_progress_callback, progressBar);
+    bool ok = false;
+
+    if (settings.alphaMode != 2) {
+        ok = out->write_image(out_format, out_buf.localpixels(), out_buf.pixel_stride(), out_buf.scanline_stride(), out_buf.z_stride(), *m_progress_callback, progressBar);
+    }
+    else {
+        int channel_to_extract = grayscale ? 1 : 3;  // for Alpha channle from RGBA
+        int channels = grayscale ? 2 : 4;
+        int bytes = input_buf.spec().format.size(); //
+
+        ok = out->write_image(out_format,
+            (char*)out_buf.localpixels() + channel_to_extract * bytes, // pointer to the first pixel to write
+            channels * bytes,      // x stride
+            out_buf.scanline_stride(),      // y stride
+            out_buf.z_stride(), 		    // z stride  
+            *m_progress_callback, progressBar);
+    }
+
     if (!ok) {
 		LOG(error) << "Error writing " << outputFileName << std::endl;
 		LOG(error) << out->geterror() << std::endl;

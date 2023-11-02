@@ -102,16 +102,41 @@ QString getOutName(const QString& fileName, Settings* settings) {
 	}
     else if (settings->normMode > 0) 
     {
-        // check if filename have any of settings.normNames as substring, case insensitive
-        std::string lowName = toLower(baseName.toStdString());
+        if (settings->normMode == 2) {
+			proc_sfx += "_norm";
+		}
+        else {
+            // check if filename have any of settings.normNames as substring, case insensitive
+            std::string lowName = toLower(baseName.toStdString());
 
-        for (auto& name : settings->normNames) {
-            if (lowName.find(name, 0) != std::string::npos) {
-                proc_sfx += "_norm";
-                break;
+            for (auto& name : settings->normNames) {
+                if (lowName.find(name, 0) != std::string::npos) {
+                    proc_sfx += "_norm";
+                    break;
+                }
             }
         }
     }
+    else if (settings->repairMode > 0)
+    {
+        if (settings->repairMode == 2) {
+            proc_sfx += "_rep";
+		}
+		else {
+			// check if filename have any of settings.normNames as substring, case insensitive
+			std::string lowName = toLower(baseName.toStdString());
+
+            for (auto& name : settings->normNames) {
+                if (lowName.find(name, 0) != std::string::npos) {
+					proc_sfx += "_rep";
+					break;
+				}
+			}
+        }
+    }
+    else if (settings->alphaMode == 2) {
+        proc_sfx += "_mask";
+	}
     else {
         proc_sfx += "_conv";
     }
