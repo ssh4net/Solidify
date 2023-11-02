@@ -34,6 +34,9 @@ Dependencies
 
 Changelog
 ---------
+* 1.38 - Temporary fix for Libtiff crash on Exif:LensInformation
+*      - Export Alpha/Mask channel
+*      - Repair or Recompute packed normals (usually B or Z channel in RGB (XYZ) )
 * 1.30 - Now Solidify is a GUI app by default
 * 1.21 - Bit depth when using external alpha/mask fix
 * 1.2  - Grayscale textures fix
