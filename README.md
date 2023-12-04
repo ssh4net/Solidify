@@ -37,6 +37,7 @@ Dependencies
 
 Changelog
 ---------
+* 1.39 - Fix for missed Signed <> Unsigned range mapping for non Normals textures.
 * 1.38 - Temporary fix for Libtiff crash on Exif:LensInformation
 *      - Export Alpha/Mask channel
 *      - Repair or Recompute packed normals (usually B or Z channel in RGB (XYZ) )
