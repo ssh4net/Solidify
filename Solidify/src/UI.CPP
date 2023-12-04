@@ -443,22 +443,22 @@ void MainWindow::rngSettings() {
     if (action == rng_Unsg) {
         settings.rangeMode = 0;
 		emit updateTextSignal("Unsigned floats");
-        qDebug() << "32/16 bit float Normals are in [0.0 ~ 1.0] range";
+        qDebug() << "32/16 bit floats are in [0.0 ~ 1.0] range";
 	}
     else if (action == rng_Sign) {
         settings.rangeMode = 1;
 		emit updateTextSignal("Signed floats");
-        qDebug() << "32/16 bit floats Normals are in [-1.0 ~ 1.0] range";
+        qDebug() << "32/16 bit floats are in [-1.0 ~ 1.0] range";
 	}
-    else if (action == rng_SU) {
-		settings.rangeMode = 2;
-        emit updateTextSignal("Signed <> Unsigned");
-        qDebug() << "32/16 bit floats Normals are in [-1.0 ~ 1.0] range converted to [0.0 ~ 1.0]";
-    }
     else if (action == rng_US) {
-        settings.rangeMode = 3;
+        settings.rangeMode = 2;
         emit updateTextSignal("Unsigned <> Signed");
-        qDebug() << "32/16 bit floats Normals are in [0.0 ~ 1.0] range converted to [-1.0 ~ 1.0]";
+        qDebug() << "32/16 bit floats range [0.0 ~ 1.0] map to a [-1.0 ~ 1.0]";
+    }
+    else if (action == rng_SU) {
+		settings.rangeMode = 3;
+        emit updateTextSignal("Signed <> Unsigned");
+        qDebug() << "32/16 bit floats range [-1.0 ~ 1.0] map to a [0.0 ~ 1.0]";
     }
 }
 
