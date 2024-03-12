@@ -483,6 +483,7 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
 		LOG(error) << "Error opening " << outputFileName << std::endl;
 		LOG(error) << out->geterror() << std::endl;
 		mainWindow->emitUpdateTextSignal("Error! Check console for details");
+        out->close();
 		return false;
 	}
 
