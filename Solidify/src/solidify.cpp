@@ -454,6 +454,9 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
     ospec.attribute("oiio:UnassociatedAlpha", 1);
     ospec.attribute("jpeg:subsampling", "4:4:4");
     ospec.attribute("Compression", "jpeg:100");
+    if (settings.fileFormat == 5)
+        ospec.attribute("Compression", "heic:100");
+
     ospec.attribute("png:compressionLevel", 4);
     //ospec.attribute("tiff:write_exif", 0);
     //rspec.attribute("tiff:bigtiff", 1);
@@ -476,6 +479,12 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
         return false;
     }
     out->open(outputFileName, ospec, ImageOutput::Create);
+    if (out->has_error()) {
+		LOG(error) << "Error opening " << outputFileName << std::endl;
+		LOG(error) << out->geterror() << std::endl;
+		mainWindow->emitUpdateTextSignal("Error! Check console for details");
+		return false;
+	}
 
     QMetaObject::invokeMethod(progressBar, "setValue", Qt::QueuedConnection, Q_ARG(int, 0));
 

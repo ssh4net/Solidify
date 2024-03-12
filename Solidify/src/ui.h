@@ -19,7 +19,6 @@
 #include <QtWidgets/QMainWindow>
 #include <QtWidgets/QMenuBar>
 #include <QtWidgets/QMenu>
-#include <QtWidgets/QAction>
 
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QLabel>
@@ -120,6 +119,7 @@ private:
     QAction* frmt_Tif; // TIFF
     QAction* frmt_Exr; // OpenEXR
     QAction* frmt_Jp2; // JPEG 2000
+    QAction* frmt_Hic; // HEIC
     QAction* frmt_Ppm; // PPM
 
     //std::vector<QAction*> bitActions;

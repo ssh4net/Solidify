@@ -56,7 +56,7 @@ struct Settings {
 		repairMode = 0;		// Repair mode: 0 - disabled, 1 - Z, 2 - Y, 3 - X, 4 - -Z, 5 - -Y, 6 - -X
 
 		rangeMode = 0;		// Float type: 0 - unsigned, 1 - signed, 2 - unsigned -> signed, 3 - signed -> unsigned
-		fileFormat = -1;	// File format: -1 - original, 0 - TIFF, 1 - OpenEXR, 2 - PNG, 3 - JPEG, 4 - JPEG-2000, 5 - PPM
+		fileFormat = -1;	// File format: -1 - original, 0 - TIFF, 1 - OpenEXR, 2 - PNG, 3 - JPEG, 4 - JPEG-2000, 5 - HEIC, 6 - PPM
 		defFormat = 0;		// Default file format = TIFF
 		bitDepth = -1;		// Bit depth: -1 - Original, 0 - uint8, 1 - uint16, 2 - uint32, 3 - uint64, 4 - half, 5 - float, 6 - double
 		defBDepth = 1;		// Default bit depth = uint16
@@ -64,7 +64,7 @@ struct Settings {
 
 		normNames = { "normal", "tangent", "object", "world" };
 		mask_substr = { "_mask.", "_mask_", "_alpha.", "_alpha_" };
-		out_formats = { "tif", "exr", "png", "jpg", "jp2", "ppm" };
+		out_formats = { "tif", "exr", "png", "jpg", "jp2", "heic", "ppm" };
 	}
 
 	// get bit depth in bytes

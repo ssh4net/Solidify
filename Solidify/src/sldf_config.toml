@@ -39,7 +39,8 @@ empty = true
 # 2 - PNG
 # 3 - JPEG
 # 4 - JPEG-2000
-# 5 - PPM
+# 5 - HEIC
+# 6 - PPM
 DefaultFormat = 0
 FileFormat = -1
 # Bit depth: 

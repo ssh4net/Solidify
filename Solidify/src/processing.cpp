@@ -73,7 +73,7 @@ QString getExtension(const QString& fileName, Settings* settings) {
 	QString extension = "." + fileInfo.completeSuffix();
     extension = extension.toLower();
     switch (settings->fileFormat) {
-    //-1 - original, 0 - TIFF, 1 - OpenEXR, 2 - PNG, 3 - JPEG, 4 - JPEG-2000, 5 - PPM
+    //-1 - original, 0 - TIFF, 1 - OpenEXR, 2 - PNG, 3 - JPEG, 4 - JPEG-2000, 5 - HEIC,6 - PPM
     case 0:
         return ".tif";
     case 1:
@@ -85,6 +85,8 @@ QString getExtension(const QString& fileName, Settings* settings) {
     case 4:
         return ".jp2";
     case 5:
+        return ".heic";
+    case 6:
         return ".ppm";
     }
     getWritableExt(&extension, settings);
