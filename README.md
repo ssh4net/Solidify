@@ -4,6 +4,7 @@
 Small GUI utility on top of OpenImageIO and QT5 to Solidify (fill, push-pull) empty areas in textures.
 Can be used to Normalize normal maps and export alpha/mask channels as single-channel Grayscale images.
 Possible to use to unpack/repair the third channel for packed two-channel tangent space normals.
+Or as a file format batch conversion tool (for example, iPhone *.heic to *.jpg)
 
 Usage
 ------------
@@ -37,10 +38,11 @@ Dependencies
 
 Changelog
 ---------
+* 1.40b - Support for HEIC file format read and write (8bit only) !WARNING! have some bugs
 * 1.39 - Fix for missed Signed <> Unsigned range mapping for non Normals textures.
 * 1.38 - Temporary fix for Libtiff crash on Exif:LensInformation
-*      - Export Alpha/Mask channel
-*      - Repair or Recompute packed normals (usually B or Z channel in RGB (XYZ) )
+* - Export Alpha/Mask channel
+* - Repair or Recompute packed normals (usually B or Z channel in RGB (XYZ) )
 * 1.30 - Now Solidify is a GUI app by default
 * 1.21 - Bit depth when using external alpha/mask fix
 * 1.2  - Grayscale textures fix
