@@ -57,7 +57,7 @@ void* getTypedPointer(OIIO::ImageBuf& buf, const OIIO::TypeDesc& type) {
 
 bool solidify_main(const std::string& inputFileName, const std::string& outputFileName, std::pair<ImageBuf, ImageBuf> mask_pair, 
     QProgressBar* progressBar, MainWindow* mainWindow) {
-    Timer g_timer;
+    VTimer g_timer;
 
 //
     // Generate a random delay
@@ -72,7 +72,8 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
     
     ImageSpec config;
     config["raw:user_flip"] = settings.rawRot;
-    
+    //config["oiio:reorient"] = 0;
+
     config["oiio:UnassociatedAlpha"] = 0;
     config["tiff:UnassociatedAlpha"] = 0;
     config["oiio:ColorSpace"] = "Linear";
@@ -87,6 +88,16 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
 	}
 
     TypeDesc orig_format = input_buf.spec().format;
+
+ //   // check EXIF rotation
+ //   int orientation = 1;
+ //   auto& tspec = input_buf.spec();
+ //   auto& extspec = tspec.extra_attribs;
+ //   for (auto& attr : extspec) {
+	//	std::string name = attr.name().string();
+	//	std::string value = attr.get_string();
+	//	LOG(info) << name << " : " << value << std::endl;
+	//}
 
     LOG(info) << "File bith depth: " << formatText(orig_format) << std::endl;
 
@@ -187,7 +198,7 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
 
     if (settings.isSolidify && isValid) {
         LOG(info) << "Filling holes in process...\n";
-        Timer pushpull_timer;
+        VTimer pushpull_timer;
 
         if (external_alpha) {
             ImageBuf* alpha_buf_ptr = &mask_pair.first;
@@ -261,7 +272,7 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
     }
 
     if (settings.repairMode > 0) {
-        Timer normalize_timer;
+        VTimer normalize_timer;
         bool success = true;
         int sign = 1;
 
@@ -308,7 +319,7 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
     }
 
     if (doNormalize) {
-        Timer normalize_timer;
+        VTimer normalize_timer;
         bool success = true;
 
         ROI roi(0, result_buf.spec().width, 0, result_buf.spec().height, 0, 1, 0, result_buf.spec().nchannels);

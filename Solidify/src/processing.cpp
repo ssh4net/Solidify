@@ -148,7 +148,7 @@ QString getOutName(const QString& fileName, Settings* settings) {
 
 bool doProcessing(QList<QUrl> urls, QProgressBar* progressBar, MainWindow* mainWindow) {
     std::vector<QString> fileNames; // This will hold the names of all files
-    Timer f_timer;
+    VTimer f_timer;
 
     for (const QUrl& url : urls) {
         QString fileName = url.toLocalFile();
