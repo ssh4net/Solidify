@@ -15,8 +15,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "stdafx.h"
 #include "settings.h"
+#include <Windows.h>
+#include <QtCore/QResource>
 
 int main(int argc, char* argv[]) {
     // Allocate console and redirect std output
@@ -37,6 +38,7 @@ int main(int argc, char* argv[]) {
 
 
     QApplication app(argc, argv);
+    Q_INIT_RESOURCE(gui);
     app.setWindowIcon(QIcon(":/MainWindow/sldf.ico"));
 
     MainWindow window;

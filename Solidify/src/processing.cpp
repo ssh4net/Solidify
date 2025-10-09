@@ -17,7 +17,6 @@
 
 //#include "ui.h"
 #include "solidify.h"
-#include "stdafx.h"
 #include "imageio.h"
 #include "processing.h"
 #include "settings.h"

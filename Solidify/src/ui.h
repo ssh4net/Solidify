@@ -16,30 +16,34 @@
  */
 #pragma once
 
-#include <QtWidgets/QMainWindow>
-#include <QtWidgets/QMenuBar>
-#include <QtWidgets/QMenu>
-
-#include <QtWidgets/QApplication>
-#include <QtWidgets/QLabel>
+#include <QtConcurrent/QtConcurrentRun>
+#include <QtCore/QDebug>
+#include <QtCore/QDir>
+#include <QtCore/QFileInfo>
+#include <QtCore/QFutureWatcher>
+#include <QtCore/QList>
+#include <QtCore/QMimeData>
+#include <QtCore/QProcess>
+#include <QtCore/QRandomGenerator>
+#include <QtCore/QRegularExpression>
+#include <QtCore/QUrl>
+#include <QtCore/QtPlugin>
 #include <QtGui/QDragEnterEvent>
 #include <QtGui/QDropEvent>
-#include <QtCore/QMimeData>
-#include <QtCore/QDebug>
-#include <QtCore/QFileInfo>
-#include <QtCore/QProcess>
+#include <QtWidgets/QApplication>
+#include <QtWidgets/QLabel>
+#include <QtWidgets/QMainWindow>
+#include <QtWidgets/QMenu>
+#include <QtWidgets/QMenuBar>
 #include <QtWidgets/QProgressBar>
 #include <QtWidgets/QStatusBar>
+#include <QtWidgets/QtWidgets>
 #include <QtWidgets/QVBoxLayout>
-
-#include <QtCore/QFutureWatcher>
-#include <QtConcurrent/QtConcurrentRun>
-#include <QtCore/QRandomGenerator>
 
 #include "processing.h"
 
 #define VERSION_MAJOR 1
-#define VERSION_MINOR 41
+#define VERSION_MINOR 42
 
 void setPBarColor(QProgressBar* progressBar, const QColor& color = QColor("#05B8CC"));
 

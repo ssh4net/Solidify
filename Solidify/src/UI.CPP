@@ -15,7 +15,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "stdafx.h"
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <windows.h>
+#include <tlhelp32.h>
+#include <process.h>
+
 #include "ui.h"
 
 #include "processing.h"
@@ -51,6 +56,17 @@ void DropArea::dropEvent(QDropEvent* event) {
 }
 
 MainWindow::MainWindow() {
+
+    this->setStyleSheet(
+        "* {border: 0px solid black; border-radius: 3px; background-color: #D0D0D0; color: black; margin-bottom: 0}"
+		"QMenuBar {background-color: #D0D0D0;}"
+		"QMenuBar::item {background-color: #C0C0C0;}"
+		"QMenuBar::item:selected {background-color: #B0B0B0;}"
+		"QMenu {background-color: #D0D0D0;}"
+		"QMenu::item:selected {background-color: #B0B0B0;}"
+		"QMenu::separator {height: 1px; background: #808080; margin-left: 5px; margin-right: 5px; margin-top: 5px; margin-bottom: 5px;}"
+    );
+
     QVBoxLayout* layout = new QVBoxLayout;  // Create a vertical layout
 
     DropArea* dropArea = new DropArea;
