@@ -16,8 +16,6 @@
  */
 #pragma once
 
-#pragma once
-
 #include <queue>
 #include <vector>
 #include <thread>

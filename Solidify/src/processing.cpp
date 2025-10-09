@@ -16,19 +16,20 @@
  */
 
 //#include "ui.h"
+#include "pch.h"
 #include "solidify.h"
 #include "imageio.h"
 #include "processing.h"
 #include "settings.h"
-#include "Log.h"
+//#include "Log.h"
 
-#include <algorithm>
-#include <cctype>
-#include <string>
-
-#include <thread>
-#include <mutex>
-#include <condition_variable>
+//#include <algorithm>
+//#include <cctype>
+//#include <string>
+//
+//#include <thread>
+//#include <mutex>
+//#include <condition_variable>
 #include "threadpool.h"
 
 std::string toLower(const std::string& str) {
@@ -57,11 +58,11 @@ void getWritableExt(QString* ext, Settings* settings) {
     QString fn = "probename." + *ext;
     probe = ImageOutput::create(fn.toStdString());
     if (probe) {
-        LOG(info) << ext->toStdString() << " is writable" << std::endl;
+        spdlog::info("{} is writable", ext->toStdString());
     }
     else {
-        LOG(info) << ext->toStdString() << " is readonly" << std::endl;
-        LOG(info) << "Output format changed to " << settings->out_formats[settings->defFormat] << std::endl;
+        spdlog::info("{} is readonly", ext->toStdString());
+        spdlog::info("Output format changed to {}", settings->out_formats[settings->defFormat]);
         *ext = "." + QString::fromStdString(settings->out_formats[settings->defFormat]);
     }
     probe.reset();
@@ -162,7 +163,7 @@ bool doProcessing(QList<QUrl> urls, QProgressBar* progressBar, MainWindow* mainW
     std::pair<ImageBuf, ImageBuf> mask_pair;
 
     if (mask_file != "") {
-        qDebug() << "Mask file: " << mask_file << " will be used.";
+        spdlog::info("Mask file: {} will be used.", mask_file.toStdString());
         mask_pair = mask_load(mask_file.toStdString(), mainWindow);
 	}
 
@@ -208,6 +209,6 @@ bool doProcessing(QList<QUrl> urls, QProgressBar* progressBar, MainWindow* mainW
     }
 
     mainWindow->emitUpdateTextSignal("Everything Done!");
-    LOG(info) << "Total processing time : " << f_timer.nowText() << " for " << fileNames.size() << " files." << std::endl;
+    spdlog::info("Total processing time : {} for {} files.", f_timer.nowText(), fileNames.size());
     return true;
 }

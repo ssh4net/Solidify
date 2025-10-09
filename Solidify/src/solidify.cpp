@@ -15,6 +15,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "pch.h"
 #include <iostream>
 #include <iomanip>
 #include <string>
@@ -22,11 +23,11 @@
 
 #include "Timer.h"
 
-#include <OpenImageIO/imageio.h>
-#include <OpenImageIO/imagebuf.h>
-#include <OpenImageIO/imagebufalgo.h>
+//#include <OpenImageIO/imageio.h>
+//#include <OpenImageIO/imagebuf.h>
+//#include <OpenImageIO/imagebufalgo.h>
 
-#include "Log.h"
+//#include "Log.h"
 #include "solidify.h"
 #include "imageio.h"
 #include "settings.h"
@@ -81,8 +82,8 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
     ImageBuf input_buf(inputFileName, 0, 0, nullptr, &config, nullptr);
 
     if (!input_buf.init_spec(inputFileName, 0, 0)){
-		LOG(error) << "Error reading " << inputFileName << std::endl;
-        LOG(error) << input_buf.geterror() << std::endl;
+		spdlog::error("Error reading {}", inputFileName);
+        spdlog::error("{}", input_buf.geterror());
 		mainWindow->emitUpdateTextSignal("Error! Check console for details");
 		return false;
 	}
@@ -96,10 +97,10 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
  //   for (auto& attr : extspec) {
 	//	std::string name = attr.name().string();
 	//	std::string value = attr.get_string();
-	//	LOG(info) << name << " : " << value << std::endl;
+	//	spdlog::info) << name << " : " << value << std::endl;
 	//}
 
-    LOG(info) << "File bith depth: " << formatText(orig_format) << std::endl;
+    spdlog::info("File bith depth: {}", formatText(orig_format));
 
     //ImageBuf::ImageBuf(config, input_buf);
 
@@ -112,10 +113,10 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
 
     // Read the image with a progress callback
 
-    LOG(info) << "Reading " << inputFileName << std::endl;
+    spdlog::info("Reading {}", inputFileName);
     bool load_ok = img_load(input_buf, inputFileName, external_alpha, progressBar, mainWindow);
     if (!load_ok) {
-		LOG(error) << "Error reading " << inputFileName << std::endl;
+		spdlog::error("Error reading {}", inputFileName);
         mainWindow->emitUpdateTextSignal("Error! Check console for details");
 		return false;
 	}
@@ -127,13 +128,13 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
     TypeDesc load_format = ispec.format;
     out_format = load_format; // copy latest buffer format as an output format
 
-    LOG(info) << "File loaded bit depth: " << formatText(load_format) << std::endl;
+    spdlog::info("File loaded bit depth: {}", formatText(load_format));
 
     // get the image size
     int width = input_buf.spec().width;
     int height = input_buf.spec().height;
-    LOG(info) << "Image size: " << width << "x" << height << std::endl;
-    LOG(info) << "Channels: " << input_buf.nchannels() << " Alpha channel index: " << input_buf.spec().alpha_channel << std::endl;
+    spdlog::info("Image size: {}x{}", width, height);
+    spdlog::info("Channels: {} Alpha channel index: {}", input_buf.nchannels(), input_buf.spec().alpha_channel);
 
     bool isValid = true;
     int inputCh = input_buf.nchannels();
@@ -172,8 +173,8 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
 		break;
     default:
         isValid = false;
-        LOG(error) << "Error: Only Grayscale, RGB and RGBA images are supported" << std::endl;
-        LOG(error) << "Grayscale and RGB images must have an external alpha channel or use external alpha file" << std::endl;
+        spdlog::error("Error: Only Grayscale, RGB and RGBA images are supported");
+        spdlog::error("Grayscale and RGB images must have an external alpha channel or use external alpha file");
         return false;
         break;
     }
@@ -197,7 +198,7 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
     //rspec.format = getTypeDesc(settings.bitDepth);
 
     if (settings.isSolidify && isValid) {
-        LOG(info) << "Filling holes in process...\n";
+        spdlog::info("Filling holes in process...\n");
         VTimer pushpull_timer;
 
         if (external_alpha) {
@@ -213,13 +214,13 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
 
             bool ok = ImageBufAlgo::mul(input_buf, input_buf, grayscale ? mask_pair.first : mask_pair.second);
             if (!ok) {
-                LOG(error) << "multiplication error: " << rgba_buf.geterror() << std::endl;
+                spdlog::error("multiplication error: ", rgba_buf.geterror());
                 mainWindow->emitUpdateTextSignal("Error! Check console for details");
                 return false;
             }
             ok = ok && ImageBufAlgo::channel_append(rgba_buf, input_buf, *alpha_buf_ptr);
             if (!ok) {
-                LOG(error) << "channel_append error: " << rgba_buf.geterror() << std::endl;
+                spdlog::error("channel_append error: ", rgba_buf.geterror());
                 mainWindow->emitUpdateTextSignal("Error! Check console for details");
                 return false;
             }
@@ -237,7 +238,7 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
         bool ok = ImageBufAlgo::fillholes_pushpull(result_buf, *input_buf_ptr);
 
         if (!ok) {
-            LOG(error) << "fillholes_pushpull error: " << result_buf.geterror() << std::endl;
+            spdlog::error("fillholes_pushpull error: ", result_buf.geterror());
             mainWindow->emitUpdateTextSignal("Error! Check console for details");
             return false;
         }
@@ -245,7 +246,7 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
         if (settings.alphaMode == 1) {
             ImageBufAlgo::paste(result_buf, 0, 0, 0, result_buf.spec().alpha_channel, external_alpha ? bit_alpha_buf : original_alpha);
             if (result_buf.has_error()) {
-                LOG(error) << "paste error: " << result_buf.geterror() << std::endl;
+                spdlog::error("paste error: ", result_buf.geterror());
                 mainWindow->emitUpdateTextSignal("Error! Check console for details");
                 return false;
             }
@@ -259,12 +260,12 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
 #endif
 
         out_format = result_buf.spec().format; // copy latest buffer format as an output format
-        LOG(info) << "Push-Pull format: " << formatText(out_format) << std::endl;
-        LOG(info) << "Push-Pull time : " << pushpull_timer.nowText() << std::endl;
+        spdlog::info("Push-Pull format: {}", formatText(out_format));
+        spdlog::info("Push-Pull time : {}", pushpull_timer.nowText());
     }
     else {
 		result_buf = input_buf;
-        LOG(info) << "Filling holes skipped\n";
+        spdlog::info("Filling holes skipped\n");
 	}
 
     if ((settings.normMode == 2) || (isNormName && settings.normMode != 0)) {
@@ -276,7 +277,7 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
         bool success = true;
         int sign = 1;
 
-        LOG(info) << "Repairing normals in process...\n";
+        spdlog::info("Repairing normals in process...\n");
 
         uint channel = settings.repairMode - 1;
 
@@ -352,17 +353,17 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
 
         success = ImageBufAlgo::normalize(out_buf, result_buf, inCenter, outCenter, outScale, roi, nthreads);
         if (!success) {
-            LOG(error) << "Error: Could not normalize image" << std::endl;
+            spdlog::error("Error: Could not normalize image");
             mainWindow->emitUpdateTextSignal("Error! Check console for details");
             return false;
         }
         out_format = out_buf.spec().format; // copy latest buffer format as an output format
-        LOG(info) << "Normalized format: " << formatText(out_format) << std::endl;
-        LOG(info) << "Normalize time : " << normalize_timer.nowText() << std::endl;
+        spdlog::info("Normalized format: {}", formatText(out_format));
+        spdlog::info("Normalize time : {}", normalize_timer.nowText());
     }
     else if (settings.repairMode == 0) {
         out_buf = result_buf;
-		LOG(info) << "Normalize skipped\n";
+		spdlog::info("Normalize skipped\n");
 	}
 
     // if not normalize and not repair and range conversion is needed
@@ -389,7 +390,7 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
     }
     
     ospec.erase_attribute("Exif:LensSpecification");
-    LOG(info) << "OIIO Libtiff EXIF fix deleting: " << "Exif:LensSpecification" << std::endl;
+    spdlog::info("OIIO Libtiff EXIF fix deleting: Exif:LensSpecification");
 
 /*
     // Debug. Output all EXIF tags to console
@@ -401,12 +402,12 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
 
         // Check if the attribute name starts with the prefixes you want to remove
         if ( name.rfind("Exif:LensSpecification", 0) == 0) {
-            LOG(info) << "OIIO Libtiff EXIF fix deleting: " << name << " : " << attr.get_string() << std::endl;
+            spdlog::info) << "OIIO Libtiff EXIF fix deleting: " << name << " : " << attr.get_string() << std::endl;
             attrs_to_remove.push_back(name);
         }
         else
         {
-            //LOG(info) << name << " : " << attr.get_string() << std::endl;
+            //spdlog::info) << name << " : " << attr.get_string() << std::endl;
         }
     }
     
@@ -472,7 +473,7 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
     //ospec.attribute("tiff:write_exif", 0);
     //rspec.attribute("tiff:bigtiff", 1);
     //rspec.set_format(TypeDesc::FLOAT); // temporary
-    //LOG(info) << "Channels: " << rspec.nchannels << " Alpha channel: " << rspec.alpha_channel << std::endl;
+    //spdlog::info) << "Channels: " << rspec.nchannels << " Alpha channel: " << rspec.alpha_channel << std::endl;
 //
     //ospec.format = getTypeDesc(settings.bitDepth);
     if (getTypeDesc(settings.bitDepth) == TypeDesc::UNKNOWN) {
@@ -481,18 +482,18 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
 		ospec.set_format(getTypeDesc(settings.bitDepth));
     }
 
-    LOG(info) << "Output file format: " << formatText(ospec.format) << std::endl;
+    spdlog::info("Output file format: {}", formatText(ospec.format));
 
     auto out = ImageOutput::create(outputFileName);
     if (!out) {
-        LOG(error) << "Could not create output file: " << outputFileName << std::endl;
+        spdlog::error("Could not create output file: ", outputFileName);
         mainWindow->emitUpdateTextSignal("Error! Check console for details");
         return false;
     }
     out->open(outputFileName, ospec, ImageOutput::Create);
     if (out->has_error()) {
-		LOG(error) << "Error opening " << outputFileName << std::endl;
-		LOG(error) << out->geterror() << std::endl;
+		spdlog::error("Error opening ", outputFileName);
+		spdlog::error("{}", out->geterror());
 		mainWindow->emitUpdateTextSignal("Error! Check console for details");
         out->close();
 		return false;
@@ -500,7 +501,7 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
 
     QMetaObject::invokeMethod(progressBar, "setValue", Qt::QueuedConnection, Q_ARG(int, 0));
 
-    LOG(info) << "Writing " << outputFileName << std::endl;
+    spdlog::info("Writing {}", outputFileName);
 
     bool ok = false;
 
@@ -521,14 +522,14 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
     }
 
     if (!ok) {
-		LOG(error) << "Error writing " << outputFileName << std::endl;
-		LOG(error) << out->geterror() << std::endl;
+		spdlog::error("Error writing ", outputFileName);
+		spdlog::error("{}", out->geterror());
 		mainWindow->emitUpdateTextSignal("Error! Check console for details");
 		return false;
 	}
     out->close();
 
-    LOG(info) << "File processing time : " << g_timer.nowText() << std::endl;
+    spdlog::info("File processing time : {}", g_timer.nowText());
     
     //pbar_color_rand(progressBar);
     pbar_color_rand(mainWindow);

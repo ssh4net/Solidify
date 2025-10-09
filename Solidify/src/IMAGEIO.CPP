@@ -16,9 +16,10 @@
  */
 #pragma once
 
+#include "pch.h"
 #include "imageio.h"
 #include "settings.h"
-#include "Log.h"
+//#include "Log.h"
 
 int hue = 186;
 //void pbar_color_rand(QProgressBar* progressBar) {
@@ -132,23 +133,23 @@ std::string formatText(TypeDesc format) {
 
 void formatFromBuff(ImageBuf& buf) {
 	std::string format = buf.file_format_name();
-    LOG(info) << "Format: " << format << std::endl;
+    spdlog::info("Format: {}", format);
 }
 
 void debugImageBufWrite(const ImageBuf& buf, const std::string& filename) {
 	bool write_ok = buf.write(filename);
     if (!write_ok) {
-		LOG(error) << "Error: Could not write to " << filename << std::endl;
-		LOG(error) << "Error: " << buf.geterror() << std::endl;
+		spdlog::error("Error: Could not write to {}", filename);
+		spdlog::error("Error: {}", buf.geterror());
 	}
 }
 
 std::pair<ImageBuf, ImageBuf> mask_load(const std::string& mask_file, MainWindow* mainWindow) {
     ImageBuf alpha_buf(mask_file);
-    LOG(info) << "Reading " << mask_file << std::endl;
+    spdlog::info("Reading {}", mask_file);
     bool read_ok = alpha_buf.read(0, 0, 0, 1, true, TypeDesc::FLOAT, nullptr, nullptr);
     if (!read_ok) {
-        LOG(error) << "Error: Could not read mask image\n";
+        spdlog::error("Error: Could not read mask image\n");
         mainWindow->emitUpdateTextSignal("Error! Check console for details");
         system("pause");
         exit(-1);
@@ -156,7 +157,7 @@ std::pair<ImageBuf, ImageBuf> mask_load(const std::string& mask_file, MainWindow
 
     int width = alpha_buf.spec().width;
     int height = alpha_buf.spec().height;
-    LOG(info) << "Mask size: " << width << "x" << height << std::endl;
+    spdlog::info("Mask size: {}x{}", width, height);
 
     // rename channel to alpha and set it as an alpha channel
     alpha_buf.specmod().channelnames[0] = "A";
@@ -169,7 +170,7 @@ std::pair<ImageBuf, ImageBuf> mask_load(const std::string& mask_file, MainWindow
     rgb_alpha = ImageBufAlgo::channels(alpha_buf, 3, channelorder, channelvalues);
     
     if (rgb_alpha.has_error()) {
-		LOG(error) << "Error: Could not append channels\n";
+        spdlog::error("Error: Could not append channels\n");
 		mainWindow->emitUpdateTextSignal("Error! Check console for details");
 		system("pause");
 		exit(-1);
@@ -229,7 +230,7 @@ bool img_load(ImageBuf& outBuf, const std::string& inputFileName, bool external_
 
     bool read_ok = outBuf.read(0, 0, 0, last_channel, true, o_format, m_progress_callback, progressBar);
     if (!read_ok) {
-        LOG(error) << "Error: Could not read input image\n";
+        spdlog::error("Error: Could not read input image\n");
         mainWindow->emitUpdateTextSignal("Error! Check console for details");
         return false;
     }
@@ -249,7 +250,7 @@ bool img_load(ImageBuf& outBuf, const std::string& inputFileName, bool external_
         }
         read_ok = ImageBufAlgo::mul(outBuf, outBuf, alphs_rgba);
         if (!read_ok) {
-            LOG(error) << "Error: Could not multiply alpha\n";
+            spdlog::error("Error: Could not multiply alpha\n");
             mainWindow->emitUpdateTextSignal("Error! Check console for details");
             return false;
         }

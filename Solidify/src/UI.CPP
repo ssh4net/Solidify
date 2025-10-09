@@ -15,11 +15,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#include <windows.h>
-#include <tlhelp32.h>
-#include <process.h>
+#include "pch.h"
 
 #include "ui.h"
 

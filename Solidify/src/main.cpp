@@ -15,9 +15,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "pch.h"
 #include "settings.h"
 #include <Windows.h>
 #include <QtCore/QResource>
+
+Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin)
 
 int main(int argc, char* argv[]) {
     // Allocate console and redirect std output
@@ -25,15 +28,23 @@ int main(int argc, char* argv[]) {
     freopen("CONOUT$", "w", stdout);
     freopen("CONOUT$", "w", stderr);
 
-    Log_Init();
+    spdlog::set_level(spdlog::level::info);
+    spdlog::set_pattern("%^[%l]%$<%t> %v");
+
+    time_t timestamp;
+    time(&timestamp);
+    std::cout << std::fixed << std::setprecision(8);
+
+    spdlog::info("Solidify {}.{}.{}", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
+    spdlog::info("Build from: {} {}", __DATE__, __TIME__);
+    spdlog::info("Log started at: {}", ctime(&timestamp), "%Y-%m-%d %H:%M:%S");
 
     if (!loadSettings(settings, "sldf_config.toml")) {
-        LOG(error) << "Can not load [app_config.toml] Using default settings." << std::endl;
+        spdlog::error("Can not load [app_config.toml] Using default settings.");
         settings.reSettings();
     }
 
     ShowWindow(GetConsoleWindow(), (settings.conEnable) ? SW_SHOW : SW_HIDE);
-    qDebug() << qPrintable(QString("Solidify %1.%2").arg(VERSION_MAJOR).arg(VERSION_MINOR)) << "Debug output:";
     printSettings(settings);
 
 

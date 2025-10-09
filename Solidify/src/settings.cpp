@@ -15,9 +15,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <toml.hpp>
+#include "pch.h"
 #include "settings.h"
-#include "Log.h"
+//#include "Log.h"
 
 Settings settings;
 
@@ -26,38 +26,38 @@ bool loadSettings(Settings& settings, const std::string& filename) {
         auto parsed = toml::parse(filename);
 
         if (!parsed.contains("Global") || parsed["Global"].as_table().empty()) {
-            LOG(error) << "Error parsing settings file: [Global] section not found or empty." << std::endl;
+            spdlog::error("Error parsing settings file: [Global] section not found or empty.");
             return false;
         }
         if (!parsed.contains("Normalize") || parsed["Normalize"].as_table().empty()) {
-            LOG(error) << "Error parsing settings file: [Normalize] section not found or empty." << std::endl;
+            spdlog::error("Error parsing settings file: [Normalize] section not found or empty.");
             return false;
         }
         if (!parsed.contains("Range") || parsed["Range"].as_table().empty()) {
-            LOG(error) << "Error parsing settings file: [Range] section not found or empty." << std::endl;
+            spdlog::error("Error parsing settings file: [Range] section not found or empty.");
             return false;
         }
         if (!parsed.contains("Transform") || parsed["Transform"].as_table().empty()) {
-            LOG(error) << "Error parsing settings file: [Transform] section not found or empty." << std::endl;
+            spdlog::error("Error parsing settings file: [Transform] section not found or empty.");
             return false;
         }
         if (!parsed.contains("Export") || parsed["Export"].as_table().empty()) {
-            LOG(error) << "Error parsing settings file: [Export] section not found or empty." << std::endl;
+            spdlog::error("Error parsing settings file: [Export] section not found or empty.");
             return false;
         }
         if (!parsed.contains("CameraRaw") || parsed["CameraRaw"].as_table().empty()) {
-            LOG(error) << "Error parsing settings file: [CameraRaw] section not found or empty." << std::endl;
+            spdlog::error("Error parsing settings file: [CameraRaw] section not found or empty.");
             return false;
         }
 
         auto check = [&parsed](const std::string& section, const std::string& key) {
             auto ts = parsed[section].as_table().find(key);
             if (ts == parsed[section].as_table().end()) {
-                LOG(error) << "Warning: [" << section.c_str() << "] section does not contain \"" << key.c_str() << "\" key." << std::endl;
+                spdlog::error("Warning: [{}]] section does not contain \"\"key.", section.c_str(), key.c_str());
                 return false;
             }
             return true;
-        };
+            };
         // Global
         if (!check("Global", "Solidify")) return false;
         settings.isSolidify = parsed["Global"]["Solidify"].as_boolean();
@@ -65,9 +65,9 @@ bool loadSettings(Settings& settings, const std::string& filename) {
         if (!check("Global", "ExportAlpha")) return false;
         settings.alphaMode = parsed["Global"]["ExportAlpha"].as_integer();
         if (settings.alphaMode < 0 || settings.alphaMode > 2) {
-			LOG(error) << "Error parsing settings file: [Global] section: \"ExportAlpha\" key value is out of range." << std::endl;
-			return false;
-		}
+            spdlog::error("Error parsing settings file: [Global] section: \"ExportAlpha\" key value is out of range.");
+            return false;
+        }
 
         settings.mask_substr.clear();
         auto it = parsed["Global"]["MaskNames"].as_array();
@@ -88,7 +88,7 @@ bool loadSettings(Settings& settings, const std::string& filename) {
         if (!check("Normalize", "NormalizeMode")) return false;
         settings.normMode = parsed["Normalize"]["NormalizeMode"].as_integer();
         if (settings.normMode < 0 || settings.normMode > 2) {
-            LOG(error) << "Error parsing settings file: [Normalize] section: \"NormalizeMode\" key value is out of range." << std::endl;
+            spdlog::error("Error parsing settings file: [Normalize] section: \"NormalizeMode\" key value is out of range.");
             return false;
         }
 
@@ -104,7 +104,7 @@ bool loadSettings(Settings& settings, const std::string& filename) {
         if (!check("Range", "RangeMode")) return false;
         settings.rangeMode = parsed["Range"]["RangeMode"].as_integer();
         if (settings.rangeMode < 0 || settings.rangeMode > 3) {
-            LOG(error) << "Error parsing settings file: [Range] section: \"RangeMode\" key value is out of range." << std::endl;
+            spdlog::error("Error parsing settings file: [Range] section: \"RangeMode\" key value is out of range.");
             return false;
         }
         // Transform
@@ -114,47 +114,47 @@ bool loadSettings(Settings& settings, const std::string& filename) {
         if (!check("Export", "DefaultFormat")) return false;
         settings.defFormat = parsed["Export"]["DefaultFormat"].as_integer();
         if (settings.defFormat < 0 || settings.defFormat > 5) {
-            LOG(error) << "Error parsing settings file: [Export] section: \"DefaultFormat\" key value is out of range." << std::endl;
+            spdlog::error("Error parsing settings file: [Export] section: \"DefaultFormat\" key value is out of range.");
             return false;
         }
         if (!check("Export", "FileFormat")) return false;
         settings.fileFormat = parsed["Export"]["FileFormat"].as_integer();
         if (settings.fileFormat < -1 || settings.fileFormat > 6) {
-            LOG(error) << "Error parsing settings file: [Export] section: \"FileFormat\" key value is out of range." << std::endl;
+            spdlog::error("Error parsing settings file: [Export] section: \"FileFormat\" key value is out of range.");
             return false;
         }
         if (!check("Export", "DefaultBit")) return false;
         settings.defBDepth = parsed["Export"]["DefaultBit"].as_integer();
         if (settings.defBDepth < 0 || settings.defBDepth > 6) {
-            LOG(error) << "Error parsing settings file: [Export] section: \"DefaultBit\" key value is out of range." << std::endl;
+            spdlog::error("Error parsing settings file: [Export] section: \"DefaultBit\" key value is out of range.");
             return false;
         }
         if (!check("Export", "BitDepth")) return false;
         settings.bitDepth = parsed["Export"]["BitDepth"].as_integer();
         if (settings.bitDepth < -1 || settings.bitDepth > 6) {
-            LOG(error) << "Error parsing settings file: [Export] section: \"BitDepth\" key value is out of range." << std::endl;
+            spdlog::error("Error parsing settings file: [Export] section: \"BitDepth\" key value is out of range.");
             return false;
         }
         // CameraRaw
         if (!check("CameraRaw", "RawRotation")) return false;
         settings.rawRot = parsed["CameraRaw"]["RawRotation"].as_integer();
         if (settings.rawRot < -1 || settings.rawRot > 6) {
-            LOG(error) << "Error parsing settings file: [CameraRaw] section: \"RawRotation\" key value is out of range." << std::endl;
+            spdlog::error("Error parsing settings file: [CameraRaw] section: \"RawRotation\" key value is out of range.");
             return false;
         }
 
         return true;
     }
     catch (const toml::syntax_error& err) {
-        LOG(error) << "Error parsing settings file: " << err.what();
+        spdlog::error("Error parsing settings file: {}", err.what());
         return false;
     }
     catch (const toml::type_error& err) {
-        LOG(error) << "Type Error: " << err.what();
+        spdlog::error("Type Error: {}", err.what());
         return false;
     }
     catch (const std::exception& ex) {
-        LOG(error) << "Error loading settings file: " << ex.what();
+        spdlog::error("Error loading settings file: {}", ex.what());
         return false;
     }
 }
