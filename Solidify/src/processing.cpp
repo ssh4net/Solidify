@@ -86,7 +86,9 @@ QString getExtension(const QString& fileName, Settings* settings) {
         return ".jp2";
     case 5:
         return ".heic";
-    case 6:
+	case 6:
+		return ".jxl";
+    case 7:
         return ".ppm";
     }
     getWritableExt(&extension, settings);

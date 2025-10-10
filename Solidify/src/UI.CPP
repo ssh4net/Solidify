@@ -186,7 +186,8 @@ MainWindow::MainWindow() {
     frmt_Jpg = createAction("JPEG", FrmtGroup, fmt_submenu, true, (settings.fileFormat == 3));
     frmt_Jp2 = createAction("JPEG-2000", FrmtGroup, fmt_submenu, true, (settings.fileFormat == 4));
     frmt_Hic = createAction("HEIC", FrmtGroup, fmt_submenu, true, (settings.fileFormat == 5));
-    frmt_Ppm = createAction("PPM", FrmtGroup, fmt_submenu, true, (settings.fileFormat == 6));
+	frmt_Jxl = createAction("JPEGXL", FrmtGroup, fmt_submenu, true, (settings.fileFormat == 6));
+    frmt_Ppm = createAction("PPM", FrmtGroup, fmt_submenu, true, (settings.fileFormat == 7));
 
     // Bits Depth
     bit_orig = createAction("Original", BitsGroup, bit_submenu, true, (settings.bitDepth == -1));
@@ -253,7 +254,7 @@ MainWindow::MainWindow() {
     for (QAction* action : rng_act) {
         connect(action, &QAction::triggered, this, &MainWindow::rngSettings);
     }
-    QList<QAction*> format_act = { frmt_Org, frmt_Tif, frmt_Exr, frmt_Png, frmt_Jpg, frmt_Jp2, frmt_Hic, frmt_Ppm };
+    QList<QAction*> format_act = { frmt_Org, frmt_Tif, frmt_Exr, frmt_Png, frmt_Jpg, frmt_Jp2, frmt_Hic, frmt_Jxl, frmt_Ppm };
     for (QAction* action : format_act) {
         connect(action, &QAction::triggered, this, &MainWindow::frmtSettings);
     }
@@ -360,8 +361,13 @@ void MainWindow::frmtSettings() {
         emit updateTextSignal("File format set to HEIC");
         qDebug() << "File format set to HEIC";
     }
-    else if (action == frmt_Ppm) {
+    else if (action == frmt_Jxl) {
         settings.fileFormat = 6;
+        emit updateTextSignal("File format set to JPEG XL");
+        qDebug() << "File format set to JPEG XL";
+	}
+    else if (action == frmt_Ppm) {
+        settings.fileFormat = 7;
         emit updateTextSignal("File format set to PPM");
         qDebug() << "File format set to PPM";
     }

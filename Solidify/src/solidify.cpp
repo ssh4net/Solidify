@@ -468,6 +468,8 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
     ospec.attribute("Compression", "jpeg:100");
     if (settings.fileFormat == 5)
         ospec.attribute("Compression", "heic:100");
+    if (settings.fileFormat == 6)
+		ospec.attribute("Compression", "jpegxl:100");
 
     ospec.attribute("png:compressionLevel", 4);
     //ospec.attribute("tiff:write_exif", 0);

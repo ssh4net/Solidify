@@ -125,6 +125,7 @@ private:
     QAction* frmt_Exr; // OpenEXR
     QAction* frmt_Jp2; // JPEG 2000
     QAction* frmt_Hic; // HEIC
+	QAction* frmt_Jxl;  // JPEG XL
     QAction* frmt_Ppm; // PPM
 
     //std::vector<QAction*> bitActions;

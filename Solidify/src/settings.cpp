@@ -119,7 +119,7 @@ bool loadSettings(Settings& settings, const std::string& filename) {
         }
         if (!check("Export", "FileFormat")) return false;
         settings.fileFormat = parsed["Export"]["FileFormat"].as_integer();
-        if (settings.fileFormat < -1 || settings.fileFormat > 6) {
+        if (settings.fileFormat < -1 || settings.fileFormat > 7) {
             spdlog::error("Error parsing settings file: [Export] section: \"FileFormat\" key value is out of range.");
             return false;
         }
@@ -195,7 +195,11 @@ void printSettings(Settings& settings) {
             return QString("JPEG");
         case 4:
             return QString("JPEG-2000");
-        case 5:
+		case 5:
+			return QString("HEIC");
+        case 6:
+			return QString("JPEG XL");
+        case 7:
             return QString("PPM");
         default:
             return QString("Same as input");
