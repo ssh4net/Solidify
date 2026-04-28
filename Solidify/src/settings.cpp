@@ -16,219 +16,118 @@
  */
 
 #include "pch.h"
+
 #include "settings.h"
-//#include "Log.h"
 
 Settings settings;
 
-bool loadSettings(Settings& settings, const std::string& filename) {
+template<typename T>
+static void get_value(const toml::value& data, const std::string& section, const std::string& key, T& var)
+{
+    if (data.contains(section) && data.at(section).contains(key)) {
+        var = toml::find<T>(data, section, key);
+    }
+}
+
+bool loadSettings(Settings& settings, const std::string& filename)
+{
     try {
-        auto parsed = toml::parse(filename);
+        const auto data = toml::parse(filename);
 
-        if (!parsed.contains("Global") || parsed["Global"].as_table().empty()) {
-            spdlog::error("Error parsing settings file: [Global] section not found or empty.");
-            return false;
-        }
-        if (!parsed.contains("Normalize") || parsed["Normalize"].as_table().empty()) {
-            spdlog::error("Error parsing settings file: [Normalize] section not found or empty.");
-            return false;
-        }
-        if (!parsed.contains("Range") || parsed["Range"].as_table().empty()) {
-            spdlog::error("Error parsing settings file: [Range] section not found or empty.");
-            return false;
-        }
-        if (!parsed.contains("Transform") || parsed["Transform"].as_table().empty()) {
-            spdlog::error("Error parsing settings file: [Transform] section not found or empty.");
-            return false;
-        }
-        if (!parsed.contains("Export") || parsed["Export"].as_table().empty()) {
-            spdlog::error("Error parsing settings file: [Export] section not found or empty.");
-            return false;
-        }
-        if (!parsed.contains("CameraRaw") || parsed["CameraRaw"].as_table().empty()) {
-            spdlog::error("Error parsing settings file: [CameraRaw] section not found or empty.");
-            return false;
-        }
+        get_value(data, "Global", "Solidify", settings.isSolidify);
+        get_value(data, "Global", "ExportAlpha", settings.alphaMode);
+        get_value(data, "Global", "Console", settings.conEnable);
+        get_value(data, "Global", "Threads", settings.numThreads);
+        get_value(data, "Global", "QueueLimit", settings.queueLimit);
+        get_value(data, "Global", "Verbosity", settings.verbosity);
 
-        auto check = [&parsed](const std::string& section, const std::string& key) {
-            auto ts = parsed[section].as_table().find(key);
-            if (ts == parsed[section].as_table().end()) {
-                spdlog::error("Warning: [{}]] section does not contain \"\"key.", section.c_str(), key.c_str());
-                return false;
+        if (data.contains("Global") && data.at("Global").contains("MaskNames")) {
+            std::vector<std::string> values = toml::find<std::vector<std::string>>(data, "Global", "MaskNames");
+            if (!values.empty()) {
+                settings.mask_substr = std::move(values);
             }
-            return true;
-            };
-        // Global
-        if (!check("Global", "Solidify")) return false;
-        settings.isSolidify = parsed["Global"]["Solidify"].as_boolean();
-
-        if (!check("Global", "ExportAlpha")) return false;
-        settings.alphaMode = parsed["Global"]["ExportAlpha"].as_integer();
-        if (settings.alphaMode < 0 || settings.alphaMode > 2) {
-            spdlog::error("Error parsing settings file: [Global] section: \"ExportAlpha\" key value is out of range.");
-            return false;
         }
 
-        settings.mask_substr.clear();
-        auto it = parsed["Global"]["MaskNames"].as_array();
-        auto begin = it.begin();
-        for (int i = 0; i < it.size(); i++) {
-            std::string t = begin[i].as_string();
-            if (t.empty()) continue;
-            settings.mask_substr.push_back(t);
+        get_value(data, "Normalize", "NormalizeMode", settings.normMode);
+        if (data.contains("Normalize") && data.at("Normalize").contains("NormalsNames")) {
+            std::vector<std::string> values =
+                toml::find<std::vector<std::string>>(data, "Normalize", "NormalsNames");
+            if (!values.empty()) {
+                settings.normNames = std::move(values);
+            }
         }
 
-        if (!check("Global", "Console")) return false;
-        settings.conEnable = parsed["Global"]["Console"].as_boolean();
+        get_value(data, "Range", "RangeMode", settings.rangeMode);
 
-        if (!check("Global", "Threads")) return false;
-        settings.numThreads = parsed["Global"]["Threads"].as_integer();
+        get_value(data, "Export", "DefaultFormat", settings.defFormat);
+        get_value(data, "Export", "FileFormat", settings.fileFormat);
+        get_value(data, "Export", "DefaultBit", settings.defBDepth);
+        get_value(data, "Export", "BitDepth", settings.bitDepth);
 
-        // Normals
-        if (!check("Normalize", "NormalizeMode")) return false;
-        settings.normMode = parsed["Normalize"]["NormalizeMode"].as_integer();
-        if (settings.normMode < 0 || settings.normMode > 2) {
-            spdlog::error("Error parsing settings file: [Normalize] section: \"NormalizeMode\" key value is out of range.");
-            return false;
-        }
+        get_value(data, "CameraRaw", "RawRotation", settings.rawRot);
 
-        settings.normNames.clear();
-        it = parsed["Normalize"]["NormalsNames"].as_array();
-        begin = it.begin();
-        for (int i = 0; i < it.size(); i++) {
-            std::string t = begin[i].as_string();
-            if (t.empty()) continue;
-            settings.normNames.push_back(t);
-        }
-        // Range
-        if (!check("Range", "RangeMode")) return false;
-        settings.rangeMode = parsed["Range"]["RangeMode"].as_integer();
-        if (settings.rangeMode < 0 || settings.rangeMode > 3) {
-            spdlog::error("Error parsing settings file: [Range] section: \"RangeMode\" key value is out of range.");
-            return false;
-        }
-        // Transform
-
-
-        // Export
-        if (!check("Export", "DefaultFormat")) return false;
-        settings.defFormat = parsed["Export"]["DefaultFormat"].as_integer();
-        if (settings.defFormat < 0 || settings.defFormat > 5) {
-            spdlog::error("Error parsing settings file: [Export] section: \"DefaultFormat\" key value is out of range.");
-            return false;
-        }
-        if (!check("Export", "FileFormat")) return false;
-        settings.fileFormat = parsed["Export"]["FileFormat"].as_integer();
-        if (settings.fileFormat < -1 || settings.fileFormat > 7) {
-            spdlog::error("Error parsing settings file: [Export] section: \"FileFormat\" key value is out of range.");
-            return false;
-        }
-        if (!check("Export", "DefaultBit")) return false;
-        settings.defBDepth = parsed["Export"]["DefaultBit"].as_integer();
-        if (settings.defBDepth < 0 || settings.defBDepth > 6) {
-            spdlog::error("Error parsing settings file: [Export] section: \"DefaultBit\" key value is out of range.");
-            return false;
-        }
-        if (!check("Export", "BitDepth")) return false;
-        settings.bitDepth = parsed["Export"]["BitDepth"].as_integer();
-        if (settings.bitDepth < -1 || settings.bitDepth > 6) {
-            spdlog::error("Error parsing settings file: [Export] section: \"BitDepth\" key value is out of range.");
-            return false;
-        }
-        // CameraRaw
-        if (!check("CameraRaw", "RawRotation")) return false;
-        settings.rawRot = parsed["CameraRaw"]["RawRotation"].as_integer();
-        if (settings.rawRot < -1 || settings.rawRot > 6) {
-            spdlog::error("Error parsing settings file: [CameraRaw] section: \"RawRotation\" key value is out of range.");
-            return false;
-        }
+        settings.alphaMode  = std::clamp<uint>(settings.alphaMode, 0, 2);
+        settings.normMode   = std::clamp<uint>(settings.normMode, 0, 2);
+        settings.repairMode = std::clamp<uint>(settings.repairMode, 0, 6);
+        settings.rangeMode  = std::clamp<uint>(settings.rangeMode, 0, 3);
+        settings.defFormat  = std::clamp(settings.defFormat, 0, 7);
+        settings.fileFormat = std::clamp(settings.fileFormat, -1, 7);
+        settings.defBDepth  = std::clamp(settings.defBDepth, 0, 6);
+        settings.bitDepth   = std::clamp(settings.bitDepth, -1, 6);
+        settings.verbosity  = std::clamp<uint>(settings.verbosity, 0, 5);
 
         return true;
-    }
-    catch (const toml::syntax_error& err) {
-        spdlog::error("Error parsing settings file: {}", err.what());
-        return false;
-    }
-    catch (const toml::type_error& err) {
-        spdlog::error("Type Error: {}", err.what());
-        return false;
-    }
-    catch (const std::exception& ex) {
+    } catch (const std::exception& ex) {
         spdlog::error("Error loading settings file: {}", ex.what());
         return false;
     }
 }
 
-void printSettings(Settings& settings) {
-    QString mode;
-    qDebug() << "Solidify: " << (settings.isSolidify ? "Enabled" : "Disabled");
-    qDebug() << "Export Alpha/Mask: " << (settings.alphaMode == 0 ? "Remove Alpha" : (settings.alphaMode == 1 ? "Preserver Alpha" : "Export Alpha only"));
-    qDebug() << "Parallel Threads: " << settings.numThreads;
-    qDebug() << "Normalize Mode: " << (settings.normMode == 0 ? "Disabled" : (settings.normMode == 1 ? "Smart" : "Force"));
-    switch (settings.rangeMode)
-    {
-    case 0:
-        mode = "Unsigned";
-        break;
-    case 1:
-		mode = "Signed";
-		break;
-    case 2:
-        mode = "Signed -> Unsigned";
-        break;
-    case 3:
-		mode = "Unsigned -> Signed";
-		break;
+static const char* formatName(int fileFormat)
+{
+    switch (fileFormat) {
+    case 0: return "TIFF";
+    case 1: return "OpenEXR";
+    case 2: return "PNG";
+    case 3: return "JPEG";
+    case 4: return "JPEG-2000";
+    case 5: return "HEIC";
+    case 6: return "JPEG XL";
+    case 7: return "PPM";
+    default: return "Same as input";
     }
-    qDebug() << qPrintable(QString("Range Mode: %1").arg(mode));
+}
 
-    auto getMode = [](int fileFormat) {
-        switch (fileFormat)
-        {
-        case 0:
-            return QString("TIFF");
-        case 1:
-            return QString("OpenEXR");
-        case 2:
-            return QString("PNG");
-        case 3:
-            return QString("JPEG");
-        case 4:
-            return QString("JPEG-2000");
-		case 5:
-			return QString("HEIC");
-        case 6:
-			return QString("JPEG XL");
-        case 7:
-            return QString("PPM");
-        default:
-            return QString("Same as input");
-        }
-    };
-    qDebug() << qPrintable(QString("File Format: %1").arg(getMode(settings.fileFormat)));
-    qDebug() << qPrintable(QString("Default File Format: %1").arg(getMode(settings.defFormat)));
+static const char* bitDepthName(int bitDepth)
+{
+    switch (bitDepth) {
+    case 0: return "uint8";
+    case 1: return "uint16";
+    case 2: return "uint32";
+    case 3: return "uint64";
+    case 4: return "16bit half float";
+    case 5: return "32bit float";
+    case 6: return "64bit double";
+    default: return "Same as input";
+    }
+}
 
-    auto getBitDepth = [](int bitDepth) {
-		switch (bitDepth)
-		{
-		case 0:
-			return QString("uint8");
-		case 1:
-			return QString("uint16");
-		case 2:
-			return QString("uint32");
-		case 3:
-			return QString("uint64");
-		case 4:
-			return QString("16bit (half) float");
-		case 5:
-			return QString("32bit float");
-		case 6:
-			return QString("64bit (double) float");
-		default:
-            return QString("Same as input");
-		}
-	};
-    qDebug() << qPrintable(QString("Export Bit Depth: %1").arg(getBitDepth(settings.bitDepth)));
-    qDebug() << qPrintable(QString("Default Export Bit Depth: %1").arg(getBitDepth(settings.defBDepth)));
+void printSettings(Settings& settings)
+{
+    spdlog::info("--- Current Settings ---");
+    spdlog::info("Solidify: {}", settings.isSolidify ? "Enabled" : "Disabled");
+    spdlog::info("Alpha/Mask: {}", settings.alphaMode == 0 ? "Remove Alpha" :
+                                      (settings.alphaMode == 1 ? "Preserve Alpha" : "Export Alpha only"));
+    spdlog::info("Parallel Threads: {}", settings.numThreads);
+    spdlog::info("Queue Limit: {}", settings.queueLimit);
+    spdlog::info("Normalize Mode: {}", settings.normMode);
+    spdlog::info("Repair Mode: {}", settings.repairMode);
+    spdlog::info("Range Mode: {}", settings.rangeMode);
+    spdlog::info("File Format: {}", formatName(settings.fileFormat));
+    spdlog::info("Default File Format: {}", formatName(settings.defFormat));
+    spdlog::info("Export Bit Depth: {}", bitDepthName(settings.bitDepth));
+    spdlog::info("Default Export Bit Depth: {}", bitDepthName(settings.defBDepth));
+    spdlog::info("Raw Rotation: {}", settings.rawRot);
+    spdlog::info("Verbosity: {}", settings.verbosity);
+    spdlog::info("------------------------");
 }

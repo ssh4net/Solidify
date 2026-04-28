@@ -16,47 +16,217 @@
  */
 
 #include "pch.h"
+
 #include "settings.h"
-#include <Windows.h>
-#include <QtCore/QResource>
+#include "ui.h"
 
-Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin)
+static void glfw_error_callback(int error, const char* description)
+{
+    spdlog::error("Glfw Error {}: {}", error, description);
+}
 
-int main(int argc, char* argv[]) {
-    // Allocate console and redirect std output
+static void onDragEnter(GLFWwindow* window, const dnd_glfw::DragEvent& event, void* userData)
+{
+    (void)window;
+    (void)userData;
+    if (event.kind == dnd_glfw::PayloadKind::Files) {
+        SetDragging(true);
+    }
+}
+
+static void onDragLeave(GLFWwindow* window, void* userData)
+{
+    (void)window;
+    (void)userData;
+    SetDragging(false);
+}
+
+static void onDrop(GLFWwindow* window, const dnd_glfw::DropEvent& event, void* userData)
+{
+    (void)window;
+    (void)userData;
+    SetDragging(false);
+    if (event.kind == dnd_glfw::PayloadKind::Files) {
+        StartProcessing(event.paths);
+    }
+}
+
+static std::string findFontPath(const char* argv0)
+{
+    std::vector<std::filesystem::path> candidates;
+#ifdef SOLIDIFY_GUI_FONT_PATH
+    candidates.emplace_back(std::filesystem::path(SOLIDIFY_GUI_FONT_PATH));
+#endif
+
+    std::filesystem::path exeDir = std::filesystem::current_path();
+    if (argv0 != nullptr && argv0[0] != '\0') {
+        std::error_code ec;
+        std::filesystem::path exePath = std::filesystem::weakly_canonical(std::filesystem::path(argv0), ec);
+        if (!ec && !exePath.empty()) {
+            exeDir = exePath.parent_path();
+        }
+    }
+
+    candidates.emplace_back(exeDir / "fonts" / "FiraSans-Regular.otf");
+    candidates.emplace_back(exeDir / ".." / "share" / "solidify" / "fonts" / "FiraSans-Regular.otf");
+
+    for (const std::filesystem::path& candidate : candidates) {
+        std::error_code ec;
+        if (!candidate.empty() && std::filesystem::exists(candidate, ec)) {
+            return candidate.string();
+        }
+    }
+
+    return {};
+}
+
+int main(int argc, char* argv[])
+{
+    (void)argc;
+
+#ifdef _WIN32
     AllocConsole();
-    freopen("CONOUT$", "w", stdout);
-    freopen("CONOUT$", "w", stderr);
+    FILE* ignored = nullptr;
+    freopen_s(&ignored, "CONOUT$", "w", stdout);
+    freopen_s(&ignored, "CONOUT$", "w", stderr);
+#endif
 
     spdlog::set_level(spdlog::level::info);
     spdlog::set_pattern("%^[%l]%$<%t> %v");
 
     time_t timestamp;
     time(&timestamp);
-    std::cout << std::fixed << std::setprecision(8);
 
     spdlog::info("Solidify {}.{}.{}", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
     spdlog::info("Build from: {} {}", __DATE__, __TIME__);
-    spdlog::info("Log started at: {}", ctime(&timestamp), "%Y-%m-%d %H:%M:%S");
+    spdlog::info("Log started at: {}", ctime(&timestamp));
 
     if (!loadSettings(settings, "sldf_config.toml")) {
-        spdlog::error("Can not load [app_config.toml] Using default settings.");
+        spdlog::error("Can not load [sldf_config.toml]. Using default settings.");
         settings.reSettings();
     }
 
+#ifdef _WIN32
     ShowWindow(GetConsoleWindow(), (settings.conEnable) ? SW_SHOW : SW_HIDE);
+#endif
+
     printSettings(settings);
 
+    glfwSetErrorCallback(glfw_error_callback);
+    if (!glfwInit()) {
+        spdlog::critical("Failed to initialize GLFW");
+        return 1;
+    }
 
-    QApplication app(argc, argv);
-    Q_INIT_RESOURCE(gui);
-    app.setWindowIcon(QIcon(":/MainWindow/sldf.ico"));
+    const char* glsl_version = "#version 130";
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_FLOATING, GLFW_TRUE);
 
-    MainWindow window;
-    window.show();
+    GLFWwindow* window = glfwCreateWindow(500, 500, "Solidify ToolBox", nullptr, nullptr);
+    if (window == nullptr) {
+        spdlog::critical("Failed to create GLFW window");
+        glfwTerminate();
+        return 1;
+    }
+    glfwMakeContextCurrent(window);
+    glfwSwapInterval(1);
 
-    //DropArea dropArea;
-    //dropArea.show();
+    GLFWmonitor* monitor    = glfwGetPrimaryMonitor();
+    const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+    if (mode != nullptr) {
+        int windowWidth = 0;
+        int windowHeight = 0;
+        glfwGetWindowSize(window, &windowWidth, &windowHeight);
+        glfwSetWindowPos(window, (mode->width - windowWidth) / 2, (mode->height - windowHeight) / 2);
+    }
 
-    return app.exec();
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+
+    ImGui::StyleColorsDark();
+    ImGuiStyle& style      = ImGui::GetStyle();
+    style.FrameBorderSize  = 0.0f;
+    style.PopupBorderSize  = 0.0f;
+    style.WindowBorderSize = 0.0f;
+
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init(glsl_version);
+
+    ImGuiPlatformIO& platform_io = ImGui::GetPlatformIO();
+    static void (*s_originalCreateWindow)(ImGuiViewport*) = platform_io.Platform_CreateWindow;
+    platform_io.Platform_CreateWindow = [](ImGuiViewport* viewport) {
+        if (s_originalCreateWindow) {
+            s_originalCreateWindow(viewport);
+        }
+        GLFWwindow* glfw_window = static_cast<GLFWwindow*>(viewport->PlatformHandle);
+        if (glfw_window != nullptr) {
+            glfwSetWindowAttrib(glfw_window, GLFW_FLOATING, GLFW_TRUE);
+        }
+    };
+
+    const ImWchar* glyphRanges = io.Fonts->GetGlyphRangesDefault();
+    std::string fontPath       = findFontPath((argv != nullptr) ? argv[0] : nullptr);
+    if (!fontPath.empty()) {
+        ImFont* font = io.Fonts->AddFontFromFileTTF(fontPath.c_str(), 16.0f, nullptr, glyphRanges);
+        if (font != nullptr) {
+            io.FontDefault = font;
+        } else {
+            spdlog::warn("Failed to load font at {}, using default ImGui font.", fontPath);
+        }
+    } else {
+        spdlog::warn("No FiraSans font found; using default ImGui font.");
+    }
+
+    dnd_glfw::Callbacks dnd_cbs;
+    dnd_cbs.dragEnter  = onDragEnter;
+    dnd_cbs.dragLeave  = onDragLeave;
+    dnd_cbs.drop       = onDrop;
+    dnd_cbs.dragCancel = onDragLeave;
+    if (!dnd_glfw::init(window, dnd_cbs, nullptr)) {
+        spdlog::error("Failed to initialize dnd_glfw");
+    }
+
+    while (!glfwWindowShouldClose(window)) {
+        glfwPollEvents();
+
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        RenderUI();
+
+        ImGui::Render();
+        int display_w = 0;
+        int display_h = 0;
+        glfwGetFramebufferSize(window, &display_w, &display_h);
+        glViewport(0, 0, display_w, display_h);
+        glClearColor(0.45f, 0.55f, 0.60f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+        if ((io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) != 0) {
+            GLFWwindow* backup_current_context = glfwGetCurrentContext();
+            ImGui::UpdatePlatformWindows();
+            ImGui::RenderPlatformWindowsDefault();
+            glfwMakeContextCurrent(backup_current_context);
+        }
+
+        glfwSwapBuffers(window);
+    }
+
+    dnd_glfw::shutdown(window);
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+
+    glfwDestroyWindow(window);
+    glfwTerminate();
+
+    return 0;
 }

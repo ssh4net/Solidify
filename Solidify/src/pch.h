@@ -16,14 +16,15 @@
  */
 #pragma once
 
-#include <thread>
 #include <algorithm>
 #include <array>
 #include <atomic>
 #include <cassert>
+#include <chrono>
 #include <cctype>
-#include <ctime>
+#include <cmath>
 #include <condition_variable>
+#include <ctime>
 #include <exception>
 #include <filesystem>
 #include <fstream>
@@ -37,56 +38,61 @@
 #include <mutex>
 #include <optional>
 #include <queue>
-#include <ranges>
+#include <random>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <thread>
+#include <tuple>
+#include <type_traits>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
 #include <vector>
 
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#include <windows.h>
-#include <tlhelp32.h>
-#include <process.h>
+#ifdef _WIN32
+#    define WIN32_LEAN_AND_MEAN
+#    define NOMINMAX
+#    include <windows.h>
+#    include <tlhelp32.h>
+#    include <process.h>
+#else
+#    include <signal.h>
+#    include <sys/types.h>
+#    include <unistd.h>
+#endif
 
-#include <QtConcurrent/QtConcurrentRun>
-#include <QtCore/QDebug>
-#include <QtCore/QDir>
-#include <QtCore/QFileInfo>
-#include <QtCore/QFutureWatcher>
-#include <QtCore/QList>
-#include <QtCore/QMimeData>
-#include <QtCore/QProcess>
-#include <QtCore/QRandomGenerator>
-#include <QtCore/QRegularExpression>
-#include <QtCore/QUrl>
-#include <QtCore/QtPlugin>
-#include <QtGui/QDragEnterEvent>
-#include <QtGui/QDropEvent>
-#include <QtWidgets/QApplication>
-#include <QtWidgets/QLabel>
-#include <QtWidgets/QMainWindow>
-#include <QtWidgets/QMenu>
-#include <QtWidgets/QMenuBar>
-#include <QtWidgets/QProgressBar>
-#include <QtWidgets/QStatusBar>
-#include <QtWidgets/QtWidgets>
-#include <QtWidgets/QVBoxLayout>
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+
+#include <GLFW/glfw3.h>
+
+#ifndef GL_CLAMP_TO_EDGE
+#    define GL_CLAMP_TO_EDGE 0x812F
+#endif
+#ifndef GL_RGBA16F
+#    define GL_RGBA16F 0x881A
+#endif
+#ifndef GL_HALF_FLOAT
+#    define GL_HALF_FLOAT 0x140B
+#endif
+
+#include <dnd_glfw.h>
 
 #include <OpenImageIO/color.h>
+#include <OpenImageIO/half.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
+#include <OpenImageIO/imagebufalgo_util.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/span.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
 
- //#define SPDLOG_USE_STD_FORMAT
-#include <spdlog/spdlog.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
-#include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/fmt/ostr.h>
-
-//#include <libraw/libraw.h>
+#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/spdlog.h>
 
 #include <toml.hpp>

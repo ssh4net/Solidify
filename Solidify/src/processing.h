@@ -14,19 +14,21 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
 #pragma once
-#include "ui.h"
+
 #include "settings.h"
 
-class MainWindow; // forward declaration
-struct Settings;  // forward declaration
+#include <functional>
+#include <string>
+#include <vector>
+
+using SolidifyProgressCallback = std::function<void(float, std::string)>;
 
 std::string toLower(const std::string& str);
-void getWritableExt(QString* ext, Settings* settings);
-QString getExtension(const QString& fileName, Settings* settings);
-QString getOutName(const QString& fileName, Settings* settings);
+void getWritableExt(std::string* ext, Settings* settings);
+std::string getExtension(const std::string& fileName, Settings* settings);
+std::string getOutName(const std::string& fileName, Settings* settings);
 
-bool doProcessing(QList<QUrl> URLs, QProgressBar* progressBar, MainWindow* mainWindow);
+bool doProcessing(const std::vector<std::string>& filePaths, SolidifyProgressCallback progressCallback = nullptr);
 
-QString checkAlpha(std::vector<QString> fileNames);
+std::string checkAlpha(const std::vector<std::string>& fileNames);

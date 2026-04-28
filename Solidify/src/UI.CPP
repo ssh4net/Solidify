@@ -22,539 +22,358 @@
 #include "processing.h"
 #include "settings.h"
 
-class MainWindow;
+static std::atomic<bool> g_isProcessing = false;
+static std::atomic<bool> g_dragging     = false;
+static std::atomic<float> g_progress    = 0.0f;
+static std::mutex g_statusMutex;
+static std::string g_statusText = "Waiting for user inputs...";
 
-DropArea::DropArea() {
-    QVBoxLayout* layout = new QVBoxLayout;
-    QLabel* label = new QLabel("Drag & drop files here");
-
-    QFont font = this->font();
-    font.setPointSize(16);
-    label->setFont(font);
-
-    label->setAlignment(Qt::AlignCenter); // Set alignment to center
-
-    layout->addWidget(label, 0, Qt::AlignCenter);
-
-    setLayout(layout);
-    setAcceptDrops(true);
+static void SetStatus(std::string text)
+{
+    std::lock_guard<std::mutex> lock(g_statusMutex);
+    g_statusText = std::move(text);
 }
 
-void DropArea::dragEnterEvent(QDragEnterEvent* event) {
-    event->acceptProposedAction();
+void SetDragging(bool dragging)
+{
+    g_dragging = dragging;
 }
 
-void DropArea::dropEvent(QDropEvent* event) {
-    QList<QUrl> urls = event->mimeData()->urls();
-    if (!urls.isEmpty()) {
-        emit filesDropped(urls);  // Emit the signal when files are dropped
-    }
+bool IsDragging()
+{
+    return g_dragging;
 }
 
-MainWindow::MainWindow() {
-
-    this->setStyleSheet(
-        "* {border: 0px solid black; border-radius: 3px; background-color: #D0D0D0; color: black; margin-bottom: 0}"
-		"QMenuBar {background-color: #D0D0D0;}"
-		"QMenuBar::item {background-color: #C0C0C0;}"
-		"QMenuBar::item:selected {background-color: #B0B0B0;}"
-		"QMenu {background-color: #D0D0D0;}"
-		"QMenu::item:selected {background-color: #B0B0B0;}"
-		"QMenu::separator {height: 1px; background: #808080; margin-left: 5px; margin-right: 5px; margin-top: 5px; margin-bottom: 5px;}"
-    );
-
-    QVBoxLayout* layout = new QVBoxLayout;  // Create a vertical layout
-
-    DropArea* dropArea = new DropArea;
-    // set size of drop area to fill layout area
-    dropArea->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    dropArea->setAutoFillBackground(true);  // Fill the background with the color below
-    dropArea->setStyleSheet("border-radius: 3px; background-color: #E0E0E0; margin-bottom: 4px;");
-    layout->addWidget(dropArea);
-
-    // Progress bar
-    progressBar = new QProgressBar;
-    progressBar->setFixedHeight(20);
-    progressBar->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    progressBar->setRange(0, 100);
-    progressBar->setValue(0);
-    progressBar->setTextVisible(false);
-    progressBar->setStyleSheet(
-        "QProgressBar {border: 0px solid black; border-radius: 3px; background-color: white; color: black; margin-bottom: 4px;}"
-        "QProgressBar::chunk {background-color: #05B8CC;}");
-    layout->addWidget(progressBar);
-
-    // Create a new QPlainTextEdit
-    QPlainTextEdit* textOutput = new QPlainTextEdit;
-    textOutput->setReadOnly(true);  // Make it read-only so users can't edit the text
-    // set the size to fill width and 1/3 of the height
-    textOutput->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    textOutput->setFixedHeight(52);
-    textOutput->setStyleSheet("border-radius: 3px; background-color: #E0E0E0; padding-left: 4px; padding-right: 4px;");
-    // text size
-    QFont font = this->font();
-    font.setPointSize(8);
-    font.setStyleHint(QFont::Monospace);
-    textOutput->setFont(font);
-
-    textOutput->setPlainText("Waiting for user inputs...");
-    textOutput->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    layout->addWidget(textOutput);
-
-    // widgets
-
-    QWidget* centralWidget = new QWidget;
-    centralWidget->setLayout(layout);  // Set the layout for the central widget
-    setCentralWidget(centralWidget);  // Set the central widget of the MainWindow
-
-    QMenuBar* menuBar = new QMenuBar;
-    QMenu* f_menu = new QMenu("Files", menuBar);
-    QMenu* s_menu = new QMenu("Settings", menuBar);
-
-    // file menu
-    QAction* f_Restart = new QAction("Restart", f_menu);
-    QAction* f_Exit = new QAction("Exit", f_menu);
-    
-    // settings menu
-    sld_enable = new QAction("Solidify", s_menu);
-    sld_enable->setCheckable(true);
-    sld_enable->setChecked(settings.isSolidify);
-    // preserve alpha
-    //alf_enable = new QAction("With Alpha", s_menu);
-    //alf_enable->setCheckable(true);
-    //alf_enable->setChecked(settings.alphaMode == 1);
-
-    QAction* con_enable = new QAction("Enable Console", s_menu);
-    con_enable->setCheckable(true);
-    con_enable->setChecked(settings.conEnable);
-
-    // Submenu
-    QMenu* alf_submenu = new QMenu("Alpha/Mask", s_menu);
-    QMenu* nm_submenu = new QMenu("Normalize", s_menu);
-    QMenu* rep_submenu = new QMenu("Repair", s_menu);
-    QMenu* rng_submenu = new QMenu("Floats type", s_menu);
-    QMenu* fmt_submenu = new QMenu("Formats", s_menu);
-    QMenu* bit_submenu = new QMenu("Bits Depth", s_menu);
-    QMenu* raw_submenu = new QMenu("Camera Raw", s_menu);
-
-    QActionGroup* NormGroup = new QActionGroup(nm_submenu);
-    QActionGroup* AlfGroup = new QActionGroup(alf_submenu);
-    QActionGroup* RepairGroup = new QActionGroup(rep_submenu);
-    QActionGroup* RangeGroup = new QActionGroup(rng_submenu);
-    QActionGroup* FrmtGroup = new QActionGroup(fmt_submenu);
-    QActionGroup* BitsGroup = new QActionGroup(bit_submenu);
-    QActionGroup* RawGroup = new QActionGroup(raw_submenu);
-
-    auto createAction = [](const QString& title, QActionGroup* group, QMenu* menu, bool checkable = true, bool checked = false) {
-        QAction* action = new QAction(title, menu);
-        action->setCheckable(checkable);
-        action->setChecked(checked);
-        group->addAction(action);
-        menu->addAction(action);
-        return action;
-    };
-    // Alpha/Mask
-    alf_Disb = createAction("Disable", AlfGroup, alf_submenu, true, (settings.alphaMode == 0));
-    alf_Embed = createAction("Preserve", AlfGroup, alf_submenu, true, (settings.alphaMode == 1));
-    alf_Only = createAction("Export", AlfGroup, alf_submenu, true, (settings.alphaMode == 2));
-
-    // Normals
-    nrm_Dis = createAction("Disable", NormGroup, nm_submenu, true, (settings.normMode == 0));
-    nrm_Smrt = createAction("Smart", NormGroup, nm_submenu, true, (settings.normMode == 1));
-    nrm_Force = createAction("Force", NormGroup, nm_submenu, true, (settings.normMode == 2));
-
-    // Repair
-    rep_Dis = createAction("Disable", RepairGroup, rep_submenu, true, (settings.repairMode == 0));
-    rep_Z = createAction("X", RepairGroup, rep_submenu, true, (settings.repairMode == 1));
-    rep_Y = createAction("Y", RepairGroup, rep_submenu, true, (settings.repairMode == 2));
-    rep_X = createAction("Z", RepairGroup, rep_submenu, true, (settings.repairMode == 3));
-    rep_mZ = createAction("-X", RepairGroup, rep_submenu, true, (settings.repairMode == 4));
-    rep_mY = createAction("-Y", RepairGroup, rep_submenu, true, (settings.repairMode == 5));
-    rep_mX = createAction("-Z", RepairGroup, rep_submenu, true, (settings.repairMode == 6));
-
-    // Range
-    rng_Unsg = createAction("Unsigned", RangeGroup, rng_submenu, true, (settings.rangeMode == 0));
-    rng_Sign = createAction("Signed", RangeGroup, rng_submenu, true, (settings.rangeMode == 1));
-    rng_SU = createAction("Signed <> Unsigned", RangeGroup, rng_submenu, true, (settings.rangeMode == 2));
-    rng_US = createAction("Unsigned <> Signed", RangeGroup, rng_submenu), true, (settings.rangeMode == 3);
-
-    // File Formats
-    frmt_Org = createAction("Original", FrmtGroup, fmt_submenu, true, (settings.fileFormat == -1));
-    frmt_Tif = createAction("TIFF", FrmtGroup, fmt_submenu, true, (settings.fileFormat == 0));
-    frmt_Exr = createAction("OpenEXR", FrmtGroup, fmt_submenu, true, (settings.fileFormat == 1));
-    frmt_Png = createAction("PNG", FrmtGroup, fmt_submenu, true, (settings.fileFormat == 2));
-    frmt_Jpg = createAction("JPEG", FrmtGroup, fmt_submenu, true, (settings.fileFormat == 3));
-    frmt_Jp2 = createAction("JPEG-2000", FrmtGroup, fmt_submenu, true, (settings.fileFormat == 4));
-    frmt_Hic = createAction("HEIC", FrmtGroup, fmt_submenu, true, (settings.fileFormat == 5));
-	frmt_Jxl = createAction("JPEGXL", FrmtGroup, fmt_submenu, true, (settings.fileFormat == 6));
-    frmt_Ppm = createAction("PPM", FrmtGroup, fmt_submenu, true, (settings.fileFormat == 7));
-
-    // Bits Depth
-    bit_orig = createAction("Original", BitsGroup, bit_submenu, true, (settings.bitDepth == -1));
-    bit_uint8 = createAction("8 bits int", BitsGroup, bit_submenu, true, (settings.bitDepth == 0));
-    bit_uint16 = createAction("16 bits int", BitsGroup, bit_submenu, true, (settings.bitDepth == 1));
-    bit_uint32 = createAction("32 bits int", BitsGroup, bit_submenu, true, (settings.bitDepth == 2));
-    bit_uint64 = createAction("64 bits int", BitsGroup, bit_submenu, true, (settings.bitDepth == 3));
-    bit_flt16 = createAction("16 bits float", BitsGroup, bit_submenu, true, (settings.bitDepth == 4));
-    bit_flt32 = createAction("32 bits float", BitsGroup, bit_submenu, true, (settings.bitDepth == 5));
-	bit_flt64 = createAction("64 bits float", BitsGroup, bit_submenu, true, (settings.bitDepth == 6));
-
-    // camera raw rotation
-    raw_rot_A = createAction("Auto EXIF", RawGroup, raw_submenu, true, (settings.rawRot == -1));
-    raw_rot_0 = createAction("0 Horizontal", RawGroup, raw_submenu, true, (settings.rawRot == 0));
-    raw_rot_90 = createAction("-90 Vertical", RawGroup, raw_submenu, true, (settings.rawRot == 3));
-    raw_rot_270 = createAction("+90 Vertical", RawGroup, raw_submenu, true, (settings.rawRot == 5));
-    raw_rot_180 = createAction("180 Horizontal", RawGroup, raw_submenu, true, (settings.rawRot == 6));
-
-    s_menu->addAction(sld_enable);
-    s_menu->addSeparator();
-    s_menu->addMenu(alf_submenu);
-    s_menu->addMenu(nm_submenu);
-    s_menu->addMenu(rep_submenu);
-    s_menu->addMenu(rng_submenu);
-    s_menu->addSeparator();
-    s_menu->addMenu(fmt_submenu);
-    s_menu->addMenu(bit_submenu);
-    s_menu->addSeparator();
-    s_menu->addMenu(raw_submenu);
-    s_menu->addSeparator();
-    s_menu->addAction(con_enable);
-    //
-    f_menu->addAction(f_Restart);
-    f_menu->addSeparator();
-    f_menu->addAction(f_Exit);
-    menuBar->addMenu(f_menu);
-    menuBar->addMenu(s_menu);
-    setMenuBar(menuBar);
-
-    setWindowFlags(Qt::WindowStaysOnTopHint);
-    setWindowTitle(QString("Solidify ToolBox %1.%2").arg(VERSION_MAJOR).arg(VERSION_MINOR));
-    setFixedSize(500, 500);
-
-    // Connect the signal from the drop area to the slot in the main window
-    connect(dropArea, &DropArea::filesDropped, this, &MainWindow::startProcessing);
-
-    // Connect the Settings action's triggered signal
-
-    connect(sld_enable, &QAction::toggled, this, &MainWindow::sldfSettings);
-    //connect(alf_enable, &QAction::toggled, this, &MainWindow::alfSettings);
-    QList<QAction*> alf_act = { alf_Disb, alf_Embed, alf_Only };
-    for (QAction* action : alf_act) {
-		connect(action, &QAction::triggered, this, &MainWindow::alfSettings);
-	}
-    QList<QAction*> norm_act = { nrm_Dis, nrm_Smrt, nrm_Force };
-    for (QAction* action : norm_act) {
-		connect(action, &QAction::triggered, this, &MainWindow::normSettings);
-	}
-    QList<QAction*> rep_act = { rep_Dis, rep_Z, rep_Y, rep_X, rep_mZ, rep_mY, rep_mX };
-    for (QAction* action : rep_act) {
-        connect(action, &QAction::triggered, this, &MainWindow::repSettings);
+void StartProcessing(const std::vector<std::string>& files)
+{
+    bool expected = false;
+    if (!g_isProcessing.compare_exchange_strong(expected, true)) {
+        return;
     }
-    QList<QAction*> rng_act = { rng_Unsg, rng_Sign, rng_US, rng_SU };
-    for (QAction* action : rng_act) {
-        connect(action, &QAction::triggered, this, &MainWindow::rngSettings);
-    }
-    QList<QAction*> format_act = { frmt_Org, frmt_Tif, frmt_Exr, frmt_Png, frmt_Jpg, frmt_Jp2, frmt_Hic, frmt_Jxl, frmt_Ppm };
-    for (QAction* action : format_act) {
-        connect(action, &QAction::triggered, this, &MainWindow::frmtSettings);
-    }
-    QList<QAction*> bits_act = { bit_orig, bit_uint8, bit_uint16, bit_uint32, bit_uint64, bit_flt16, bit_flt32, bit_flt64 };
-    for (QAction* action : bits_act) {
-		connect(action, &QAction::triggered, this, &MainWindow::bitSettings);
-	}
-    QList<QAction*> raw_act = { raw_rot_A, raw_rot_0, raw_rot_90, raw_rot_270, raw_rot_180 };
-    for (QAction* action : raw_act) {
-		connect(action, &QAction::triggered, this, &MainWindow::rawSettings);
-	}
 
-    connect(con_enable, &QAction::toggled, this, &MainWindow::toggleConsole);
-    // Add new connection for updating the textOutput
-    connect(this, &MainWindow::updateTextSignal, textOutput, &QPlainTextEdit::setPlainText);
+    g_progress = 0.0f;
+    SetStatus("Processing " + std::to_string(files.size()) + " paths...");
 
-    // Connect the Exit action's triggered signal to QApplication's quit slot
-    connect(f_Exit, &QAction::triggered, qApp, &QApplication::quit);
+    std::vector<std::string> taskFiles = files;
+    std::thread([taskFiles]() {
+        bool success = doProcessing(taskFiles, [](float p, std::string s) {
+            g_progress = std::clamp(p, 0.0f, 1.0f);
+            if (!s.empty()) {
+                SetStatus(std::move(s));
+            }
+        });
 
-    // Connect the Restart action's triggered signal to a slot that restarts the app
-    connect(f_Restart, &QAction::triggered, this, &MainWindow::restartApp);
-
-    connect(this, &MainWindow::changeProgressBarColorSignal, this, &MainWindow::changeProgressBarColorSlot);
+        g_progress     = success ? 1.0f : 0.0f;
+        g_isProcessing = false;
+        SetStatus(success ? "Everything Done!" : "Finished with errors.");
+    }).detach();
 }
 
-void MainWindow::bitSettings() {
-    QAction* action = qobject_cast<QAction*>(sender());
-    if (action == bit_orig) {
-        settings.bitDepth = -1;
-        emit updateTextSignal("Bit depth will remain original");
-        qDebug() << "Bit depth will remain";
-    }
-    else if (action == bit_uint8) {
-        settings.bitDepth = 0;
-        emit updateTextSignal("Bit depth set to 8 bits int");
-        qDebug() << "Bit depth set to 8 bits int";
-    }
-    else if (action == bit_uint16) {
-		settings.bitDepth = 1;
-		emit updateTextSignal("Bit depth set to 16 bits int");
-		qDebug() << "Bit depth set to 16 bits int";
-	}
-    else if (action == bit_uint32) {
-		settings.bitDepth = 2;
-		emit updateTextSignal("Bit depth set to 32 bits int");
-		qDebug() << "Bit depth set to 32 bits int";
-	}
-    else if (action == bit_uint64) {
-		settings.bitDepth = 3;
-		emit updateTextSignal("Bit depth set to 64 bits int");
-		qDebug() << "Bit depth set to 64 bits int";
-	}
-    else if (action == bit_flt16) {
-		settings.bitDepth = 4;
-		emit updateTextSignal("Bit depth set to 16 bits float");
-		qDebug() << "Bit depth set to 16 bits float";
-	}
-    else if (action == bit_flt32) {
-		settings.bitDepth = 5;
-		emit updateTextSignal("Bit depth set to 32 bits float");
-		qDebug() << "Bit depth set to 32 bits float";
-	}
-    else if (action == bit_flt64) {
-		settings.bitDepth = 6;
-		emit updateTextSignal("Bit depth set to 64 bits float");
-		qDebug() << "Bit depth set to 64 bits float";
-	}
-}
-
-void MainWindow::frmtSettings() {
-    QAction* action = qobject_cast<QAction*>(sender());
-    if (action == frmt_Org) {
-		settings.fileFormat = -1;
-		emit updateTextSignal("File format will remain original");
-		qDebug() << "File format will remain original";
-	}
-    else if (action == frmt_Tif) {
-		settings.fileFormat = 0;
-		emit updateTextSignal("File format set to TIFF");
-		qDebug() << "File format set to TIFF";
-	}
-    else if (action == frmt_Exr) {
-		settings.fileFormat = 1;
-		emit updateTextSignal("File format set to OpenEXR");
-		qDebug() << "File format set to OpenEXR";
-	}
-    else if (action == frmt_Png) {
-		settings.fileFormat = 2;
-		emit updateTextSignal("File format set to PNG");
-		qDebug() << "File format set to PNG";
-	}
-    else if (action == frmt_Jpg) {
-		settings.fileFormat = 3;
-		emit updateTextSignal("File format set to JPEG");
-		qDebug() << "File format set to JPEG";
-	}
-    else if (action == frmt_Jp2) {
-		settings.fileFormat = 4;
-		emit updateTextSignal("File format set to JPEG-2000");
-		qDebug() << "File format set to JPEG-2000";
-	}
-    else if (action == frmt_Hic) {
-        settings.fileFormat = 5;
-        emit updateTextSignal("File format set to HEIC");
-        qDebug() << "File format set to HEIC";
-    }
-    else if (action == frmt_Jxl) {
-        settings.fileFormat = 6;
-        emit updateTextSignal("File format set to JPEG XL");
-        qDebug() << "File format set to JPEG XL";
-	}
-    else if (action == frmt_Ppm) {
-        settings.fileFormat = 7;
-        emit updateTextSignal("File format set to PPM");
-        qDebug() << "File format set to PPM";
+template<typename T>
+static void MenuRadio(const char* label, T& variable, T value)
+{
+    if (ImGui::MenuItem(label, nullptr, variable == value)) {
+        variable = value;
+        spdlog::info("{} set to {}", label, static_cast<int>(value));
     }
 }
 
-void MainWindow::normSettings() {
-    QAction* action = qobject_cast<QAction*>(sender());
-    if (action == nrm_Dis) {
-        settings.normMode = 0;
-        emit updateTextSignal("Normalizing disabled");
-        qDebug() << "Normalizing disabled";
-    }
-    else if (action == nrm_Smrt) {
-        settings.normMode = 1;
-        emit updateTextSignal("Smart Normalizing - only normal maps" );
-        qDebug() << "Smart Normalizing - only normal maps (normals/tangent/object/world in name)";
-    }
-    else if (action == nrm_Force) {
-        settings.normMode = 2;
-        emit updateTextSignal("Force Normalizing - all maps are Normals");
-        qDebug() << "Force Normalizing - all maps are normals regardless of name";
+static void MenuRadioInt(const char* label, int& variable, int value)
+{
+    if (ImGui::MenuItem(label, nullptr, variable == value)) {
+        variable = value;
+        spdlog::info("{} set to {}", label, value);
     }
 }
 
-void MainWindow::repSettings() {
-    std::vector<std::pair<QString, uint>> actionMap = 
-    { { "Disable", 0 }, { "X", 1 }, { "Y", 2 }, { "Z", 3 },
-	{ "-X", 4 }, { "-Y", 5 }, { "-Z", 6 } };
-    QAction* action = qobject_cast<QAction*>(sender());
-    for (int i = 0; i < actionMap.size(); i++) {
-        if (action->text() == actionMap[i].first) {
-			settings.repairMode = actionMap[i].second;
-			emit updateTextSignal(QString("Repair mode set to %1").arg(actionMap[i].first));
-			qDebug() << QString("Repair mode set to %1").arg(actionMap[i].first);
-			break;
-		}
-	}
-    if (action != rep_Dis) {
-        nrm_Dis->setChecked(true);
-        settings.normMode = 0;
-        emit updateTextSignal("Normalizing are part of Repair");
-        qDebug() << "Normalizing are part of Repair";
-    }
-}
+static void SetAlphaMode(uint mode, const char* label)
+{
+    settings.alphaMode = mode;
+    SetStatus(std::string("Alpha/Mask set to ") + label);
 
-void MainWindow::sldfSettings(bool checked) {
-    settings.isSolidify = sld_enable->isChecked();
-    if (checked) {
-        //alf_enable->setChecked(false);
-        emit updateTextSignal("Solidify Enabled");
-        qDebug() << "Solidify Enabled";
-        emit updateTextSignal("Export Alpha Disabled");
-        qDebug() << "Export Alpha Disabled";
-    }
-    else {
-        //nrm_Smrt->setChecked(false);
-        //nrm_Dis->setChecked(true);
-        //settings.normMode = 0;
-        emit updateTextSignal("Solidify Disabled");
-        //emit updateTextSignal("Normalizing disabled");
-        //qDebug() << "Normalizing disabled";
-        qDebug() << "Solidify Disabled";
-    }
-}
-
-void MainWindow::alfSettings() {
-    std::vector<std::pair<QString, uint>> actionMap ={ { "Disable", 0 }, { "Preserve", 1 }, { "Export", 2 } };
-    QAction* action = qobject_cast<QAction*>(sender());
-    for (int i = 0; i < actionMap.size(); i++) {
-        if (action->text() == actionMap[i].first) {
-            settings.alphaMode = actionMap[i].second;
-            emit updateTextSignal(QString("Alpha/Mask set to %1").arg(actionMap[i].first));
-            qDebug() << QString("Alpha/Mask set to %1").arg(actionMap[i].first);
-            break;
-        }
-    }
-    if (action == alf_Only) {
-        sld_enable->setChecked(false);
-        emit updateTextSignal("Solidify Disabled");
-        qDebug() << "Solidify Disabled";
+    if (mode == 2) {
         settings.isSolidify = false;
-
-        nrm_Dis->setChecked(true);
-        settings.normMode = 0;
-        emit updateTextSignal("Normalizing disabled");
-        qDebug() << "Normalizing disabled";
-
-        rep_Dis->setChecked(true);
+        settings.normMode   = 0;
         settings.repairMode = 0;
-        emit updateTextSignal("Repair mode set to Disable");
-        qDebug() << "Repair mode set to Disable";
     }
 }
 
-void MainWindow::rngSettings() {
-	QAction* action = qobject_cast<QAction*>(sender());
-    if (action == rng_Unsg) {
-        settings.rangeMode = 0;
-		emit updateTextSignal("Unsigned floats");
-        qDebug() << "32/16 bit floats are in [0.0 ~ 1.0] range";
-	}
-    else if (action == rng_Sign) {
-        settings.rangeMode = 1;
-		emit updateTextSignal("Signed floats");
-        qDebug() << "32/16 bit floats are in [-1.0 ~ 1.0] range";
-	}
-    else if (action == rng_US) {
-        settings.rangeMode = 2;
-        emit updateTextSignal("Unsigned <> Signed");
-        qDebug() << "32/16 bit floats range [0.0 ~ 1.0] map to a [-1.0 ~ 1.0]";
-    }
-    else if (action == rng_SU) {
-		settings.rangeMode = 3;
-        emit updateTextSignal("Signed <> Unsigned");
-        qDebug() << "32/16 bit floats range [-1.0 ~ 1.0] map to a [0.0 ~ 1.0]";
+static void SetRepairMode(uint mode, const char* label)
+{
+    settings.repairMode = mode;
+    SetStatus(std::string("Repair mode set to ") + label);
+    if (mode != 0) {
+        settings.normMode = 0;
     }
 }
 
-void MainWindow::rawSettings() {
-    QAction* action = qobject_cast<QAction*>(sender());
-    if (action == raw_rot_A) {
-        settings.rawRot = settings.raw_rot[0];
-        emit updateTextSignal("Camera Raw rotation - Auto");
-        qDebug() << "Camera Raw rotation set to EXIF Auto";
-    }
-    else if (action == raw_rot_0) {
-        settings.rawRot = settings.raw_rot[1];
-        emit updateTextSignal("Camera Raw rotation - 0 (Unrotate)");
-        qDebug() << "Camera Raw rotation set to 0 degree - Unrotatate/Horizontal";
-    }
-    else if (action == raw_rot_90) {
-		settings.rawRot = settings.raw_rot[3];
-        emit updateTextSignal("Camera Raw rotation - 90 CW (Vertical)");
-		qDebug() << "Camera Raw rotation set to 90 degree CW - Vertical";
-	}
-    else if (action == raw_rot_180) {
-		settings.rawRot = settings.raw_rot[2];
-		emit updateTextSignal("Camera Raw rotation - 180 (Horizontal)");
-        qDebug() << "Camera Raw rotation set to 180 degree (Horizontal)";
-	}
-    else if (action == raw_rot_270) {
-		settings.rawRot = settings.raw_rot[4];
-		emit updateTextSignal("Camera Raw rotation - 90 CW (Vertical)");
-		qDebug() << "Camera Raw rotation set to 90 degree CW (Vertical)";
-	}
-    
+static void ApplyVerbosity()
+{
+    const int verbosity = std::clamp<int>(static_cast<int>(settings.verbosity), 0, 5);
+    spdlog::set_level(static_cast<spdlog::level::level_enum>(5 - verbosity));
 }
 
-void MainWindow::startProcessing(QList<QUrl> urls) {
-    // Move the processing to a separate thread
-    QFuture<bool> future = QtConcurrent::run(doProcessing, urls, progressBar, this);
+void AppMenuBar()
+{
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 10.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.0f, 10.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_PopupBorderSize, 0.0f);
 
-    processingWatcher.setFuture(future);
+    if (ImGui::BeginMenuBar()) {
+        if (ImGui::BeginMenu("Files")) {
+            if (ImGui::MenuItem("Reload Config")) {
+                if (loadSettings(settings, "sldf_config.toml")) {
+                    printSettings(settings);
+                    SetStatus("Config reloaded.");
+                } else {
+                    SetStatus("Config reload failed. Check console for details.");
+                }
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem("Exit")) {
+                glfwSetWindowShouldClose(glfwGetCurrentContext(), GLFW_TRUE);
+            }
+            ImGui::EndMenu();
+        }
 
-    connect(&processingWatcher, &QFutureWatcher<bool>::progressValueChanged, progressBar, &QProgressBar::setValue);
-}
+        if (ImGui::BeginMenu("Processing")) {
+            if (ImGui::MenuItem("Solidify", nullptr, settings.isSolidify)) {
+                settings.isSolidify = !settings.isSolidify;
+                SetStatus(settings.isSolidify ? "Solidify Enabled" : "Solidify Disabled");
+            }
 
-void MainWindow::toggleConsole(bool checked) {
-    if (checked) {
-        // Show console
-        ShowWindow(GetConsoleWindow(), SW_SHOW);
+            if (ImGui::BeginMenu("Alpha/Mask")) {
+                if (ImGui::MenuItem("Disable", nullptr, settings.alphaMode == 0)) {
+                    SetAlphaMode(0, "Disable");
+                }
+                if (ImGui::MenuItem("Preserve", nullptr, settings.alphaMode == 1)) {
+                    SetAlphaMode(1, "Preserve");
+                }
+                if (ImGui::MenuItem("Export", nullptr, settings.alphaMode == 2)) {
+                    SetAlphaMode(2, "Export");
+                }
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu("Normalize")) {
+                MenuRadio("Disable", settings.normMode, static_cast<uint>(0));
+                MenuRadio("Smart", settings.normMode, static_cast<uint>(1));
+                MenuRadio("Force", settings.normMode, static_cast<uint>(2));
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu("Repair")) {
+                if (ImGui::MenuItem("Disable", nullptr, settings.repairMode == 0)) {
+                    SetRepairMode(0, "Disable");
+                }
+                if (ImGui::MenuItem("X", nullptr, settings.repairMode == 1)) {
+                    SetRepairMode(1, "X");
+                }
+                if (ImGui::MenuItem("Y", nullptr, settings.repairMode == 2)) {
+                    SetRepairMode(2, "Y");
+                }
+                if (ImGui::MenuItem("Z", nullptr, settings.repairMode == 3)) {
+                    SetRepairMode(3, "Z");
+                }
+                if (ImGui::MenuItem("-X", nullptr, settings.repairMode == 4)) {
+                    SetRepairMode(4, "-X");
+                }
+                if (ImGui::MenuItem("-Y", nullptr, settings.repairMode == 5)) {
+                    SetRepairMode(5, "-Y");
+                }
+                if (ImGui::MenuItem("-Z", nullptr, settings.repairMode == 6)) {
+                    SetRepairMode(6, "-Z");
+                }
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu("Camera Raw")) {
+                MenuRadioInt("Auto EXIF", settings.rawRot, -1);
+                MenuRadioInt("0 Horizontal", settings.rawRot, 0);
+                MenuRadioInt("180 Horizontal", settings.rawRot, 3);
+                MenuRadioInt("-90 Vertical", settings.rawRot, 5);
+                MenuRadioInt("+90 Vertical", settings.rawRot, 6);
+                ImGui::EndMenu();
+            }
+
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("Outputs")) {
+            if (ImGui::BeginMenu("Floats type")) {
+                MenuRadio("Unsigned", settings.rangeMode, static_cast<uint>(0));
+                MenuRadio("Signed", settings.rangeMode, static_cast<uint>(1));
+                MenuRadio("Signed > Unsigned", settings.rangeMode, static_cast<uint>(2));
+                MenuRadio("Unsigned > Signed", settings.rangeMode, static_cast<uint>(3));
+                ImGui::EndMenu();
+            }
+
+            ImGui::Separator();
+
+            if (ImGui::BeginMenu("Formats")) {
+                MenuRadioInt("Original", settings.fileFormat, -1);
+                MenuRadioInt("TIFF", settings.fileFormat, 0);
+                MenuRadioInt("OpenEXR", settings.fileFormat, 1);
+                MenuRadioInt("PNG", settings.fileFormat, 2);
+                MenuRadioInt("JPEG", settings.fileFormat, 3);
+                MenuRadioInt("JPEG-2000", settings.fileFormat, 4);
+                MenuRadioInt("HEIC", settings.fileFormat, 5);
+                MenuRadioInt("JPEG XL", settings.fileFormat, 6);
+                MenuRadioInt("PPM", settings.fileFormat, 7);
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu("Bits Depth")) {
+                MenuRadioInt("Original", settings.bitDepth, -1);
+                MenuRadioInt("8 bits int", settings.bitDepth, 0);
+                MenuRadioInt("16 bits int", settings.bitDepth, 1);
+                MenuRadioInt("32 bits int", settings.bitDepth, 2);
+                MenuRadioInt("64 bits int", settings.bitDepth, 3);
+                MenuRadioInt("16 bits float", settings.bitDepth, 4);
+                MenuRadioInt("32 bits float", settings.bitDepth, 5);
+                MenuRadioInt("64 bits float", settings.bitDepth, 6);
+                ImGui::EndMenu();
+            }
+
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("Settings")) {
+            if (ImGui::MenuItem("Enable Console", nullptr, settings.conEnable)) {
+                settings.conEnable = !settings.conEnable;
+#ifdef _WIN32
+                ShowWindow(GetConsoleWindow(), settings.conEnable ? SW_SHOW : SW_HIDE);
+#endif
+            }
+            if (ImGui::MenuItem("Print Settings")) {
+                printSettings(settings);
+            }
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("Debug")) {
+            if (ImGui::BeginMenu("Verbosity")) {
+                MenuRadio("0 - Fatal", settings.verbosity, static_cast<uint>(0));
+                MenuRadio("1 - Error", settings.verbosity, static_cast<uint>(1));
+                MenuRadio("2 - Warning", settings.verbosity, static_cast<uint>(2));
+                MenuRadio("3 - Info", settings.verbosity, static_cast<uint>(3));
+                MenuRadio("4 - Debug", settings.verbosity, static_cast<uint>(4));
+                MenuRadio("5 - Trace", settings.verbosity, static_cast<uint>(5));
+                ImGui::EndMenu();
+            }
+            ImGui::EndMenu();
+        }
+
+        ImGui::EndMenuBar();
     }
-    else {
-        // Hide console
-        ShowWindow(GetConsoleWindow(), SW_HIDE);
+
+    ImGui::PopStyleVar(3);
+}
+
+void RenderUI()
+{
+    ApplyVerbosity();
+
+    const ImGuiViewport* viewport = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(viewport->WorkPos);
+    ImGui::SetNextWindowSize(viewport->WorkSize);
+    ImGui::SetNextWindowViewport(viewport->ID);
+
+    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize
+                                    | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_MenuBar
+                                    | ImGuiWindowFlags_NoBringToFrontOnFocus;
+
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.06f, 0.06f, 0.06f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_MenuBarBg, ImVec4(0.09f, 0.09f, 0.09f, 1.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.0f, 10.0f));
+
+    if (ImGui::Begin("Solidify Main Window", nullptr, window_flags)) {
+        AppMenuBar();
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
+
+        ImVec2 regionSize = ImGui::GetContentRegionAvail();
+
+        const float pad               = 10.0f;
+        const float space             = 8.0f;
+        const float progressBarHeight = 16.0f;
+        const float statusHeight      = 100.0f;
+        const float content_width     = regionSize.x - 2.0f * pad;
+        float cursor_y                = ImGui::GetFrameHeight() + pad * 3.0f;
+
+        ImVec2 dropAreaSize =
+            ImVec2(content_width, regionSize.y - progressBarHeight - statusHeight - 2.0f * pad - 2.0f * space);
+
+        {
+            ImGui::SetCursorPos(ImVec2(pad, cursor_y));
+            ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.094f, 0.094f, 0.094f, 1.0f));
+            ImGui::BeginChild("DropArea", dropAreaSize, false);
+
+            const bool isBusy = g_isProcessing.load();
+            const char* text  = isBusy ? "Processing files..." : "Drag & drop files here";
+            ImGui::SetWindowFontScale(1.5f);
+            ImVec2 textSize  = ImGui::CalcTextSize(text);
+            ImVec2 childSize = ImGui::GetWindowSize();
+            ImGui::SetCursorPos(ImVec2((childSize.x - textSize.x) * 0.5f, (childSize.y - textSize.y) * 0.5f));
+            ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "%s", text);
+            ImGui::SetWindowFontScale(1.0f);
+
+            ImGui::EndChild();
+            ImGui::PopStyleColor();
+        }
+        cursor_y += dropAreaSize.y + space;
+
+        {
+            ImGui::SetCursorPos(ImVec2(pad, cursor_y));
+            ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.02f, 0.72f, 0.8f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+            ImGui::ProgressBar(g_progress.load(), ImVec2(content_width, progressBarHeight), "");
+            ImGui::PopStyleColor(2);
+        }
+        cursor_y += progressBarHeight + space;
+
+        {
+            ImGui::SetCursorPos(ImVec2(pad, cursor_y));
+            ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.094f, 0.094f, 0.094f, 1.0f));
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(pad, pad));
+            ImGui::BeginChild("StatusArea", ImVec2(content_width, statusHeight), ImGuiChildFlags_AlwaysUseWindowPadding);
+
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.88f, 0.88f, 0.88f, 1.0f));
+            std::string statusTextCopy;
+            {
+                std::lock_guard<std::mutex> lock(g_statusMutex);
+                statusTextCopy = g_statusText;
+            }
+            ImGui::TextUnformatted(statusTextCopy.c_str());
+
+            ImGui::PopStyleColor();
+            ImGui::EndChild();
+            ImGui::PopStyleVar();
+            ImGui::PopStyleColor();
+        }
+
+        if (g_dragging) {
+            ImDrawList* drawList = ImGui::GetForegroundDrawList();
+            ImVec2 pMin          = viewport->Pos;
+            ImVec2 pMax          = ImVec2(pMin.x + viewport->Size.x, pMin.y + viewport->Size.y);
+
+            drawList->AddRectFilled(pMin, pMax, IM_COL32(0, 0, 0, 192));
+
+            const char* text = "DROP FILES TO START";
+            ImFont* font     = ImGui::GetFont();
+            float fontSize   = ImGui::GetFontSize() * 3.0f;
+
+            ImVec2 textSize = font->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, text);
+            ImVec2 textPos  = ImVec2(pMin.x + (viewport->Size.x - textSize.x) * 0.5f,
+                                     pMin.y + (viewport->Size.y - textSize.y) * 0.5f);
+
+            drawList->AddText(font, fontSize, textPos, IM_COL32(255, 255, 255, 255), text);
+        }
+
+        ImGui::PopStyleVar();
     }
-}
+    ImGui::End();
 
-void MainWindow::restartApp() {
-    QStringList arguments;
-
-    ShowWindow(GetConsoleWindow(), SW_HIDE);
-    FreeConsole();
-
-    QProcess::startDetached(QApplication::applicationFilePath(), arguments);
-
-    QApplication::quit();
-}
-
-void setPBarColor(QProgressBar* progressBar, const QColor& color) {
-    QString style = QString(
-        "QProgressBar {"
-        "border: 0px solid black; border-radius: 3px; background-color: white; color: black;"
-        "margin-bottom: 4px;"
-        "}"
-        "QProgressBar::chunk {background-color: %1;}"
-    ).arg(color.name());
-
-    progressBar->setStyleSheet(style);
+    ImGui::PopStyleVar(2);
+    ImGui::PopStyleColor(2);
 }

@@ -35,6 +35,13 @@
 
 using namespace OIIO;
 
+static void reportProgress(const SolidifyProgressCallback& progressCallback, float progress, const std::string& status)
+{
+    if (progressCallback) {
+        progressCallback(progress, status);
+    }
+}
+
 void* getTypedPointer(OIIO::ImageBuf& buf, const OIIO::TypeDesc& type) {
     switch (type.basetype) {
         case OIIO::TypeDesc::UINT8:
@@ -56,19 +63,10 @@ void* getTypedPointer(OIIO::ImageBuf& buf, const OIIO::TypeDesc& type) {
     }
 }
 
-bool solidify_main(const std::string& inputFileName, const std::string& outputFileName, std::pair<ImageBuf, ImageBuf> mask_pair, 
-    QProgressBar* progressBar, MainWindow* mainWindow) {
+bool solidify_main(const std::string& inputFileName, const std::string& outputFileName, std::pair<ImageBuf, ImageBuf> mask_pair,
+    const SolidifyProgressCallback& progressCallback) {
     VTimer g_timer;
 
-//
-    // Generate a random delay
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> distr(1, 500); // delay range in milliseconds
-
-    // Sleep for the random delay
-    std::this_thread::sleep_for(std::chrono::milliseconds(distr(gen)));
-//
     TypeDesc out_format;
     
     ImageSpec config;
@@ -84,7 +82,7 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
     if (!input_buf.init_spec(inputFileName, 0, 0)){
 		spdlog::error("Error reading {}", inputFileName);
         spdlog::error("{}", input_buf.geterror());
-		mainWindow->emitUpdateTextSignal("Error! Check console for details");
+        reportProgress(progressCallback, 0.0f, "Error! Check console for details");
 		return false;
 	}
 
@@ -114,10 +112,10 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
     // Read the image with a progress callback
 
     spdlog::info("Reading {}", inputFileName);
-    bool load_ok = img_load(input_buf, inputFileName, external_alpha, progressBar, mainWindow);
+    bool load_ok = img_load(input_buf, inputFileName, external_alpha, progressCallback);
     if (!load_ok) {
 		spdlog::error("Error reading {}", inputFileName);
-        mainWindow->emitUpdateTextSignal("Error! Check console for details");
+        reportProgress(progressCallback, 0.0f, "Error! Check console for details");
 		return false;
 	}
 
@@ -214,14 +212,14 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
 
             bool ok = ImageBufAlgo::mul(input_buf, input_buf, grayscale ? mask_pair.first : mask_pair.second);
             if (!ok) {
-                spdlog::error("multiplication error: ", rgba_buf.geterror());
-                mainWindow->emitUpdateTextSignal("Error! Check console for details");
+                spdlog::error("multiplication error: {}", input_buf.geterror());
+                reportProgress(progressCallback, 0.0f, "Error! Check console for details");
                 return false;
             }
             ok = ok && ImageBufAlgo::channel_append(rgba_buf, input_buf, *alpha_buf_ptr);
             if (!ok) {
-                spdlog::error("channel_append error: ", rgba_buf.geterror());
-                mainWindow->emitUpdateTextSignal("Error! Check console for details");
+                spdlog::error("channel_append error: {}", rgba_buf.geterror());
+                reportProgress(progressCallback, 0.0f, "Error! Check console for details");
                 return false;
             }
             // rename last channel to alpha and set alpha channel
@@ -238,16 +236,16 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
         bool ok = ImageBufAlgo::fillholes_pushpull(result_buf, *input_buf_ptr);
 
         if (!ok) {
-            spdlog::error("fillholes_pushpull error: ", result_buf.geterror());
-            mainWindow->emitUpdateTextSignal("Error! Check console for details");
+            spdlog::error("fillholes_pushpull error: {}", result_buf.geterror());
+            reportProgress(progressCallback, 0.0f, "Error! Check console for details");
             return false;
         }
 
         if (settings.alphaMode == 1) {
             ImageBufAlgo::paste(result_buf, 0, 0, 0, result_buf.spec().alpha_channel, external_alpha ? bit_alpha_buf : original_alpha);
             if (result_buf.has_error()) {
-                spdlog::error("paste error: ", result_buf.geterror());
-                mainWindow->emitUpdateTextSignal("Error! Check console for details");
+                spdlog::error("paste error: {}", result_buf.geterror());
+                reportProgress(progressCallback, 0.0f, "Error! Check console for details");
                 return false;
             }
         }
@@ -354,7 +352,7 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
         success = ImageBufAlgo::normalize(out_buf, result_buf, inCenter, outCenter, outScale, roi, nthreads);
         if (!success) {
             spdlog::error("Error: Could not normalize image");
-            mainWindow->emitUpdateTextSignal("Error! Check console for details");
+            reportProgress(progressCallback, 0.0f, "Error! Check console for details");
             return false;
         }
         out_format = out_buf.spec().format; // copy latest buffer format as an output format
@@ -488,27 +486,31 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
 
     auto out = ImageOutput::create(outputFileName);
     if (!out) {
-        spdlog::error("Could not create output file: ", outputFileName);
-        mainWindow->emitUpdateTextSignal("Error! Check console for details");
+        spdlog::error("Could not create output file: {}", outputFileName);
+        reportProgress(progressCallback, 0.0f, "Error! Check console for details");
         return false;
     }
     out->open(outputFileName, ospec, ImageOutput::Create);
     if (out->has_error()) {
-		spdlog::error("Error opening ", outputFileName);
+		spdlog::error("Error opening {}", outputFileName);
 		spdlog::error("{}", out->geterror());
-		mainWindow->emitUpdateTextSignal("Error! Check console for details");
+        reportProgress(progressCallback, 0.0f, "Error! Check console for details");
         out->close();
 		return false;
 	}
 
-    QMetaObject::invokeMethod(progressBar, "setValue", Qt::QueuedConnection, Q_ARG(int, 0));
-
     spdlog::info("Writing {}", outputFileName);
 
     bool ok = false;
+    OIIOProgressContext writeCtx;
+    writeCtx.callback = &progressCallback;
+    writeCtx.status   = "Writing: " + std::filesystem::path(outputFileName).filename().string();
+    writeCtx.base     = 0.65f;
+    writeCtx.scale    = 0.35f;
+    void* writeProgressData = progressCallback ? &writeCtx : nullptr;
 
     if (settings.alphaMode != 2) {
-        ok = out->write_image(out_format, out_buf.localpixels(), out_buf.pixel_stride(), out_buf.scanline_stride(), out_buf.z_stride(), *m_progress_callback, progressBar);
+        ok = out->write_image(out_format, out_buf.localpixels(), out_buf.pixel_stride(), out_buf.scanline_stride(), out_buf.z_stride(), m_progress_callback, writeProgressData);
     }
     else {
         int channel_to_extract = grayscale ? 1 : 3;  // for Alpha channle from RGBA
@@ -520,25 +522,20 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
             channels * bytes,      // x stride
             out_buf.scanline_stride(),      // y stride
             out_buf.z_stride(), 		    // z stride  
-            *m_progress_callback, progressBar);
+            m_progress_callback, writeProgressData);
     }
 
     if (!ok) {
-		spdlog::error("Error writing ", outputFileName);
+		spdlog::error("Error writing {}", outputFileName);
 		spdlog::error("{}", out->geterror());
-		mainWindow->emitUpdateTextSignal("Error! Check console for details");
+        reportProgress(progressCallback, 0.0f, "Error! Check console for details");
 		return false;
 	}
     out->close();
 
     spdlog::info("File processing time : {}", g_timer.nowText());
     
-    //pbar_color_rand(progressBar);
-    pbar_color_rand(mainWindow);
-    QMetaObject::invokeMethod(progressBar, "setValue", Qt::QueuedConnection, Q_ARG(int, 0));
-
-    //QString DebugText = QString("Total processing time : %1").arg(QString::fromStdString(g_timer.nowText()));
-    //mainWindow->emitUpdateTextSignal(DebugText);
+    reportProgress(progressCallback, 1.0f, "Written: " + std::filesystem::path(outputFileName).filename().string());
 
     return true;
 }

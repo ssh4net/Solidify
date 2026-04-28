@@ -5,6 +5,10 @@ ExportAlpha = 0
 MaskNames = ["_mask.", "_mask_", "_alpha.", "_alpha_"]
 Console = true
 Threads = 3
+# 0 uses one queued task per worker thread
+QueueLimit = 0
+# 0 = fatal, 1 = error, 2 = warning, 3 = info, 4 = debug, 5 = trace
+Verbosity = 3
 
 [Normalize]
 # Normalization settings
@@ -40,7 +44,8 @@ empty = true
 # 3 - JPEG
 # 4 - JPEG-2000
 # 5 - HEIC
-# 6 - PPM
+# 6 - JPEG XL
+# 7 - PPM
 DefaultFormat = 0
 FileFormat = -1
 # Bit depth: 

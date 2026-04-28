@@ -16,12 +16,11 @@
  */
 #pragma once
 
-#include <string>
-#include <vector>
-#include "ui.h"
-//#include "LOG.H"
 #ifndef SETTINGS_H
 #define SETTINGS_H
+
+#include <string>
+#include <vector>
 
 typedef unsigned char uchar;
 typedef unsigned short ushort;
@@ -29,68 +28,67 @@ typedef unsigned int uint;
 typedef unsigned long ulong;
 
 struct Settings {
-	bool isSolidify, conEnable;
-	uint normMode, rangeMode, repairMode, alphaMode;
-	int fileFormat, defFormat;
-	int bitDepth, defBDepth;
-	int rawRot;
-	uint numThreads;
+    bool isSolidify, conEnable;
+    uint normMode, rangeMode, repairMode, alphaMode;
+    int fileFormat, defFormat;
+    int bitDepth, defBDepth;
+    int rawRot;
+    uint numThreads;
+    uint queueLimit;
+    uint verbosity;
 
-	std::vector<std::string> normNames, mask_substr, out_formats;
+    std::vector<std::string> normNames, mask_substr, out_formats;
 
-	const int raw_rot[5] = { -1, 0, 3, 5, 6 }; // -1 - Auto EXIF, 0 - Unrotated/Horisontal, 3 - 180 Horisontal, 5 - 90 CW Vertical, 6 - 90 CCW Vertical
-	const uint rngConv[4] = { 0, 1, 2, 3}; // 0 - unsigned, 1 - signed, 2 - unsigned -> signed, 3 - signed -> unsigned
+    const int raw_rot[5] = { -1, 0, 3, 5, 6 };
+    const uint rngConv[4] = { 0, 1, 2, 3 };
 
-	Settings() {
-		reSettings();
-	}
+    Settings()
+    {
+        reSettings();
+    }
 
-	// reset settings to default
-	void reSettings() {
-		conEnable = false;	// Console enabled/disabled
-		isSolidify = true;	// Solidify enabled/disabled
+    void reSettings()
+    {
+        conEnable  = true;
+        isSolidify = true;
 
-		alphaMode = 0;		// Alpha mode: 0 - without alpha, 1 - with alpha, 2 - alpha only
-		numThreads = 3;		// Number of threads: 0 - auto, >0 - number of threads
-		normMode = 1;		// Normalize mode: 0 - disabled, 1 - smart, 2 - force
-		repairMode = 0;		// Repair mode: 0 - disabled, 1 - Z, 2 - Y, 3 - X, 4 - -Z, 5 - -Y, 6 - -X
+        alphaMode  = 0;
+        numThreads = 3;
+        queueLimit = 0;
+        verbosity  = 3;
+        normMode   = 1;
+        repairMode = 0;
 
-		rangeMode = 0;		// Float type: 0 - unsigned, 1 - signed, 2 - unsigned -> signed, 3 - signed -> unsigned
-		fileFormat = -1;	// File format: -1 - original, 0 - TIFF, 1 - OpenEXR, 2 - PNG, 3 - JPEG, 4 - JPEG-2000, 5 - HEIC, 6 - JPEGXL 7 - PPM
-		defFormat = 0;		// Default file format = TIFF
-		bitDepth = -1;		// Bit depth: -1 - Original, 0 - uint8, 1 - uint16, 2 - uint32, 3 - uint64, 4 - half, 5 - float, 6 - double
-		defBDepth = 1;		// Default bit depth = uint16
-		rawRot = -1;		// Raw rotation: -1 - Auto EXIF, 0 - Unrotated/Horisontal, 3 - 180 Horisontal, 5 - 90 CW Vertical, 6 - 90 CCW Vertical
+        rangeMode = 0;
+        fileFormat = -1;
+        defFormat  = 0;
+        bitDepth   = -1;
+        defBDepth  = 1;
+        rawRot     = -1;
 
-		normNames = { "normal", "tangent", "object", "world" };
-		mask_substr = { "_mask.", "_mask_", "_alpha.", "_alpha_" };
-		out_formats = { "tif", "exr", "png", "jpg", "jp2", "heic", "jxl", "ppm" };
-	}
+        normNames   = { "normal", "tangent", "object", "world" };
+        mask_substr = { "_mask.", "_mask_", "_alpha.", "_alpha_" };
+        out_formats = { "tif", "exr", "png", "jpg", "jp2", "heic", "jxl", "ppm" };
+    }
 
-	// get bit depth in bytes
-	int getBitDepth() {
-		switch (bitDepth) {
-		case 0:
-			return 1;
-		case 1:
-			return 2;
-		case 2:
-			return 4;
-		case 3:
-			return 8;
-		case 4:
-			return 2;
-		case 5:
-			return 4;
-		case 6:
-			return 8;
-		}
-		return 0;
-	}
+    int getBitDepth() const
+    {
+        switch (bitDepth) {
+        case 0: return 1;
+        case 1: return 2;
+        case 2: return 4;
+        case 3: return 8;
+        case 4: return 2;
+        case 5: return 4;
+        case 6: return 8;
+        default: return 0;
+        }
+    }
 };
 
 extern Settings settings;
 
 bool loadSettings(Settings& settings, const std::string& filename);
 void printSettings(Settings& settings);
+
 #endif

@@ -16,13 +16,13 @@
  */
 #pragma once
 
-#include <OpenImageIO/imageio.h>
+#include "processing.h"
+
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
-
-#include "ui.h"
+#include <OpenImageIO/imageio.h>
 
 using namespace OIIO;
 
-bool solidify_main(const std::string& inputFileName, const std::string& outputFileName, std::pair<ImageBuf, ImageBuf> mask_pair, 
-	QProgressBar* progressBar, MainWindow* mainWindow);
+bool solidify_main(const std::string& inputFileName, const std::string& outputFileName,
+                   std::pair<ImageBuf, ImageBuf> mask_pair, const SolidifyProgressCallback& progressCallback);

@@ -16,37 +16,37 @@
  */
 #pragma once
 
-#include <iostream>
-#include <iomanip>
-#include <string>
-#include <math.h>
-
 #include "Timer.h"
-#include "ui.h"
+#include "processing.h"
 
-#include <OpenImageIO/imageio.h>
+#include <OpenImageIO/half.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagebufalgo_util.h>
-#include <OpenImageIO/half.h>
+#include <OpenImageIO/imageio.h>
 
 using namespace OIIO;
 
-//void pbar_color_rand(QProgressBar* progressBar);
-void pbar_color_rand(MainWindow* mainWindow);
+struct OIIOProgressContext {
+    const SolidifyProgressCallback* callback = nullptr;
+    std::string status;
+    float base  = 0.0f;
+    float scale = 1.0f;
+};
+
 bool m_progress_callback(void* opaque_data, float portion_done);
 
 TypeDesc getTypeDesc(int bit_depth);
 std::string formatText(TypeDesc format);
 void formatFromBuff(ImageBuf& buf);
 
-std::pair<ImageBuf, ImageBuf> mask_load(const std::string& mask_file, MainWindow* mainWindow);
-bool img_load(ImageBuf& outBuf, const std::string& inputFileName, bool external_alpha, QProgressBar* progressBar, MainWindow* mainWindow);
+std::pair<ImageBuf, ImageBuf> mask_load(const std::string& mask_file, const SolidifyProgressCallback& progressCallback);
+bool img_load(ImageBuf& outBuf, const std::string& inputFileName, bool external_alpha,
+              const SolidifyProgressCallback& progressCallback);
 
 void debugImageBufWrite(const ImageBuf& buf, const std::string& filename);
 
-//bool NormalizeMap(ImageBuf& img, bool fullRange);
-//bool mulNormalizeMap(ImageBuf& img, bool fullRange);
-
-bool recalc_normal(ImageBuf& dst, const ImageBuf& A, uint channel, int sign, float inCenter, float outCenter, float scale, ROI roi, int nthreads);
-ImageBuf recalc_normal(const ImageBuf& A, uint channel, int sign, float inCenter, float outCenter, float scale, ROI roi, int nthreads);
+bool recalc_normal(ImageBuf& dst, const ImageBuf& A, uint channel, int sign, float inCenter, float outCenter,
+                   float scale, ROI roi, int nthreads);
+ImageBuf recalc_normal(const ImageBuf& A, uint channel, int sign, float inCenter, float outCenter, float scale,
+                       ROI roi, int nthreads);
