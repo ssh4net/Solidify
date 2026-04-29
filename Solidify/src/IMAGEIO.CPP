@@ -65,7 +65,7 @@ std::string formatText(TypeDesc format)
 
 void formatFromBuff(ImageBuf& buf)
 {
-    spdlog::info("Format: {}", buf.file_format_name());
+    spdlog::info("Format: {}", buf.file_format_name().str());
 }
 
 void debugImageBufWrite(const ImageBuf& buf, const std::string& filename)
