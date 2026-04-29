@@ -1,7 +1,7 @@
 ![Solidify](https://github.com/ssh4net/Solidify/assets/3924000/c3d297bd-24e7-4de2-93c7-5c8d74c9767d)
 
 # Solidify
-Small GUI utility on top of OpenImageIO and QT5 to Solidify (fill, push-pull) empty areas in textures.
+Small GUI utility on top of OpenImageIO, Dear ImGui, and GLFW to Solidify (fill, push-pull) empty areas in textures.
 Can be used to Normalize normal maps and export alpha/mask channels as single-channel Grayscale images.
 Possible to use to unpack/repair the third channel for packed two-channel tangent space normals.
 Or as a file format batch conversion tool (for example, iPhone *.heic to *.jpg)
@@ -34,7 +34,8 @@ Dependencies
 
 ### Required dependencies
 * OpenImageIO
-* QT5
+* Dear ImGui
+* GLFW
 
 Changelog
 ---------

@@ -3,15 +3,7 @@
   <ItemGroup>
     <Filter Include="Resource Files">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>qrc;rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
-    </Filter>
-    <Filter Include="Form Files">
-      <UniqueIdentifier>{99349809-55BA-4b9d-BF79-8FDBB0286EB3}</UniqueIdentifier>
-      <Extensions>ui</Extensions>
-    </Filter>
-    <Filter Include="Translation Files">
-      <UniqueIdentifier>{639EADAA-A684-42e4-A9AD-28FC9BCB8F7C}</UniqueIdentifier>
-      <Extensions>ts</Extensions>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
     <Filter Include="src">
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
@@ -20,12 +12,9 @@
     <Filter Include="src\headers">
       <UniqueIdentifier>{e78d3757-0dbf-4002-8b44-7435a1caa1e9}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\_QT">
-      <UniqueIdentifier>{1c9ccf6c-d6a6-444b-a7b1-9f0f91e1dfd6}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\ui.cpp">
+    <ClCompile Include="src\UI.CPP">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="src\main.cpp">
@@ -37,19 +26,31 @@
     <ClCompile Include="src\solidify.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="src\imageio.cpp">
+    <ClCompile Include="src\IMAGEIO.CPP">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="src\settings.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="src\qrc_gui.cpp">
-      <Filter>src\_QT</Filter>
-    </ClCompile>
-    <ClCompile Include="src\moc_ui.cpp">
-      <Filter>src\_QT</Filter>
-    </ClCompile>
     <ClCompile Include="src\pch.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="E:\GH\imgui\backends\imgui_impl_glfw.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="E:\GH\imgui\backends\imgui_impl_opengl3.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="E:\GH\imgui\imgui.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="E:\GH\imgui\imgui_draw.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="E:\GH\imgui\imgui_tables.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="E:\GH\imgui\imgui_widgets.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
@@ -81,6 +82,9 @@
     <ClInclude Include="src\threadpool.h">
       <Filter>src\headers</Filter>
     </ClInclude>
+    <ClInclude Include="src\ui.h">
+      <Filter>src\headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CopyFileToFolders Include="src\sldf_config.toml">
@@ -91,13 +95,5 @@
     <ResourceCompile Include="Solidify.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <CustomBuild Include="src\gui.qrc">
-      <Filter>Resource Files</Filter>
-    </CustomBuild>
-    <CustomBuild Include="src\ui.h">
-      <Filter>src\headers</Filter>
-    </CustomBuild>
   </ItemGroup>
 </Project>

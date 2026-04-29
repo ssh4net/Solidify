@@ -26,13 +26,6 @@
     <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
-  <!-- Define Qt root per configuration to avoid hard-coded paths in many places -->
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
-    <QtDir>C:\Qt\6.9.1\msvc2022_64</QtDir>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
-    <QtDir>C:\Qt\6.9.1\msvc2022_64</QtDir>
-  </PropertyGroup>
   <ImportGroup Label="ExtensionSettings" />
   <ImportGroup Label="Shared" />
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
@@ -59,26 +52,30 @@
     <ClCompile>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc11</LanguageStandard_C>
-      <PreprocessorDefinitions>SPDLOG_USE_STD_FORMAT;WIN32_LEAN_AND_MEAN;JXL_STATIC_DEFINE=1;OPJ_STATIC;LIBDE265_STATIC_BUILD;KVZ_STATIC_LIB;LIBHEIF_STATIC_BUILD;LIBRAW_NODLL;OIIO_STATIC_DEFINE=1;PCRE2_STATIC;QT_CORE_LIB;QT_GUI_LIB;QT_WIDGETS_LIB;QT_STATIC;QT_STATICPLUGIN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;JXL_STATIC_DEFINE=1;OPJ_STATIC;LIBDE265_STATIC_BUILD;KVZ_STATIC_LIB;LIBHEIF_STATIC_BUILD;LIBRAW_NODLL;OIIO_STATIC_DEFINE=1;PCRE2_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)src;$(ProjectDir)..\external\dnd_glfw;E:\GH\imgui;E:\GH\imgui\backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:__cplusplus /utf-8 %(AdditionalOptions)</AdditionalOptions>
       <PrecompiledHeader>Use</PrecompiledHeader>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>advapi32.lib;Authz.lib;bcrypt.lib;comdlg32.lib;crypt32.lib;d3d11.lib;d3d12.lib;D3d9.lib;Dwmapi.lib;dxgi.lib;dxguid.lib;aom.lib;brotlicommon.lib;brotlidec.lib;brotlienc.lib;bz2.lib;deflatestatic.lib;freetype.lib;gif.lib;heif.lib;hwy.lib;Iex-3_4.lib;IlmThread-3_4.lib;Imath-3_2.lib;jasper.lib;jpeg.lib;jxl_cms.lib;jxl_threads.lib;jxl.lib;avcodec.lib;avdevice.lib;avfilter.lib;avformat.lib;avutil.lib;libde265.lib;libexpatMT.lib;libkvazaar.lib;libpng18_static.lib;libsharpyuv.lib;swresample.lib;swscale.lib;libwebp.lib;libwebpdemux.lib;lzma.lib;minizip-ng.lib;OpenColorIO.lib;OpenEXR-3_4.lib;OpenEXRCore-3_4.lib;OpenImageIO.lib;OpenImageIO_Util.lib;openjp2.lib;openjph.0.21.lib;pcre2-16-static.lib;Ptex.lib;pugixml.lib;pystring.lib;Qt6Core.lib;Qt6Gui.lib;Qt6Widgets.lib;raw_r.lib;raw.lib;tiff.lib;uhdr.lib;x265-static.lib;XMPCoreStaticRelease.lib;XMPFilesStaticRelease.lib;yaml-cpp.lib;zlib.lib;zstd_static.lib;e:\DVS\plugins\platforms\qwindows.lib;e:\GH\Little-CMS\Lib\ST\lcms2_static.lib;harfbuzz-subset.lib;harfbuzz.lib;gdi32.lib;Imm32.lib;kernel32.lib;mfplat.lib;mfuuid.lib;mpr.lib;ncrypt.lib;Ole32.lib;ole32.lib;Oleaut32.lib;psapi.lib;RuntimeObject.lib;secur32.lib;Setupapi.lib;Shcore.lib;shell32.lib;Shlwapi.lib;strmiids.lib;user32.lib;userenv.lib;Uuid.lib;UxTheme.lib;Version.lib;w:\VisualStudio\dng_sdk_1_7_1\dng_sdk\projects\win\x64\Release\dng_sdk.lib;WindowsApp.lib;windowscodecs.lib;Winmm.lib;winspool.lib;Ws2_32.lib;Wtsapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>advapi32.lib;Authz.lib;bcrypt.lib;comdlg32.lib;crypt32.lib;d3d11.lib;d3d12.lib;D3d9.lib;Dwmapi.lib;dxgi.lib;dxguid.lib;glfw3.lib;opengl32.lib;aom.lib;brotlicommon.lib;brotlidec.lib;brotlienc.lib;bz2.lib;deflatestatic.lib;freetype.lib;gif.lib;heif.lib;hwy.lib;Iex-3_4.lib;IlmThread-3_4.lib;Imath-3_2.lib;jasper.lib;jpeg.lib;jxl_cms.lib;jxl_threads.lib;jxl.lib;avcodec.lib;avdevice.lib;avfilter.lib;avformat.lib;avutil.lib;libde265.lib;libexpatMT.lib;libkvazaar.lib;libpng18_static.lib;libsharpyuv.lib;swresample.lib;swscale.lib;libwebp.lib;libwebpdemux.lib;lzma.lib;minizip-ng.lib;OpenColorIO.lib;OpenEXR-3_4.lib;OpenEXRCore-3_4.lib;OpenImageIO.lib;OpenImageIO_Util.lib;openjp2.lib;openjph.0.21.lib;pcre2-16-static.lib;Ptex.lib;pugixml.lib;pystring.lib;raw_r.lib;raw.lib;tiff.lib;uhdr.lib;x265-static.lib;XMPCoreStaticRelease.lib;XMPFilesStaticRelease.lib;yaml-cpp.lib;zlib.lib;zstd_static.lib;e:\GH\Little-CMS\Lib\ST\lcms2_static.lib;harfbuzz-subset.lib;harfbuzz.lib;gdi32.lib;Imm32.lib;kernel32.lib;mfplat.lib;mfuuid.lib;mpr.lib;ncrypt.lib;Ole32.lib;ole32.lib;Oleaut32.lib;psapi.lib;RuntimeObject.lib;secur32.lib;Setupapi.lib;Shcore.lib;shell32.lib;Shlwapi.lib;strmiids.lib;user32.lib;userenv.lib;Uuid.lib;UxTheme.lib;Version.lib;w:\VisualStudio\dng_sdk_1_7_1\dng_sdk\projects\win\x64\Release\dng_sdk.lib;WindowsApp.lib;windowscodecs.lib;Winmm.lib;winspool.lib;Ws2_32.lib;Wtsapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions> /VERBOSE:LIB %(AdditionalOptions)</AdditionalOptions>
     </Link>
-    <PostBuildEvent />
+    <PostBuildEvent>
+      <Command>if not exist "$(TargetDir)fonts" mkdir "$(TargetDir)fonts"
+copy /Y "$(ProjectDir)..\external\Fira\FiraSans-Regular.otf" "$(TargetDir)fonts\FiraSans-Regular.otf"
+copy /Y "$(ProjectDir)src\sldf_config.toml" "$(TargetDir)sldf_config.toml"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc11</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(ProjectDir)src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)src;$(ProjectDir)..\external\dnd_glfw;E:\GH\imgui;E:\GH\imgui\backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:__cplusplus /utf-8 %(AdditionalOptions)</AdditionalOptions>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <PreprocessorDefinitions>SPDLOG_USE_STD_FORMAT;WIN32_LEAN_AND_MEAN;JXL_STATIC_DEFINE=1;OPJ_STATIC;LIBDE265_STATIC_BUILD;KVZ_STATIC_LIB;LIBHEIF_STATIC_BUILD;LIBRAW_NODLL;OIIO_STATIC_DEFINE=1;PCRE2_STATIC;QT_CORE_LIB;QT_GUI_LIB;QT_WIDGETS_LIB;QT_STATIC;QT_STATICPLUGIN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>SPDLOG_USE_STD_FORMAT;WIN32_LEAN_AND_MEAN;JXL_STATIC_DEFINE=1;OPJ_STATIC;LIBDE265_STATIC_BUILD;KVZ_STATIC_LIB;LIBHEIF_STATIC_BUILD;LIBRAW_NODLL;OIIO_STATIC_DEFINE=1;PCRE2_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link />
     <Link />
@@ -87,13 +84,16 @@
     <Link>
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
-      <AdditionalDependencies>OpenImageIO_d.lib;OpenImageIO_Util_d.lib;Qt6Core.lib;Qt6Gui.lib;Qt6Widgets.lib;Qt6Svg.lib;Qt6Concurrent.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>OpenImageIO_d.lib;OpenImageIO_Util_d.lib;glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions> /VERBOSE:LIB </AdditionalOptions>
       <IgnoreSpecificDefaultLibraries>
       </IgnoreSpecificDefaultLibraries>
     </Link>
     <PostBuildEvent>
+      <Command>if not exist "$(TargetDir)fonts" mkdir "$(TargetDir)fonts"
+copy /Y "$(ProjectDir)..\external\Fira\FiraSans-Regular.otf" "$(TargetDir)fonts\FiraSans-Regular.otf"
+copy /Y "$(ProjectDir)src\sldf_config.toml" "$(TargetDir)sldf_config.toml"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'" Label="Configuration">
@@ -123,7 +123,25 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\imageio.cpp" />
+    <ClCompile Include="src\IMAGEIO.CPP" />
+    <ClCompile Include="E:\GH\imgui\backends\imgui_impl_glfw.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="E:\GH\imgui\backends\imgui_impl_opengl3.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="E:\GH\imgui\imgui.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="E:\GH\imgui\imgui_draw.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="E:\GH\imgui\imgui_tables.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="E:\GH\imgui\imgui_widgets.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="src\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
@@ -131,14 +149,8 @@
     <ClCompile Include="src\processing.cpp" />
     <ClCompile Include="src\settings.cpp" />
     <ClCompile Include="src\solidify.cpp" />
-    <ClCompile Include="src\ui.cpp" />
+    <ClCompile Include="src\UI.CPP" />
     <ClCompile Include="src\main.cpp" />
-    <ClCompile Include="src\moc_ui.cpp">
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="src\qrc_gui.cpp">
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h" />
@@ -150,22 +162,7 @@
     <ClInclude Include="src\solidify.h" />
     <ClInclude Include="src\threadpool.h" />
     <ClInclude Include="src\Timer.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <CustomBuild Include="src\ui.h">
-      <Message>MOC src\ui.h</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">"E:\DVS\bin\moc.exe" -I"$(ProjectDir)src" -I"E:\DVS\include" -I"E:\DVS\include\QtCore" -I"E:\DVS\include\QtGui" -I"E:\DVS\include\QtWidgets" -I"E:\DVS\include\QtSvg" -I"E:\DVS\include\QtConcurrent" -o "$(ProjectDir)src\moc_ui.cpp" "$(ProjectDir)src\ui.h"</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">"E:\DVS\bin\moc.exe" -I"$(ProjectDir)src" -I"E:\DVS\include" -I"E:\DVS\include\QtCore" -I"E:\DVS\include\QtGui" -I"E:\DVS\include\QtWidgets" -I"E:\DVS\include\QtSvg" -I"E:\DVS\include\QtConcurrent" -o "$(ProjectDir)src\moc_ui.cpp" "$(ProjectDir)src\ui.h"</Command>
-      <Outputs>$(ProjectDir)src\moc_ui.cpp</Outputs>
-    </CustomBuild>
-  </ItemGroup>
-  <ItemGroup>
-    <CustomBuild Include="src\gui.qrc">
-      <Message>RCC src\gui.qrc</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">"E:\DVS\bin\rcc.exe" -name gui -o "$(ProjectDir)src\qrc_gui.cpp" "$(ProjectDir)src\gui.qrc"</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">"E:\DVS\bin\rcc.exe" -name gui -o "$(ProjectDir)src\qrc_gui.cpp" "$(ProjectDir)src\gui.qrc"</Command>
-      <Outputs>$(ProjectDir)src\qrc_gui.cpp</Outputs>
-    </CustomBuild>
+    <ClInclude Include="src\ui.h" />
   </ItemGroup>
   <ItemGroup>
     <CopyFileToFolders Include="src\sldf_config.toml">
