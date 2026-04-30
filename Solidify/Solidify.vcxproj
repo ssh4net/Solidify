@@ -124,6 +124,7 @@ copy /Y "$(ProjectDir)src\sldf_config.toml" "$(TargetDir)sldf_config.toml"</Comm
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\IMAGEIO.CPP" />
+    <ClCompile Include="src\imageops.cpp" />
     <ClCompile Include="E:\GH\imgui\backends\imgui_impl_glfw.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -156,6 +157,8 @@ copy /Y "$(ProjectDir)src\sldf_config.toml" "$(TargetDir)sldf_config.toml"</Comm
     <ClInclude Include="resource.h" />
     <ClInclude Include="src\Common.h" />
     <ClInclude Include="src\imageio.h" />
+    <ClInclude Include="src\imageops.h" />
+    <ClInclude Include="src\imageops_hwy.inl" />
     <ClInclude Include="src\pch.h" />
     <ClInclude Include="src\processing.h" />
     <ClInclude Include="src\settings.h" />

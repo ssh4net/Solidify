@@ -108,6 +108,10 @@ std::string getOutName(const std::string& fileName, Settings* settings)
         }
     } else if (settings->repairMode > 0) {
         proc_sfx = "_rep";
+    } else if (settings->grayscaleMode > 0) {
+        proc_sfx = "_gray";
+    } else if (settings->swapBasis != 0 || settings->swapInvertMask != 0) {
+        proc_sfx = "_swap";
     } else if (settings->alphaMode == 2) {
         proc_sfx = "_mask";
     } else {

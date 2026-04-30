@@ -30,6 +30,7 @@
 //#include "Log.h"
 #include "solidify.h"
 #include "imageio.h"
+#include "imageops.h"
 #include "settings.h"
 #include "processing.h"
 
@@ -376,12 +377,53 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
         }
     }
 
+    if (settings.swapBasis != 0 || settings.swapInvertMask != 0) {
+        VTimer transform_timer;
+        ImageBuf transformed_buf;
+        const bool signedOutputRange = settings.rangeMode == 1 || settings.rangeMode == 3;
+        spdlog::info("Applying channel swap/invert...\n");
+        const bool success = applyChannelSwapInvert(transformed_buf, out_buf, settings.swapBasis,
+                                                    settings.swapInvertMask, signedOutputRange, 0);
+        if (!success) {
+            spdlog::error("Error: Could not apply channel swap/invert");
+            spdlog::error("{}", transformed_buf.geterror());
+            reportProgress(progressCallback, 0.0f, "Error! Check console for details");
+            return false;
+        }
+        out_buf = std::move(transformed_buf);
+        out_format = out_buf.spec().format;
+        grayscale = out_buf.nchannels() <= 2;
+        spdlog::info("Channel swap/invert time : {}", transform_timer.nowText());
+    }
+
+    if (settings.grayscaleMode != 0) {
+        VTimer grayscale_timer;
+        ImageBuf grayscale_buf;
+        spdlog::info("Applying grayscale conversion...\n");
+        const bool success = applyGrayscale(grayscale_buf, out_buf, settings.grayscaleMode, settings.grayscaleWeights,
+                                            settings.alphaMode == 1, 0);
+        if (!success) {
+            spdlog::error("Error: Could not apply grayscale conversion");
+            spdlog::error("{}", grayscale_buf.geterror());
+            reportProgress(progressCallback, 0.0f, "Error! Check console for details");
+            return false;
+        }
+        out_buf = std::move(grayscale_buf);
+        out_format = out_buf.spec().format;
+        grayscale = true;
+        spdlog::info("Grayscale conversion time : {}", grayscale_timer.nowText());
+    }
+
+    const int outputBufferChannels = out_buf.nchannels();
+    const int outputAlphaChannel = out_buf.spec().alpha_channel >= 0 ? out_buf.spec().alpha_channel :
+                                   (out_buf.nchannels() == 4 ? 3 : (out_buf.nchannels() == 2 ? 1 : -1));
+
     ImageSpec& ospec = out_buf.specmod();
-    if (settings.alphaMode == 1) {
-        ospec.nchannels = grayscale ? 2 : 4; // Write RGB and alpha channels
+    if (settings.alphaMode == 1 && outputAlphaChannel >= 0) {
+        ospec.nchannels = grayscale ? std::min(2, outputBufferChannels) : std::min(4, outputBufferChannels); // Write RGB and alpha channels
     }
     else if (settings.alphaMode == 0) {
-		ospec.nchannels = grayscale ? 1 : 3; // Only write RGB channels
+		ospec.nchannels = grayscale ? 1 : std::min(3, outputBufferChannels); // Only write RGB channels
     }
     else {
         ospec.nchannels = 1; // Only write alpha channel
@@ -513,9 +555,9 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
         ok = out->write_image(out_format, out_buf.localpixels(), out_buf.pixel_stride(), out_buf.scanline_stride(), out_buf.z_stride(), m_progress_callback, writeProgressData);
     }
     else {
-        int channel_to_extract = grayscale ? 1 : 3;  // for Alpha channle from RGBA
-        int channels = grayscale ? 2 : 4;
-        int bytes = input_buf.spec().format.size(); //
+        int channel_to_extract = outputAlphaChannel >= 0 ? outputAlphaChannel : 0;  // for Alpha channel from RGBA/YA
+        int channels = outputBufferChannels;
+        int bytes = out_format.size(); //
 
         ok = out->write_image(out_format,
             (char*)out_buf.localpixels() + channel_to_extract * bytes, // pointer to the first pixel to write

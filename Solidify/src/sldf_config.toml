@@ -30,7 +30,28 @@ RangeMode = 0
 
 [Transform]
 # Transform image
-empty = true
+# SwapBasis:
+# 0 - XYZ
+# 1 - XZY
+# 2 - YXZ
+# 3 - YZX
+# 4 - ZXY
+# 5 - ZYX
+SwapBasis = 0
+# SwapInvertMask bits apply after basis swap: bit 0 first output channel,
+# bit 1 second output channel, bit 2 third output channel.
+SwapInvertMask = 0
+# GrayscaleMode:
+# 0 - disabled
+# 1 - R only
+# 2 - G only
+# 3 - B only
+# 4 - Mask/alpha
+# 5 - Luminosity
+# 6 - Equal
+# 7 - Arbitrary
+GrayscaleMode = 0
+GrayscaleWeights = [0.2126, 0.7152, 0.0722]
 
 [Export]
 # Export settings

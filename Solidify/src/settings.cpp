@@ -59,6 +59,18 @@ bool loadSettings(Settings& settings, const std::string& filename)
 
         get_value(data, "Range", "RangeMode", settings.rangeMode);
 
+        get_value(data, "Transform", "SwapBasis", settings.swapBasis);
+        get_value(data, "Transform", "SwapInvertMask", settings.swapInvertMask);
+        get_value(data, "Transform", "GrayscaleMode", settings.grayscaleMode);
+        if (data.contains("Transform") && data.at("Transform").contains("GrayscaleWeights")) {
+            std::vector<float> values = toml::find<std::vector<float>>(data, "Transform", "GrayscaleWeights");
+            if (values.size() >= 3) {
+                settings.grayscaleWeights[0] = values[0];
+                settings.grayscaleWeights[1] = values[1];
+                settings.grayscaleWeights[2] = values[2];
+            }
+        }
+
         get_value(data, "Export", "DefaultFormat", settings.defFormat);
         get_value(data, "Export", "FileFormat", settings.fileFormat);
         get_value(data, "Export", "DefaultBit", settings.defBDepth);
@@ -70,6 +82,9 @@ bool loadSettings(Settings& settings, const std::string& filename)
         settings.normMode   = std::clamp<uint>(settings.normMode, 0, 2);
         settings.repairMode = std::clamp<uint>(settings.repairMode, 0, 6);
         settings.rangeMode  = std::clamp<uint>(settings.rangeMode, 0, 3);
+        settings.swapBasis = std::clamp<uint>(settings.swapBasis, 0, 5);
+        settings.swapInvertMask = std::clamp<uint>(settings.swapInvertMask, 0, 7);
+        settings.grayscaleMode = std::clamp<uint>(settings.grayscaleMode, 0, 7);
         settings.defFormat  = std::clamp(settings.defFormat, 0, 7);
         settings.fileFormat = std::clamp(settings.fileFormat, -1, 7);
         settings.defBDepth  = std::clamp(settings.defBDepth, 0, 6);
@@ -123,6 +138,11 @@ void printSettings(Settings& settings)
     spdlog::info("Normalize Mode: {}", settings.normMode);
     spdlog::info("Repair Mode: {}", settings.repairMode);
     spdlog::info("Range Mode: {}", settings.rangeMode);
+    spdlog::info("Swap Basis: {}", settings.swapBasis);
+    spdlog::info("Swap Invert Mask: {}", settings.swapInvertMask);
+    spdlog::info("Grayscale Mode: {}", settings.grayscaleMode);
+    spdlog::info("Grayscale Weights: {}, {}, {}", settings.grayscaleWeights[0], settings.grayscaleWeights[1],
+                 settings.grayscaleWeights[2]);
     spdlog::info("File Format: {}", formatName(settings.fileFormat));
     spdlog::info("Default File Format: {}", formatName(settings.defFormat));
     spdlog::info("Export Bit Depth: {}", bitDepthName(settings.bitDepth));

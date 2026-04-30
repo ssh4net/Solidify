@@ -237,6 +237,9 @@ if(WEBPMUX_LIBRARY AND NOT TARGET WebP::libwebpmux)
 endif()
 
 find_package(OpenImageIO CONFIG REQUIRED)
+if(NOT TARGET hwy::hwy)
+    find_package(hwy CONFIG REQUIRED)
+endif()
 find_package(spdlog CONFIG REQUIRED)
 
 file(GLOB IMGUI_SOURCES CONFIGURE_DEPENDS
@@ -259,6 +262,7 @@ set(SOLIDIFY_SOURCES
     Solidify/src/processing.cpp
     Solidify/src/settings.cpp
     Solidify/src/IMAGEIO.CPP
+    Solidify/src/imageops.cpp
     Solidify/src/solidify.cpp
     Solidify/src/pch.cpp
 )
@@ -282,6 +286,7 @@ target_include_directories(Solidify PRIVATE
 target_link_libraries(Solidify PRIVATE
     Threads::Threads
     OpenImageIO::OpenImageIO
+    hwy::hwy
     spdlog::spdlog
     glfw3::glfw3
     OpenGL::GL

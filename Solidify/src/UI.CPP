@@ -107,6 +107,51 @@ static void SetRepairMode(uint mode, const char* label)
     }
 }
 
+static constexpr const char* kSwapBasisLabels[6] = { "XYZ", "XZY", "YXZ", "YZX", "ZXY", "ZYX" };
+static constexpr int kSwapBasisOrders[6][3]      = {
+    { 0, 1, 2 },
+    { 0, 2, 1 },
+    { 1, 0, 2 },
+    { 1, 2, 0 },
+    { 2, 0, 1 },
+    { 2, 1, 0 },
+};
+
+static char AxisName(int axis)
+{
+    return static_cast<char>('X' + axis);
+}
+
+static std::string SwapInvertLabel(uint basis, uint invertMask)
+{
+    basis = std::clamp<uint>(basis, 0, 5);
+    std::string label;
+    label.reserve(6);
+    for (int c = 0; c < 3; ++c) {
+        label.push_back((invertMask & (1u << c)) != 0 ? '-' : '+');
+        label.push_back(AxisName(kSwapBasisOrders[basis][c]));
+    }
+    return label;
+}
+
+static void SetSwapBasis(uint basis)
+{
+    settings.swapBasis = std::clamp<uint>(basis, 0, 5);
+    SetStatus(std::string("Swap basis set to ") + kSwapBasisLabels[settings.swapBasis]);
+}
+
+static void SetSwapInvertMask(uint invertMask)
+{
+    settings.swapInvertMask = std::clamp<uint>(invertMask, 0, 7);
+    SetStatus(std::string("Swap/invert set to ") + SwapInvertLabel(settings.swapBasis, settings.swapInvertMask));
+}
+
+static void SetGrayscaleMode(uint mode, const char* label)
+{
+    settings.grayscaleMode = mode;
+    SetStatus(std::string("Grayscale set to ") + label);
+}
+
 static void ApplyVerbosity()
 {
     const int verbosity = std::clamp<int>(static_cast<int>(settings.verbosity), 0, 5);
@@ -183,6 +228,68 @@ void AppMenuBar()
                 }
                 if (ImGui::MenuItem("-Z", nullptr, settings.repairMode == 6)) {
                     SetRepairMode(6, "-Z");
+                }
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu("Swap and invert")) {
+                if (ImGui::MenuItem("Disable", nullptr, settings.swapBasis == 0 && settings.swapInvertMask == 0)) {
+                    settings.swapBasis      = 0;
+                    settings.swapInvertMask = 0;
+                    SetStatus("Swap and invert disabled");
+                }
+
+                if (ImGui::BeginMenu("Basis")) {
+                    for (uint basis = 0; basis < 6; ++basis) {
+                        if (ImGui::MenuItem(kSwapBasisLabels[basis], nullptr, settings.swapBasis == basis)) {
+                            SetSwapBasis(basis);
+                        }
+                    }
+                    ImGui::EndMenu();
+                }
+
+                const std::string currentSignLabel = SwapInvertLabel(settings.swapBasis, settings.swapInvertMask);
+                if (ImGui::BeginMenu(currentSignLabel.c_str())) {
+                    for (uint mask = 0; mask < 8; ++mask) {
+                        const std::string label = SwapInvertLabel(settings.swapBasis, mask);
+                        if (ImGui::MenuItem(label.c_str(), nullptr, settings.swapInvertMask == mask)) {
+                            SetSwapInvertMask(mask);
+                        }
+                    }
+                    ImGui::EndMenu();
+                }
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu("Grayscale")) {
+                if (ImGui::MenuItem("Disable", nullptr, settings.grayscaleMode == 0)) {
+                    SetGrayscaleMode(0, "Disable");
+                }
+                if (ImGui::MenuItem("R only", nullptr, settings.grayscaleMode == 1)) {
+                    SetGrayscaleMode(1, "R only");
+                }
+                if (ImGui::MenuItem("G only", nullptr, settings.grayscaleMode == 2)) {
+                    SetGrayscaleMode(2, "G only");
+                }
+                if (ImGui::MenuItem("B only", nullptr, settings.grayscaleMode == 3)) {
+                    SetGrayscaleMode(3, "B only");
+                }
+                if (ImGui::MenuItem("Mask (alpha)", nullptr, settings.grayscaleMode == 4)) {
+                    SetGrayscaleMode(4, "Mask (alpha)");
+                }
+                if (ImGui::MenuItem("Luminosity", nullptr, settings.grayscaleMode == 5)) {
+                    SetGrayscaleMode(5, "Luminosity");
+                }
+                if (ImGui::MenuItem("Equal", nullptr, settings.grayscaleMode == 6)) {
+                    SetGrayscaleMode(6, "Equal");
+                }
+                ImGui::Separator();
+                if (ImGui::MenuItem("Arbitrary", nullptr, settings.grayscaleMode == 7)) {
+                    SetGrayscaleMode(7, "Arbitrary");
+                }
+                ImGui::SetNextItemWidth(220.0f);
+                if (ImGui::InputFloat3("Weights", settings.grayscaleWeights, "%.4f")) {
+                    settings.grayscaleMode = 7;
                 }
                 ImGui::EndMenu();
             }

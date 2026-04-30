@@ -30,12 +30,14 @@ typedef unsigned long ulong;
 struct Settings {
     bool isSolidify, conEnable;
     uint normMode, rangeMode, repairMode, alphaMode;
+    uint swapBasis, swapInvertMask, grayscaleMode;
     int fileFormat, defFormat;
     int bitDepth, defBDepth;
     int rawRot;
     uint numThreads;
     uint queueLimit;
     uint verbosity;
+    float grayscaleWeights[3];
 
     std::vector<std::string> normNames, mask_substr, out_formats;
 
@@ -58,6 +60,9 @@ struct Settings {
         verbosity  = 3;
         normMode   = 1;
         repairMode = 0;
+        swapBasis = 0;
+        swapInvertMask = 0;
+        grayscaleMode = 0;
 
         rangeMode = 0;
         fileFormat = -1;
@@ -65,6 +70,9 @@ struct Settings {
         bitDepth   = -1;
         defBDepth  = 1;
         rawRot     = -1;
+        grayscaleWeights[0] = 0.2126f;
+        grayscaleWeights[1] = 0.7152f;
+        grayscaleWeights[2] = 0.0722f;
 
         normNames   = { "normal", "tangent", "object", "world" };
         mask_substr = { "_mask.", "_mask_", "_alpha.", "_alpha_" };
