@@ -256,6 +256,22 @@ if(NOT EXISTS "${SOLIDIFY_GUI_FONT}")
     message(FATAL_ERROR "Expected font not found at ${SOLIDIFY_GUI_FONT}")
 endif()
 
+set(SOLIDIFY_EMBEDDED_FONT_SOURCE "")
+if(NOT WIN32)
+    set(SOLIDIFY_EMBEDDED_FONT_SOURCE "${CMAKE_CURRENT_BINARY_DIR}/generated/solidify_embedded_font.cpp")
+    add_custom_command(
+        OUTPUT "${SOLIDIFY_EMBEDDED_FONT_SOURCE}"
+        COMMAND ${CMAKE_COMMAND}
+                -DINPUT_FILE=${SOLIDIFY_GUI_FONT}
+                -DOUTPUT_FILE=${SOLIDIFY_EMBEDDED_FONT_SOURCE}
+                -DSYMBOL=solidify_embedded_font
+                -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/embed_binary.cmake"
+        DEPENDS "${SOLIDIFY_GUI_FONT}" "${CMAKE_CURRENT_SOURCE_DIR}/cmake/embed_binary.cmake"
+        COMMENT "Embed FiraSans font"
+        VERBATIM
+    )
+endif()
+
 set(SOLIDIFY_SOURCES
     Solidify/src/main.cpp
     Solidify/src/ui.cpp
@@ -265,6 +281,7 @@ set(SOLIDIFY_SOURCES
     Solidify/src/imageops.cpp
     Solidify/src/solidify.cpp
     Solidify/src/pch.cpp
+    ${SOLIDIFY_EMBEDDED_FONT_SOURCE}
 )
 
 if(WIN32)
@@ -273,7 +290,6 @@ endif()
 
 add_executable(Solidify ${SOLIDIFY_SOURCES} ${IMGUI_SOURCES})
 set_target_properties(Solidify PROPERTIES DEBUG_POSTFIX "${CMAKE_DEBUG_POSTFIX}")
-target_compile_definitions(Solidify PRIVATE SOLIDIFY_GUI_FONT_PATH="${SOLIDIFY_GUI_FONT}")
 
 target_include_directories(Solidify PRIVATE
     Solidify/src
@@ -372,15 +388,6 @@ add_custom_command(TARGET Solidify POST_BUILD
             "$<TARGET_FILE_DIR:Solidify>/sldf_config.toml"
 )
 
-add_custom_command(TARGET Solidify PRE_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:Solidify>/fonts"
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${SOLIDIFY_GUI_FONT}"
-            "$<TARGET_FILE_DIR:Solidify>/fonts/FiraSans-Regular.otf"
-    COMMENT "Copy FiraSans font for runtime use"
-)
-
 include(GNUInstallDirs)
 install(TARGETS Solidify RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(FILES Solidify/src/sldf_config.toml DESTINATION ${CMAKE_INSTALL_BINDIR})
-install(FILES "${SOLIDIFY_GUI_FONT}" DESTINATION ${CMAKE_INSTALL_BINDIR}/fonts)

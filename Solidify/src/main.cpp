@@ -17,8 +17,17 @@
 
 #include "pch.h"
 
+#ifdef _WIN32
+#    include "../resource.h"
+#endif
+
 #include "settings.h"
 #include "ui.h"
+
+#ifndef _WIN32
+extern const unsigned char solidify_embedded_font[];
+extern const unsigned int solidify_embedded_font_size;
+#endif
 
 static void glfw_error_callback(int error, const char* description)
 {
@@ -51,38 +60,46 @@ static void onDrop(GLFWwindow* window, const dnd_glfw::DropEvent& event, void* u
     }
 }
 
-static std::string findFontPath(const char* argv0)
+static bool loadEmbeddedGuiFont(ImGuiIO& io, const ImWchar* glyphRanges)
 {
-    std::vector<std::filesystem::path> candidates;
-#ifdef SOLIDIFY_GUI_FONT_PATH
-    candidates.emplace_back(std::filesystem::path(SOLIDIFY_GUI_FONT_PATH));
+#ifdef _WIN32
+    HRSRC fontResource = FindResourceW(nullptr, MAKEINTRESOURCEW(IDR_FIRA_SANS_REGULAR), MAKEINTRESOURCEW(10));
+    if (fontResource == nullptr) {
+        return false;
+    }
+    HGLOBAL fontHandle = LoadResource(nullptr, fontResource);
+    if (fontHandle == nullptr) {
+        return false;
+    }
+    const DWORD fontSize = SizeofResource(nullptr, fontResource);
+    const void* fontData = LockResource(fontHandle);
+    if (fontData == nullptr || fontSize == 0 || fontSize > static_cast<DWORD>(std::numeric_limits<int>::max())) {
+        return false;
+    }
+    void* fontBytes = const_cast<void*>(fontData);
+    const int fontByteCount = static_cast<int>(fontSize);
+#else
+    if (solidify_embedded_font_size == 0 || solidify_embedded_font_size > static_cast<unsigned int>(std::numeric_limits<int>::max())) {
+        return false;
+    }
+    void* fontBytes = const_cast<unsigned char*>(solidify_embedded_font);
+    const int fontByteCount = static_cast<int>(solidify_embedded_font_size);
 #endif
 
-    std::filesystem::path exeDir = std::filesystem::current_path();
-    if (argv0 != nullptr && argv0[0] != '\0') {
-        std::error_code ec;
-        std::filesystem::path exePath = std::filesystem::weakly_canonical(std::filesystem::path(argv0), ec);
-        if (!ec && !exePath.empty()) {
-            exeDir = exePath.parent_path();
-        }
+    ImFontConfig fontConfig;
+    fontConfig.FontDataOwnedByAtlas = false;
+    ImFont* font = io.Fonts->AddFontFromMemoryTTF(fontBytes, fontByteCount, 16.0f, &fontConfig, glyphRanges);
+    if (font == nullptr) {
+        return false;
     }
-
-    candidates.emplace_back(exeDir / "fonts" / "FiraSans-Regular.otf");
-    candidates.emplace_back(exeDir / ".." / "share" / "solidify" / "fonts" / "FiraSans-Regular.otf");
-
-    for (const std::filesystem::path& candidate : candidates) {
-        std::error_code ec;
-        if (!candidate.empty() && std::filesystem::exists(candidate, ec)) {
-            return candidate.string();
-        }
-    }
-
-    return {};
+    io.FontDefault = font;
+    return true;
 }
 
 int main(int argc, char* argv[])
 {
     (void)argc;
+    (void)argv;
 
 #ifdef _WIN32
     AllocConsole();
@@ -101,9 +118,10 @@ int main(int argc, char* argv[])
     spdlog::info("Build from: {} {}", __DATE__, __TIME__);
     spdlog::info("Log started at: {}", ctime(&timestamp));
 
-    if (!loadSettings(settings, "sldf_config.toml")) {
+    if (!loadSettingsDefaults("sldf_config.toml")) {
         spdlog::error("Can not load [sldf_config.toml]. Using default settings.");
         settings.reSettings();
+        settingsDefaults = settings;
     }
 
 #ifdef _WIN32
@@ -171,16 +189,8 @@ int main(int argc, char* argv[])
     };
 
     const ImWchar* glyphRanges = io.Fonts->GetGlyphRangesDefault();
-    std::string fontPath       = findFontPath((argv != nullptr) ? argv[0] : nullptr);
-    if (!fontPath.empty()) {
-        ImFont* font = io.Fonts->AddFontFromFileTTF(fontPath.c_str(), 16.0f, nullptr, glyphRanges);
-        if (font != nullptr) {
-            io.FontDefault = font;
-        } else {
-            spdlog::warn("Failed to load font at {}, using default ImGui font.", fontPath);
-        }
-    } else {
-        spdlog::warn("No FiraSans font found; using default ImGui font.");
+    if (!loadEmbeddedGuiFont(io, glyphRanges)) {
+        spdlog::warn("Failed to load embedded FiraSans font; using default ImGui font.");
     }
 
     dnd_glfw::Callbacks dnd_cbs;

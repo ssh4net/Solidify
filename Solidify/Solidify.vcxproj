@@ -63,9 +63,7 @@
       <AdditionalOptions> /VERBOSE:LIB %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PostBuildEvent>
-      <Command>if not exist "$(TargetDir)fonts" mkdir "$(TargetDir)fonts"
-copy /Y "$(ProjectDir)..\external\Fira\FiraSans-Regular.otf" "$(TargetDir)fonts\FiraSans-Regular.otf"
-copy /Y "$(ProjectDir)src\sldf_config.toml" "$(TargetDir)sldf_config.toml"</Command>
+      <Command>copy /Y "$(ProjectDir)src\sldf_config.toml" "$(TargetDir)sldf_config.toml"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -91,9 +89,7 @@ copy /Y "$(ProjectDir)src\sldf_config.toml" "$(TargetDir)sldf_config.toml"</Comm
       </IgnoreSpecificDefaultLibraries>
     </Link>
     <PostBuildEvent>
-      <Command>if not exist "$(TargetDir)fonts" mkdir "$(TargetDir)fonts"
-copy /Y "$(ProjectDir)..\external\Fira\FiraSans-Regular.otf" "$(TargetDir)fonts\FiraSans-Regular.otf"
-copy /Y "$(ProjectDir)src\sldf_config.toml" "$(TargetDir)sldf_config.toml"</Command>
+      <Command>copy /Y "$(ProjectDir)src\sldf_config.toml" "$(TargetDir)sldf_config.toml"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'" Label="Configuration">

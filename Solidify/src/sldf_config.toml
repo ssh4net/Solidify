@@ -30,6 +30,7 @@ RangeMode = 0
 
 [Transform]
 # Transform image
+# +X+Y+Z is identity and disables swap/invert processing.
 # SwapBasis:
 # 0 - XYZ
 # 1 - XZY
@@ -40,6 +41,7 @@ RangeMode = 0
 SwapBasis = 0
 # SwapInvertMask bits apply after basis swap: bit 0 first output channel,
 # bit 1 second output channel, bit 2 third output channel.
+# With SwapBasis = 0, SwapInvertMask = 0 means disabled.
 SwapInvertMask = 0
 # GrayscaleMode:
 # 0 - disabled

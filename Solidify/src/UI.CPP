@@ -134,16 +134,29 @@ static std::string SwapInvertLabel(uint basis, uint invertMask)
     return label;
 }
 
+static bool SwapInvertIsDisabled()
+{
+    return settings.swapBasis == 0 && settings.swapInvertMask == 0;
+}
+
 static void SetSwapBasis(uint basis)
 {
     settings.swapBasis = std::clamp<uint>(basis, 0, 5);
-    SetStatus(std::string("Swap basis set to ") + kSwapBasisLabels[settings.swapBasis]);
+    if (SwapInvertIsDisabled()) {
+        SetStatus("Swap and invert disabled");
+    } else {
+        SetStatus(std::string("Swap basis set to ") + kSwapBasisLabels[settings.swapBasis]);
+    }
 }
 
 static void SetSwapInvertMask(uint invertMask)
 {
     settings.swapInvertMask = std::clamp<uint>(invertMask, 0, 7);
-    SetStatus(std::string("Swap/invert set to ") + SwapInvertLabel(settings.swapBasis, settings.swapInvertMask));
+    if (SwapInvertIsDisabled()) {
+        SetStatus("Swap and invert disabled");
+    } else {
+        SetStatus(std::string("Swap/invert set to ") + SwapInvertLabel(settings.swapBasis, settings.swapInvertMask));
+    }
 }
 
 static void SetGrayscaleMode(uint mode, const char* label)
@@ -158,6 +171,13 @@ static void ApplyVerbosity()
     spdlog::set_level(static_cast<spdlog::level::level_enum>(5 - verbosity));
 }
 
+static void ApplyConsoleVisibility()
+{
+#ifdef _WIN32
+    ShowWindow(GetConsoleWindow(), settings.conEnable ? SW_SHOW : SW_HIDE);
+#endif
+}
+
 void AppMenuBar()
 {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 10.0f));
@@ -167,7 +187,9 @@ void AppMenuBar()
     if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu("Files")) {
             if (ImGui::MenuItem("Reload Config")) {
-                if (loadSettings(settings, "sldf_config.toml")) {
+                if (loadSettingsDefaults("sldf_config.toml")) {
+                    ApplyConsoleVisibility();
+                    ApplyVerbosity();
                     printSettings(settings);
                     SetStatus("Config reloaded.");
                 } else {
@@ -233,12 +255,6 @@ void AppMenuBar()
             }
 
             if (ImGui::BeginMenu("Swap and invert")) {
-                if (ImGui::MenuItem("Disable", nullptr, settings.swapBasis == 0 && settings.swapInvertMask == 0)) {
-                    settings.swapBasis      = 0;
-                    settings.swapInvertMask = 0;
-                    SetStatus("Swap and invert disabled");
-                }
-
                 if (ImGui::BeginMenu("Basis")) {
                     for (uint basis = 0; basis < 6; ++basis) {
                         if (ImGui::MenuItem(kSwapBasisLabels[basis], nullptr, settings.swapBasis == basis)) {
@@ -348,9 +364,13 @@ void AppMenuBar()
         if (ImGui::BeginMenu("Settings")) {
             if (ImGui::MenuItem("Enable Console", nullptr, settings.conEnable)) {
                 settings.conEnable = !settings.conEnable;
-#ifdef _WIN32
-                ShowWindow(GetConsoleWindow(), settings.conEnable ? SW_SHOW : SW_HIDE);
-#endif
+                ApplyConsoleVisibility();
+            }
+            if (ImGui::MenuItem("Reset")) {
+                resetSettingsToDefaults();
+                ApplyConsoleVisibility();
+                ApplyVerbosity();
+                SetStatus("Settings reset to config defaults.");
             }
             if (ImGui::MenuItem("Print Settings")) {
                 printSettings(settings);

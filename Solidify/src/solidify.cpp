@@ -368,11 +368,11 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
     // if not normalize and not repair and range conversion is needed
     if (settings.repairMode == 0 && !doNormalize && settings.rangeMode > 1) {
         switch (settings.rangeMode) {
-        case 2: // 2 - unsigned -> signed
-            out_buf = ImageBufAlgo::mad(out_buf, 2.0f, -1.0f);
-            break;
-        case 3: // 3 - signed -> unsigned
+        case 2: // 2 - signed -> unsigned
             out_buf = ImageBufAlgo::mad(out_buf, 0.5f, 0.5f);
+            break;
+        case 3: // 3 - unsigned -> signed
+            out_buf = ImageBufAlgo::mad(out_buf, 2.0f, -1.0f);
 			break;
         }
     }

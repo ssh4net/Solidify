@@ -41,8 +41,8 @@ struct Settings {
 
     std::vector<std::string> normNames, mask_substr, out_formats;
 
-    const int raw_rot[5] = { -1, 0, 3, 5, 6 };
-    const uint rngConv[4] = { 0, 1, 2, 3 };
+    static constexpr int raw_rot[5] = { -1, 0, 3, 5, 6 };
+    static constexpr uint rngConv[4] = { 0, 1, 2, 3 };
 
     Settings()
     {
@@ -95,8 +95,11 @@ struct Settings {
 };
 
 extern Settings settings;
+extern Settings settingsDefaults;
 
 bool loadSettings(Settings& settings, const std::string& filename);
+bool loadSettingsDefaults(const std::string& filename);
+void resetSettingsToDefaults();
 void printSettings(Settings& settings);
 
 #endif

@@ -20,6 +20,7 @@
 #include "settings.h"
 
 Settings settings;
+Settings settingsDefaults;
 
 template<typename T>
 static void get_value(const toml::value& data, const std::string& section, const std::string& key, T& var)
@@ -29,73 +30,92 @@ static void get_value(const toml::value& data, const std::string& section, const
     }
 }
 
-bool loadSettings(Settings& settings, const std::string& filename)
+bool loadSettings(Settings& outSettings, const std::string& filename)
 {
     try {
         const auto data = toml::parse(filename);
+        Settings loaded;
 
-        get_value(data, "Global", "Solidify", settings.isSolidify);
-        get_value(data, "Global", "ExportAlpha", settings.alphaMode);
-        get_value(data, "Global", "Console", settings.conEnable);
-        get_value(data, "Global", "Threads", settings.numThreads);
-        get_value(data, "Global", "QueueLimit", settings.queueLimit);
-        get_value(data, "Global", "Verbosity", settings.verbosity);
+        get_value(data, "Global", "Solidify", loaded.isSolidify);
+        get_value(data, "Global", "ExportAlpha", loaded.alphaMode);
+        get_value(data, "Global", "Console", loaded.conEnable);
+        get_value(data, "Global", "Threads", loaded.numThreads);
+        get_value(data, "Global", "QueueLimit", loaded.queueLimit);
+        get_value(data, "Global", "Verbosity", loaded.verbosity);
 
         if (data.contains("Global") && data.at("Global").contains("MaskNames")) {
             std::vector<std::string> values = toml::find<std::vector<std::string>>(data, "Global", "MaskNames");
             if (!values.empty()) {
-                settings.mask_substr = std::move(values);
+                loaded.mask_substr = std::move(values);
             }
         }
 
-        get_value(data, "Normalize", "NormalizeMode", settings.normMode);
+        get_value(data, "Normalize", "NormalizeMode", loaded.normMode);
         if (data.contains("Normalize") && data.at("Normalize").contains("NormalsNames")) {
             std::vector<std::string> values =
                 toml::find<std::vector<std::string>>(data, "Normalize", "NormalsNames");
             if (!values.empty()) {
-                settings.normNames = std::move(values);
+                loaded.normNames = std::move(values);
             }
         }
 
-        get_value(data, "Range", "RangeMode", settings.rangeMode);
+        get_value(data, "Range", "RangeMode", loaded.rangeMode);
 
-        get_value(data, "Transform", "SwapBasis", settings.swapBasis);
-        get_value(data, "Transform", "SwapInvertMask", settings.swapInvertMask);
-        get_value(data, "Transform", "GrayscaleMode", settings.grayscaleMode);
+        get_value(data, "Transform", "SwapBasis", loaded.swapBasis);
+        get_value(data, "Transform", "SwapInvertMask", loaded.swapInvertMask);
+        get_value(data, "Transform", "GrayscaleMode", loaded.grayscaleMode);
         if (data.contains("Transform") && data.at("Transform").contains("GrayscaleWeights")) {
             std::vector<float> values = toml::find<std::vector<float>>(data, "Transform", "GrayscaleWeights");
             if (values.size() >= 3) {
-                settings.grayscaleWeights[0] = values[0];
-                settings.grayscaleWeights[1] = values[1];
-                settings.grayscaleWeights[2] = values[2];
+                loaded.grayscaleWeights[0] = values[0];
+                loaded.grayscaleWeights[1] = values[1];
+                loaded.grayscaleWeights[2] = values[2];
             }
         }
 
-        get_value(data, "Export", "DefaultFormat", settings.defFormat);
-        get_value(data, "Export", "FileFormat", settings.fileFormat);
-        get_value(data, "Export", "DefaultBit", settings.defBDepth);
-        get_value(data, "Export", "BitDepth", settings.bitDepth);
+        get_value(data, "Export", "DefaultFormat", loaded.defFormat);
+        get_value(data, "Export", "FileFormat", loaded.fileFormat);
+        get_value(data, "Export", "DefaultBit", loaded.defBDepth);
+        get_value(data, "Export", "BitDepth", loaded.bitDepth);
 
-        get_value(data, "CameraRaw", "RawRotation", settings.rawRot);
+        get_value(data, "CameraRaw", "RawRotation", loaded.rawRot);
 
-        settings.alphaMode  = std::clamp<uint>(settings.alphaMode, 0, 2);
-        settings.normMode   = std::clamp<uint>(settings.normMode, 0, 2);
-        settings.repairMode = std::clamp<uint>(settings.repairMode, 0, 6);
-        settings.rangeMode  = std::clamp<uint>(settings.rangeMode, 0, 3);
-        settings.swapBasis = std::clamp<uint>(settings.swapBasis, 0, 5);
-        settings.swapInvertMask = std::clamp<uint>(settings.swapInvertMask, 0, 7);
-        settings.grayscaleMode = std::clamp<uint>(settings.grayscaleMode, 0, 7);
-        settings.defFormat  = std::clamp(settings.defFormat, 0, 7);
-        settings.fileFormat = std::clamp(settings.fileFormat, -1, 7);
-        settings.defBDepth  = std::clamp(settings.defBDepth, 0, 6);
-        settings.bitDepth   = std::clamp(settings.bitDepth, -1, 6);
-        settings.verbosity  = std::clamp<uint>(settings.verbosity, 0, 5);
+        loaded.alphaMode  = std::clamp<uint>(loaded.alphaMode, 0, 2);
+        loaded.normMode   = std::clamp<uint>(loaded.normMode, 0, 2);
+        loaded.repairMode = std::clamp<uint>(loaded.repairMode, 0, 6);
+        loaded.rangeMode  = std::clamp<uint>(loaded.rangeMode, 0, 3);
+        loaded.swapBasis = std::clamp<uint>(loaded.swapBasis, 0, 5);
+        loaded.swapInvertMask = std::clamp<uint>(loaded.swapInvertMask, 0, 7);
+        loaded.grayscaleMode = std::clamp<uint>(loaded.grayscaleMode, 0, 7);
+        loaded.defFormat  = std::clamp(loaded.defFormat, 0, 7);
+        loaded.fileFormat = std::clamp(loaded.fileFormat, -1, 7);
+        loaded.defBDepth  = std::clamp(loaded.defBDepth, 0, 6);
+        loaded.bitDepth   = std::clamp(loaded.bitDepth, -1, 6);
+        loaded.verbosity  = std::clamp<uint>(loaded.verbosity, 0, 5);
 
+        outSettings = loaded;
         return true;
     } catch (const std::exception& ex) {
         spdlog::error("Error loading settings file: {}", ex.what());
         return false;
     }
+}
+
+bool loadSettingsDefaults(const std::string& filename)
+{
+    Settings loaded;
+    if (!loadSettings(loaded, filename)) {
+        return false;
+    }
+
+    settingsDefaults = loaded;
+    settings         = loaded;
+    return true;
+}
+
+void resetSettingsToDefaults()
+{
+    settings = settingsDefaults;
 }
 
 static const char* formatName(int fileFormat)
