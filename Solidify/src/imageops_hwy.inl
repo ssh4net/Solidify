@@ -176,12 +176,14 @@ HWY_ATTR hn::VFromD<hn::ScalableTag<T>> grayFixed(const hn::ScalableTag<T> d, co
     auto b0 = hn::PromoteLowerTo(dw, b);
     auto lo = hn::MulAdd(b0, wb, hn::MulAdd(g0, wg, hn::MulAdd(r0, wr, round)));
     lo = hn::ShiftRight<16>(lo);
+    lo = hn::Min(lo, hn::Set(dw, static_cast<WideT>(std::numeric_limits<T>::max())));
 
     auto r1 = hn::PromoteUpperTo(dw, r);
     auto g1 = hn::PromoteUpperTo(dw, g);
     auto b1 = hn::PromoteUpperTo(dw, b);
     auto hi = hn::MulAdd(b1, wb, hn::MulAdd(g1, wg, hn::MulAdd(r1, wr, round)));
     hi = hn::ShiftRight<16>(hi);
+    hi = hn::Min(hi, hn::Set(dw, static_cast<WideT>(std::numeric_limits<T>::max())));
 
     return hn::OrderedDemote2To(d, lo, hi);
 }
@@ -207,9 +209,6 @@ HWY_ATTR bool grayscaleTyped(const SolidifyHwyImageView* view, const SolidifyHwy
     const size_t lanes = hn::Lanes(d);
 
     if constexpr (!std::is_floating_point_v<T>) {
-        if (op->mode == 7) {
-            return false;
-        }
         if (op->mode >= 5 && !(std::is_same_v<T, uint16_t> || std::is_same_v<T, uint32_t>)) {
             return false;
         }
@@ -233,6 +232,7 @@ HWY_ATTR bool grayscaleTyped(const SolidifyHwyImageView* view, const SolidifyHwy
             case 4: gray = a; break;
             case 5:
             case 6:
+            case 7:
                 if constexpr (std::is_floating_point_v<T>) {
                     gray = grayFloat<T>(d, r, g, b, op);
                 } else if constexpr (std::is_same_v<T, uint16_t>) {
@@ -242,9 +242,6 @@ HWY_ATTR bool grayscaleTyped(const SolidifyHwyImageView* view, const SolidifyHwy
                 } else {
                     return false;
                 }
-                break;
-            case 7:
-                gray = grayFloat<T>(d, r, g, b, op);
                 break;
             case 1:
             default: gray = r; break;
@@ -278,7 +275,10 @@ HWY_ATTR bool grayscaleTyped(const SolidifyHwyImageView* view, const SolidifyHwy
                                                  + static_cast<unsigned long long>(s[1]) * op->fixedWeights[1]
                                                  + static_cast<unsigned long long>(s[2]) * op->fixedWeights[2]
                                                  + 32768ull;
-                    gray = static_cast<T>(sum >> 16);
+                    const unsigned long long value = sum >> 16;
+                    const unsigned long long maxValue =
+                        static_cast<unsigned long long>(std::numeric_limits<T>::max());
+                    gray = static_cast<T>(value > maxValue ? maxValue : value);
                 }
                 break;
             case 1:

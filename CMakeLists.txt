@@ -258,10 +258,10 @@ endif()
 
 set(SOLIDIFY_SOURCES
     Solidify/src/main.cpp
-    Solidify/src/UI.CPP
+    Solidify/src/ui.cpp
     Solidify/src/processing.cpp
     Solidify/src/settings.cpp
-    Solidify/src/IMAGEIO.CPP
+    Solidify/src/imageio.cpp
     Solidify/src/imageops.cpp
     Solidify/src/solidify.cpp
     Solidify/src/pch.cpp

@@ -14,7 +14,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\UI.CPP">
+    <ClCompile Include="src\ui.cpp">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="src\main.cpp">
@@ -26,7 +26,7 @@
     <ClCompile Include="src\solidify.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="src\IMAGEIO.CPP">
+    <ClCompile Include="src\imageio.cpp">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="src\imageops.cpp">
@@ -61,7 +61,7 @@
     <ClInclude Include="resource.h">
       <Filter>Resource Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Common.h">
+    <ClInclude Include="src\common.h">
       <Filter>src\headers</Filter>
     </ClInclude>
     <ClInclude Include="src\imageio.h">
@@ -82,7 +82,7 @@
     <ClInclude Include="src\solidify.h">
       <Filter>src\headers</Filter>
     </ClInclude>
-    <ClInclude Include="src\Timer.h">
+    <ClInclude Include="src\timer.h">
       <Filter>src\headers</Filter>
     </ClInclude>
     <ClInclude Include="src\pch.h">

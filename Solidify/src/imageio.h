@@ -16,7 +16,7 @@
  */
 #pragma once
 
-#include "Timer.h"
+#include "timer.h"
 #include "processing.h"
 
 #include <OpenImageIO/half.h>

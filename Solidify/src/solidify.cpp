@@ -21,13 +21,13 @@
 #include <string>
 #include <math.h>
 
-#include "Timer.h"
+#include "timer.h"
 
 //#include <OpenImageIO/imageio.h>
 //#include <OpenImageIO/imagebuf.h>
 //#include <OpenImageIO/imagebufalgo.h>
 
-//#include "Log.h"
+//#include "log.h_"
 #include "solidify.h"
 #include "imageio.h"
 #include "imageops.h"

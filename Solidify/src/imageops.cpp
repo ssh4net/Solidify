@@ -132,166 +132,6 @@ static int findAlphaChannel(const OIIO::ImageBuf& src)
     return -1;
 }
 
-template<typename T>
-static T invertScalarValue(const T v, const bool signedRange)
-{
-    if constexpr (std::is_floating_point_v<T>) {
-        return signedRange ? -v : static_cast<T>(1) - v;
-    } else {
-        (void)signedRange;
-        return static_cast<T>(std::numeric_limits<T>::max() - v);
-    }
-}
-
-template<typename T>
-static T clampFloatToPixel(const long double v)
-{
-    if constexpr (std::is_floating_point_v<T>) {
-        return static_cast<T>(v);
-    } else {
-        if (v <= 0.0L) {
-            return static_cast<T>(0);
-        }
-        const long double maxValue = static_cast<long double>(std::numeric_limits<T>::max());
-        if (v >= maxValue) {
-            return std::numeric_limits<T>::max();
-        }
-        return static_cast<T>(v + 0.5L);
-    }
-}
-
-template<typename T>
-static T grayscaleScalarValue(const T* src, const int srcChannels, const solidify_hwy::SolidifyHwyGrayscaleOp& op)
-{
-    switch (op.mode) {
-    case 2: return src[1];
-    case 3: return src[2];
-    case 4: return src[srcChannels == 4 ? 3 : 0];
-    case 5:
-    case 6:
-    case 7: {
-        const long double r = static_cast<long double>(src[0]);
-        const long double g = static_cast<long double>(src[1]);
-        const long double b = static_cast<long double>(src[2]);
-        return clampFloatToPixel<T>(r * op.weights[0] + g * op.weights[1] + b * op.weights[2]);
-    }
-    case 1:
-    default: return src[0];
-    }
-}
-
-template<typename T>
-static bool swapInvertScalarTyped(OIIO::ImageBuf& dst, const OIIO::ImageBuf& src,
-                                  const solidify_hwy::SolidifyHwySwapOp& op, const OIIO::ROI roi)
-{
-    const int srcChannels = src.nchannels();
-    const int dstChannels = dst.nchannels();
-    const ptrdiff_t srcRowStride = src.scanline_stride();
-    const ptrdiff_t dstRowStride = dst.scanline_stride();
-    const ptrdiff_t srcPixelStride = src.pixel_stride();
-    const ptrdiff_t dstPixelStride = dst.pixel_stride();
-    const uint8_t* srcBase = static_cast<const uint8_t*>(src.localpixels());
-    uint8_t* dstBase = static_cast<uint8_t*>(dst.localpixels());
-
-    for (int y = roi.ybegin; y < roi.yend; ++y) {
-        const uint8_t* srcRow = srcBase + static_cast<size_t>(y - src.ybegin()) * srcRowStride;
-        uint8_t* dstRow = dstBase + static_cast<size_t>(y - dst.ybegin()) * dstRowStride;
-        for (int x = roi.xbegin; x < roi.xend; ++x) {
-            const T* s = reinterpret_cast<const T*>(srcRow + static_cast<size_t>(x - src.xbegin()) * srcPixelStride);
-            T* d = reinterpret_cast<T*>(dstRow + static_cast<size_t>(x - dst.xbegin()) * dstPixelStride);
-            T v0 = s[op.order[0]];
-            T v1 = s[op.order[1]];
-            T v2 = s[op.order[2]];
-            if ((op.invertMask & 1u) != 0) {
-                v0 = invertScalarValue(v0, op.signedRange != 0);
-            }
-            if ((op.invertMask & 2u) != 0) {
-                v1 = invertScalarValue(v1, op.signedRange != 0);
-            }
-            if ((op.invertMask & 4u) != 0) {
-                v2 = invertScalarValue(v2, op.signedRange != 0);
-            }
-            d[0] = v0;
-            d[1] = v1;
-            d[2] = v2;
-            if (dstChannels == 4 && srcChannels == 4) {
-                d[3] = s[3];
-            }
-        }
-    }
-    return true;
-}
-
-template<typename T>
-static bool grayscaleScalarTyped(OIIO::ImageBuf& dst, const OIIO::ImageBuf& src,
-                                 const solidify_hwy::SolidifyHwyGrayscaleOp& op, const int alphaChannel,
-                                 const OIIO::ROI roi)
-{
-    const int srcChannels = src.nchannels();
-    const int dstChannels = dst.nchannels();
-    const ptrdiff_t srcRowStride = src.scanline_stride();
-    const ptrdiff_t dstRowStride = dst.scanline_stride();
-    const ptrdiff_t srcPixelStride = src.pixel_stride();
-    const ptrdiff_t dstPixelStride = dst.pixel_stride();
-    const uint8_t* srcBase = static_cast<const uint8_t*>(src.localpixels());
-    uint8_t* dstBase = static_cast<uint8_t*>(dst.localpixels());
-
-    for (int y = roi.ybegin; y < roi.yend; ++y) {
-        const uint8_t* srcRow = srcBase + static_cast<size_t>(y - src.ybegin()) * srcRowStride;
-        uint8_t* dstRow = dstBase + static_cast<size_t>(y - dst.ybegin()) * dstRowStride;
-        for (int x = roi.xbegin; x < roi.xend; ++x) {
-            const T* s = reinterpret_cast<const T*>(srcRow + static_cast<size_t>(x - src.xbegin()) * srcPixelStride);
-            T* d = reinterpret_cast<T*>(dstRow + static_cast<size_t>(x - dst.xbegin()) * dstPixelStride);
-            d[0] = grayscaleScalarValue(s, srcChannels, op);
-            if (dstChannels == 2) {
-                d[1] = s[alphaChannel];
-            }
-        }
-    }
-    return true;
-}
-
-template<typename Op>
-static bool dispatchScalarByType(const OIIO::ImageBuf& src, Op op)
-{
-    switch (src.spec().format.basetype) {
-    case OIIO::TypeDesc::UINT8: return op.template run<uint8_t>();
-    case OIIO::TypeDesc::UINT16: return op.template run<uint16_t>();
-    case OIIO::TypeDesc::UINT32: return op.template run<uint32_t>();
-    case OIIO::TypeDesc::UINT64: return op.template run<uint64_t>();
-    case OIIO::TypeDesc::FLOAT: return op.template run<float>();
-    case OIIO::TypeDesc::DOUBLE: return op.template run<double>();
-    default: return false;
-    }
-}
-
-struct SwapScalarRunner {
-    OIIO::ImageBuf& dst;
-    const OIIO::ImageBuf& src;
-    const solidify_hwy::SolidifyHwySwapOp& op;
-    OIIO::ROI roi;
-
-    template<typename T>
-    bool run()
-    {
-        return swapInvertScalarTyped<T>(dst, src, op, roi);
-    }
-};
-
-struct GrayscaleScalarRunner {
-    OIIO::ImageBuf& dst;
-    const OIIO::ImageBuf& src;
-    const solidify_hwy::SolidifyHwyGrayscaleOp& op;
-    int alphaChannel;
-    OIIO::ROI roi;
-
-    template<typename T>
-    bool run()
-    {
-        return grayscaleScalarTyped<T>(dst, src, op, alphaChannel, roi);
-    }
-};
-
 static bool runSwapInvertHwyParallel(OIIO::ImageBuf& dst, const OIIO::ImageBuf& src,
                                      const solidify_hwy::SolidifyHwySwapOp& op, const int nthreads)
 {
@@ -379,9 +219,22 @@ static void setFixedWeights(solidify_hwy::SolidifyHwyGrayscaleOp* op)
         op->fixedWeights[1] = 46871u;
         op->fixedWeights[2] = 4732u;
     } else {
+        uint64_t fixed[3] = { 0u, 0u, 0u };
+        uint64_t total = 0u;
         for (int i = 0; i < 3; ++i) {
-            const float w = std::max(0.0f, op->weights[i]);
-            op->fixedWeights[i] = static_cast<uint32_t>(std::min(65536.0f, w * 65536.0f + 0.5f));
+            const float rawWeight = op->weights[i];
+            const double weight = std::isfinite(rawWeight) && rawWeight > 0.0f ? static_cast<double>(rawWeight) : 0.0;
+            fixed[i] = static_cast<uint64_t>(std::min(4294967295.0, weight * 65536.0 + 0.5));
+            total += fixed[i];
+        }
+        if (total > 65536u) {
+            for (int i = 0; i < 3; ++i) {
+                op->fixedWeights[i] = static_cast<uint32_t>((fixed[i] * 65536u) / total);
+            }
+        } else {
+            for (int i = 0; i < 3; ++i) {
+                op->fixedWeights[i] = static_cast<uint32_t>(fixed[i]);
+            }
         }
     }
 }
@@ -439,13 +292,11 @@ bool applyChannelSwapInvert(OIIO::ImageBuf& dst, const OIIO::ImageBuf& src, unsi
     op.invertMask = static_cast<uint8_t>(invertMask);
     op.signedRange = signedRange ? 1 : 0;
 
-    if (runSwapInvertHwyParallel(dst, src, op, nthreads)) {
-        return true;
+    if (!runSwapInvertHwyParallel(dst, src, op, nthreads)) {
+        dst.errorfmt("swap/invert requires packed RGB/RGBA uint or float image data");
+        return false;
     }
-
-    OIIO::ROI roi(src.xbegin(), src.xend(), src.ybegin(), src.yend(), src.zbegin(), src.zend(), 0,
-                  src.nchannels());
-    return dispatchScalarByType(src, SwapScalarRunner { dst, src, op, roi });
+    return true;
 }
 
 bool applyGrayscale(OIIO::ImageBuf& dst, const OIIO::ImageBuf& src, unsigned int mode, const float weights[3],
@@ -492,11 +343,9 @@ bool applyGrayscale(OIIO::ImageBuf& dst, const OIIO::ImageBuf& src, unsigned int
     op.weights[2] = weights != nullptr ? weights[2] : 0.0722f;
     setFixedWeights(&op);
 
-    if (runGrayscaleHwyParallel(dst, src, op, nthreads)) {
-        return true;
+    if (!runGrayscaleHwyParallel(dst, src, op, nthreads)) {
+        dst.errorfmt("grayscale requires packed RGB/RGBA uint or float image data");
+        return false;
     }
-
-    OIIO::ROI roi(src.xbegin(), src.xend(), src.ybegin(), src.yend(), src.zbegin(), src.zend(), 0,
-                  src.nchannels());
-    return dispatchScalarByType(src, GrayscaleScalarRunner { dst, src, op, alphaChannel, roi });
+    return true;
 }
