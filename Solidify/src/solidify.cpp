@@ -1,18 +1,19 @@
 /*
- * Solidify (Push Pull) algorithm implementation using OpenImageIO
+ * Solidify - texture push-pull processing utility
  * Copyright (c) 2023 Erium Vladlen.
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, version 3.
+ * it under the terms of the GNU Lesser General Public License as published
+ * by the Free Software Foundation, either version 2.1 of the License, or
+ * (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include "pch.h"
@@ -31,6 +32,7 @@
 #include "solidify.h"
 #include "imageio.h"
 #include "imageops.h"
+#include "pushpull.h"
 #include "settings.h"
 #include "processing.h"
 
@@ -233,11 +235,10 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
 
         ImageBuf* input_buf_ptr = external_alpha ? &rgba_buf : &input_buf; // Use the multiplied RGBA buffer if have an external alpha
 
-        // Call fillholes_pushpull
-        bool ok = ImageBufAlgo::fillholes_pushpull(result_buf, *input_buf_ptr);
+        bool ok = applyPushPullFill(result_buf, *input_buf_ptr, 0);
 
         if (!ok) {
-            spdlog::error("fillholes_pushpull error: {}", result_buf.geterror());
+            spdlog::error("push-pull error: {}", result_buf.geterror());
             reportProgress(progressCallback, 0.0f, "Error! Check console for details");
             return false;
         }

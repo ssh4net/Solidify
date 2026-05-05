@@ -32,6 +32,9 @@
     <ClCompile Include="src\imageops.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="src\pushpull.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
     <ClCompile Include="src\settings.cpp">
       <Filter>src</Filter>
     </ClCompile>
@@ -71,6 +74,12 @@
       <Filter>src\headers</Filter>
     </ClInclude>
     <ClInclude Include="src\imageops_hwy.inl">
+      <Filter>src\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="src\pushpull.h">
+      <Filter>src\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="src\pushpull_hwy.inl">
       <Filter>src\headers</Filter>
     </ClInclude>
     <ClInclude Include="src\processing.h">

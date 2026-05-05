@@ -55,5 +55,5 @@ License
 
 Copyright © 2023 Erium Vladlen.
 
-Solidify is licensed under the GNU General Public License, Version 3.
+Solidify is licensed under the GNU Lesser General Public License, Version 2.1.
 Individual files may have a different, but compatible license.

@@ -16,20 +16,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//{{NO_DEPENDENCIES}}
-// Microsoft Visual C++ generated include file.
-// Used by Solidify.rc
-//
-#define IDI_ICON1                       101
-#define IDR_FIRA_SANS_REGULAR          102
+#pragma once
 
-// Next default values for new objects
-// 
-#ifdef APSTUDIO_INVOKED
-#ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        103
-#define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1001
-#define _APS_NEXT_SYMED_VALUE           101
-#endif
-#endif
+#include <OpenImageIO/imagebuf.h>
+
+bool applyPushPullFill(OIIO::ImageBuf& dst, const OIIO::ImageBuf& src, int nthreads = 0);

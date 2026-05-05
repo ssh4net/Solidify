@@ -279,6 +279,7 @@ set(SOLIDIFY_SOURCES
     Solidify/src/settings.cpp
     Solidify/src/imageio.cpp
     Solidify/src/imageops.cpp
+    Solidify/src/pushpull.cpp
     Solidify/src/solidify.cpp
     Solidify/src/pch.cpp
     ${SOLIDIFY_EMBEDDED_FONT_SOURCE}
@@ -380,6 +381,68 @@ if(MSVC)
         "/std:c++20"
         "/utf-8"
     )
+endif()
+
+function(solidify_configure_image_tool target_name)
+    target_compile_definitions(${target_name} PRIVATE
+        SOLIDIFY_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tmp"
+    )
+    target_include_directories(${target_name} PRIVATE
+        Solidify/src
+        "${DND_GLFW_INCLUDE_DIR}"
+        "${IMGUI_INCLUDE_DIR}"
+        "${IMGUI_INCLUDE_DIR}/backends"
+        "${SOLIDIFY_TOML11_DIR}"
+    )
+    target_link_libraries(${target_name} PRIVATE
+        Threads::Threads
+        OpenImageIO::OpenImageIO
+        hwy::hwy
+        spdlog::spdlog
+    )
+    if(UNIX AND NOT APPLE)
+        target_link_libraries(${target_name} PRIVATE
+            dl
+            m
+            $<$<TARGET_EXISTS:pugixml::pugixml>:pugixml::pugixml>
+            $<$<TARGET_EXISTS:libuhdr::libuhdr>:libuhdr::libuhdr>
+            $<$<TARGET_EXISTS:openjph>:openjph>
+            $<$<TARGET_EXISTS:BZip2::BZip2>:BZip2::BZip2>
+            ${SOLIDIFY_OPENJPH_LINK_LIBRARY}
+            ${SOLIDIFY_PUGIXML_LINK_LIBRARY}
+            ${SOLIDIFY_UHDR_LINK_LIBRARY}
+        )
+        if(SOLIDIFY_BZIP2_LINK_LIBRARY)
+            target_link_libraries(${target_name} PRIVATE
+                "-Wl,--whole-archive"
+                "${SOLIDIFY_BZIP2_LINK_LIBRARY}"
+                "-Wl,--no-whole-archive"
+            )
+        endif()
+    endif()
+endfunction()
+
+include(CTest)
+if(BUILD_TESTING)
+    add_executable(solidify_image_tests
+        tests/solidify_image_tests.cpp
+        Solidify/src/imageops.cpp
+    )
+    solidify_configure_image_tool(solidify_image_tests)
+    add_test(NAME solidify_image_tests COMMAND solidify_image_tests)
+
+    add_executable(solidify_pushpull_tests
+        tests/solidify_pushpull_tests.cpp
+        Solidify/src/pushpull.cpp
+    )
+    solidify_configure_image_tool(solidify_pushpull_tests)
+    add_test(NAME solidify_pushpull_tests COMMAND solidify_pushpull_tests)
+
+    add_executable(solidify_pushpull_bench
+        tests/solidify_pushpull_bench.cpp
+        Solidify/src/pushpull.cpp
+    )
+    solidify_configure_image_tool(solidify_pushpull_bench)
 endif()
 
 add_custom_command(TARGET Solidify POST_BUILD

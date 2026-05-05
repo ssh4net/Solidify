@@ -1,18 +1,19 @@
 /*
- * Solidify (Push Pull) algorithm implementation using OpenImageIO
+ * Solidify - texture push-pull processing utility
  * Copyright (c) 2023 Erium Vladlen.
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, version 3.
+ * it under the terms of the GNU Lesser General Public License as published
+ * by the Free Software Foundation, either version 2.1 of the License, or
+ * (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include "pch.h"
@@ -219,6 +220,7 @@ static void setFixedWeights(solidify_hwy::SolidifyHwyGrayscaleOp* op)
         op->fixedWeights[1] = 46871u;
         op->fixedWeights[2] = 4732u;
     } else {
+        static constexpr uint64_t kMaxFixedTotal = 4294901760ull;
         uint64_t fixed[3] = { 0u, 0u, 0u };
         uint64_t total = 0u;
         for (int i = 0; i < 3; ++i) {
@@ -227,9 +229,9 @@ static void setFixedWeights(solidify_hwy::SolidifyHwyGrayscaleOp* op)
             fixed[i] = static_cast<uint64_t>(std::min(4294967295.0, weight * 65536.0 + 0.5));
             total += fixed[i];
         }
-        if (total > 65536u) {
+        if (total > kMaxFixedTotal) {
             for (int i = 0; i < 3; ++i) {
-                op->fixedWeights[i] = static_cast<uint32_t>((fixed[i] * 65536u) / total);
+                op->fixedWeights[i] = static_cast<uint32_t>((fixed[i] * kMaxFixedTotal) / total);
             }
         } else {
             for (int i = 0; i < 3; ++i) {

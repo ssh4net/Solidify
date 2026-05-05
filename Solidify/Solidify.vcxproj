@@ -121,6 +121,7 @@
   <ItemGroup>
     <ClCompile Include="src\imageio.cpp" />
     <ClCompile Include="src\imageops.cpp" />
+    <ClCompile Include="src\pushpull.cpp" />
     <ClCompile Include="E:\GH\imgui\backends\imgui_impl_glfw.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -157,6 +158,8 @@
     <ClInclude Include="src\imageops_hwy.inl" />
     <ClInclude Include="src\pch.h" />
     <ClInclude Include="src\processing.h" />
+    <ClInclude Include="src\pushpull.h" />
+    <ClInclude Include="src\pushpull_hwy.inl" />
     <ClInclude Include="src\settings.h" />
     <ClInclude Include="src\solidify.h" />
     <ClInclude Include="src\threadpool.h" />
