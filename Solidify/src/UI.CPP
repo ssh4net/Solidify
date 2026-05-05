@@ -28,6 +28,7 @@ static std::atomic<bool> g_dragging     = false;
 static std::atomic<float> g_progress    = 0.0f;
 static std::mutex g_statusMutex;
 static std::string g_statusText = "Waiting for user inputs...";
+static bool g_openEncoderSettings = false;
 
 static void SetStatus(std::string text)
 {
@@ -177,6 +178,192 @@ static void ApplyConsoleVisibility()
 #ifdef _WIN32
     ShowWindow(GetConsoleWindow(), settings.conEnable ? SW_SHOW : SW_HIDE);
 #endif
+}
+
+static constexpr const char* kTiffCompressionLabels[] = { "ZIP/Deflate", "LZW", "PackBits", "None" };
+static constexpr const char* kExrCompressionLabels[]  = {
+    "ZIP",   "ZIPS",     "PIZ",      "PXR24", "RLE",  "B44",
+    "B44A",  "DWAA",     "DWAB",     "HTJ2K256", "HTJ2K32", "None",
+};
+static constexpr const char* kPngStrategyLabels[] = {
+    "Default", "Filtered", "Huffman", "RLE", "Fixed", "PNG fast", "None",
+};
+static constexpr const char* kJpegSubsamplingLabels[] = { "4:4:4", "4:2:2", "4:2:0", "4:1:1" };
+
+static void DisabledDash()
+{
+    ImGui::BeginDisabled();
+    ImGui::TextUnformatted("-");
+    ImGui::EndDisabled();
+}
+
+static void SetControlWidth(float width)
+{
+    ImGui::SetNextItemWidth(width);
+}
+
+static void RenderEncoderSettingsWindow()
+{
+    if (!g_openEncoderSettings) {
+        return;
+    }
+
+    ImGui::SetNextWindowSize(ImVec2(820.0f, 430.0f), ImGuiCond_FirstUseEver);
+    if (!ImGui::Begin("Encoder Settings", &g_openEncoderSettings)) {
+        ImGui::End();
+        return;
+    }
+
+    if (ImGui::BeginTable("EncoderSettingsTable", 4,
+                          ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchProp)) {
+        ImGui::TableSetupColumn("Format", ImGuiTableColumnFlags_WidthFixed, 92.0f);
+        ImGui::TableSetupColumn("Codec", ImGuiTableColumnFlags_WidthStretch, 1.0f);
+        ImGui::TableSetupColumn("Level", ImGuiTableColumnFlags_WidthStretch, 1.0f);
+        ImGui::TableSetupColumn("Extra", ImGuiTableColumnFlags_WidthStretch, 1.15f);
+        ImGui::TableHeadersRow();
+
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::TextUnformatted("TIFF");
+        ImGui::TableSetColumnIndex(1);
+        SetControlWidth(170.0f);
+        ImGui::Combo("##tiffCompression", &settings.tiffCompression, kTiffCompressionLabels,
+                     IM_ARRAYSIZE(kTiffCompressionLabels));
+        ImGui::TableSetColumnIndex(2);
+        if (settings.tiffCompression == TiffCompression_Zip) {
+            SetControlWidth(150.0f);
+            ImGui::SliderInt("##tiffZipLevel", &settings.tiffZipLevel, 1, 9);
+        } else {
+            DisabledDash();
+        }
+        ImGui::TableSetColumnIndex(3);
+        ImGui::BeginDisabled();
+        ImGui::TextUnformatted("JPEG unavailable");
+        ImGui::EndDisabled();
+
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::TextUnformatted("OpenEXR");
+        ImGui::TableSetColumnIndex(1);
+        SetControlWidth(170.0f);
+        ImGui::Combo("##exrCompression", &settings.exrCompression, kExrCompressionLabels,
+                     IM_ARRAYSIZE(kExrCompressionLabels));
+        ImGui::TableSetColumnIndex(2);
+        if (settings.exrCompression == ExrCompression_Zip || settings.exrCompression == ExrCompression_Zips) {
+            SetControlWidth(150.0f);
+            ImGui::SliderInt("##exrZipLevel", &settings.exrZipLevel, 1, 9);
+        } else if (settings.exrCompression == ExrCompression_Dwaa || settings.exrCompression == ExrCompression_Dwab) {
+            SetControlWidth(150.0f);
+            ImGui::SliderInt("##exrDwaLevel", &settings.exrDwaLevel, 1, 100);
+        } else {
+            DisabledDash();
+        }
+        ImGui::TableSetColumnIndex(3);
+        DisabledDash();
+
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::TextUnformatted("PNG");
+        ImGui::TableSetColumnIndex(1);
+        SetControlWidth(170.0f);
+        ImGui::Combo("##pngStrategy", &settings.pngStrategy, kPngStrategyLabels, IM_ARRAYSIZE(kPngStrategyLabels));
+        ImGui::TableSetColumnIndex(2);
+        if (settings.pngStrategy != PngCompression_Fast && settings.pngStrategy != PngCompression_None) {
+            SetControlWidth(150.0f);
+            ImGui::SliderInt("##pngLevel", &settings.pngCompressionLevel, 0, 9);
+        } else {
+            DisabledDash();
+        }
+        ImGui::TableSetColumnIndex(3);
+        DisabledDash();
+
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::TextUnformatted("JPEG");
+        ImGui::TableSetColumnIndex(1);
+        ImGui::TextUnformatted("JPEG");
+        ImGui::TableSetColumnIndex(2);
+        SetControlWidth(150.0f);
+        ImGui::SliderInt("##jpegQuality", &settings.jpegQuality, 1, 100);
+        ImGui::TableSetColumnIndex(3);
+        SetControlWidth(150.0f);
+        ImGui::Combo("##jpegSubsampling", &settings.jpegSubsampling, kJpegSubsamplingLabels,
+                     IM_ARRAYSIZE(kJpegSubsamplingLabels));
+
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::TextUnformatted("JPEG-2000");
+        ImGui::TableSetColumnIndex(1);
+        ImGui::TextUnformatted("OpenJPEG");
+        ImGui::TableSetColumnIndex(2);
+        DisabledDash();
+        ImGui::TableSetColumnIndex(3);
+        DisabledDash();
+
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::TextUnformatted("HTJ2K");
+        ImGui::TableSetColumnIndex(1);
+        ImGui::TextUnformatted("OpenJPH");
+        ImGui::TableSetColumnIndex(2);
+        SetControlWidth(150.0f);
+        ImGui::DragFloat("##jpeg2000QStep", &settings.jpeg2000QStep, 0.001f, -1.0f, 10.0f, "%.4f");
+        if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("0 or less uses reversible output.");
+        }
+        ImGui::TableSetColumnIndex(3);
+        DisabledDash();
+
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::TextUnformatted("HEIC");
+        ImGui::TableSetColumnIndex(1);
+        ImGui::TextUnformatted("HEIC");
+        ImGui::TableSetColumnIndex(2);
+        SetControlWidth(150.0f);
+        ImGui::SliderInt("##heicQuality", &settings.heicQuality, 1, 100);
+        ImGui::TableSetColumnIndex(3);
+        DisabledDash();
+
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::TextUnformatted("JPEG XL");
+        ImGui::TableSetColumnIndex(1);
+        ImGui::TextUnformatted("JPEG XL");
+        ImGui::TableSetColumnIndex(2);
+        SetControlWidth(150.0f);
+        ImGui::SliderInt("##jpegxlQuality", &settings.jpegxlQuality, 1, 100);
+        ImGui::TableSetColumnIndex(3);
+        SetControlWidth(92.0f);
+        ImGui::SliderInt("Effort##jpegxlEffort", &settings.jpegxlEffort, 1, 9);
+        ImGui::SameLine();
+        SetControlWidth(92.0f);
+        ImGui::SliderInt("Speed##jpegxlSpeed", &settings.jpegxlSpeed, 0, 4);
+
+        ImGui::EndTable();
+    }
+
+    settings.tiffZipLevel = std::clamp(settings.tiffZipLevel, 1, 9);
+    settings.exrZipLevel = std::clamp(settings.exrZipLevel, 1, 9);
+    settings.exrDwaLevel = std::clamp(settings.exrDwaLevel, 1, 100);
+    settings.pngCompressionLevel = std::clamp(settings.pngCompressionLevel, 0, 9);
+    settings.jpegQuality = std::clamp(settings.jpegQuality, 1, 100);
+    settings.jpeg2000QStep = std::clamp(settings.jpeg2000QStep, -1.0f, 10.0f);
+    settings.heicQuality = std::clamp(settings.heicQuality, 1, 100);
+    settings.jpegxlQuality = std::clamp(settings.jpegxlQuality, 1, 100);
+    settings.jpegxlEffort = std::clamp(settings.jpegxlEffort, 1, 9);
+    settings.jpegxlSpeed = std::clamp(settings.jpegxlSpeed, 0, 4);
+
+    ImGui::Separator();
+    if (ImGui::Button("Reset", ImVec2(120.0f, 0.0f))) {
+        resetEncoderSettingsToDefaults();
+        SetStatus("Encoder settings reset to config defaults.");
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Close", ImVec2(120.0f, 0.0f))) {
+        g_openEncoderSettings = false;
+    }
+    ImGui::End();
 }
 
 void AppMenuBar()
@@ -341,9 +528,10 @@ void AppMenuBar()
                 MenuRadioInt("PNG", settings.fileFormat, 2);
                 MenuRadioInt("JPEG", settings.fileFormat, 3);
                 MenuRadioInt("JPEG-2000", settings.fileFormat, 4);
-                MenuRadioInt("HEIC", settings.fileFormat, 5);
-                MenuRadioInt("JPEG XL", settings.fileFormat, 6);
-                MenuRadioInt("PPM", settings.fileFormat, 7);
+                MenuRadioInt("HTJ2K", settings.fileFormat, 5);
+                MenuRadioInt("HEIC", settings.fileFormat, 6);
+                MenuRadioInt("JPEG XL", settings.fileFormat, 7);
+                MenuRadioInt("PPM", settings.fileFormat, 8);
                 ImGui::EndMenu();
             }
 
@@ -357,6 +545,11 @@ void AppMenuBar()
                 MenuRadioInt("32 bits float", settings.bitDepth, 5);
                 MenuRadioInt("64 bits float", settings.bitDepth, 6);
                 ImGui::EndMenu();
+            }
+
+            ImGui::Separator();
+            if (ImGui::MenuItem("Encoder Settings...")) {
+                g_openEncoderSettings = true;
             }
 
             ImGui::EndMenu();
@@ -504,4 +697,5 @@ void RenderUI()
 
     ImGui::PopStyleVar(2);
     ImGui::PopStyleColor(2);
+    RenderEncoderSettingsWindow();
 }

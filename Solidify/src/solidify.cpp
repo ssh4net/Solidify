@@ -45,6 +45,115 @@ static void reportProgress(const SolidifyProgressCallback& progressCallback, flo
     }
 }
 
+static std::string compressionWithLevel(const char* codec, int level)
+{
+    return std::string(codec) + ":" + std::to_string(level);
+}
+
+static const char* tiffCompressionAttribute(int compression)
+{
+    switch (compression) {
+    case TiffCompression_Lzw: return "lzw";
+    case TiffCompression_PackBits: return "packbits";
+    case TiffCompression_None: return "none";
+    default: return "zip";
+    }
+}
+
+static const char* exrCompressionAttribute(int compression)
+{
+    switch (compression) {
+    case ExrCompression_Zips: return "zips";
+    case ExrCompression_Piz: return "piz";
+    case ExrCompression_Pxr24: return "pxr24";
+    case ExrCompression_Rle: return "rle";
+    case ExrCompression_B44: return "b44";
+    case ExrCompression_B44A: return "b44a";
+    case ExrCompression_Dwaa: return "dwaa";
+    case ExrCompression_Dwab: return "dwab";
+    case ExrCompression_Htj2k256: return "htj2k256";
+    case ExrCompression_Htj2k32: return "htj2k32";
+    case ExrCompression_None: return "none";
+    default: return "zip";
+    }
+}
+
+static const char* pngCompressionAttribute(int strategy)
+{
+    switch (strategy) {
+    case PngCompression_Filtered: return "filtered";
+    case PngCompression_Huffman: return "huffman";
+    case PngCompression_Rle: return "rle";
+    case PngCompression_Fixed: return "fixed";
+    case PngCompression_Fast: return "pngfast";
+    case PngCompression_None: return "none";
+    default: return "default";
+    }
+}
+
+static const char* jpegSubsamplingAttribute(int subsampling)
+{
+    switch (subsampling) {
+    case JpegSubsampling_422: return "4:2:2";
+    case JpegSubsampling_420: return "4:2:0";
+    case JpegSubsampling_411: return "4:1:1";
+    default: return "4:4:4";
+    }
+}
+
+static void setCompressionAttribute(ImageSpec& spec, const std::string& compression)
+{
+    spec.attribute("Compression", compression.c_str());
+    spdlog::info("Output compression: {}", compression);
+}
+
+static void applyEncoderSettings(ImageSpec& spec, const std::string& outputFileName, const Settings& cfg)
+{
+    const std::string ext = toLower(std::filesystem::path(outputFileName).extension().string());
+
+    spec.attribute("pnm:binary", 1);
+    spec.attribute("oiio:UnassociatedAlpha", 1);
+
+    if (ext == ".tif" || ext == ".tiff") {
+        const char* compression = tiffCompressionAttribute(cfg.tiffCompression);
+        if (cfg.tiffCompression == TiffCompression_Zip) {
+            setCompressionAttribute(spec, compressionWithLevel(compression, cfg.tiffZipLevel));
+        } else {
+            setCompressionAttribute(spec, compression);
+        }
+    } else if (ext == ".exr" || ext == ".sxr" || ext == ".mxr") {
+        const char* compression = exrCompressionAttribute(cfg.exrCompression);
+        if (cfg.exrCompression == ExrCompression_Zip || cfg.exrCompression == ExrCompression_Zips) {
+            setCompressionAttribute(spec, compressionWithLevel(compression, cfg.exrZipLevel));
+        } else if (cfg.exrCompression == ExrCompression_Dwaa || cfg.exrCompression == ExrCompression_Dwab) {
+            setCompressionAttribute(spec, compressionWithLevel(compression, cfg.exrDwaLevel));
+        } else {
+            setCompressionAttribute(spec, compression);
+        }
+    } else if (ext == ".png") {
+        spec.attribute("png:compressionLevel", cfg.pngCompressionLevel);
+        setCompressionAttribute(spec, pngCompressionAttribute(cfg.pngStrategy));
+    } else if (ext == ".jpg" || ext == ".jpeg" || ext == ".jpe" || ext == ".jfif") {
+        spec.attribute("jpeg:subsampling", jpegSubsamplingAttribute(cfg.jpegSubsampling));
+        setCompressionAttribute(spec, compressionWithLevel("jpeg", cfg.jpegQuality));
+    } else if (ext == ".jp2" || ext == ".j2k") {
+        setCompressionAttribute(spec, "jpeg2000");
+    } else if (ext == ".jph" || ext == ".j2c") {
+        setCompressionAttribute(spec, "htj2k");
+        if (cfg.jpeg2000QStep > 0.0f) {
+            spec.attribute("jph:qstep", cfg.jpeg2000QStep);
+        }
+    } else if (ext == ".heic" || ext == ".heif" || ext == ".heics" || ext == ".hif") {
+        setCompressionAttribute(spec, compressionWithLevel("heic", cfg.heicQuality));
+    } else if (ext == ".avif") {
+        setCompressionAttribute(spec, compressionWithLevel("avif", cfg.heicQuality));
+    } else if (ext == ".jxl") {
+        spec.attribute("jpegxl:effort", cfg.jpegxlEffort);
+        spec.attribute("jpegxl:speed", cfg.jpegxlSpeed);
+        setCompressionAttribute(spec, compressionWithLevel("jpegxl", cfg.jpegxlQuality));
+    }
+}
+
 void* getTypedPointer(OIIO::ImageBuf& buf, const OIIO::TypeDesc& type) {
     switch (type.basetype) {
         case OIIO::TypeDesc::UINT8:
@@ -501,29 +610,12 @@ bool solidify_main(const std::string& inputFileName, const std::string& outputFi
 
 
     ospec.alpha_channel = -1; // No alpha channel
-    //int bits = settings.bitDepth != -1 ? settings.getBitDepth() : 2;
-    //rspec.attribute("oiio:BitsPerSample", bits);
-    ospec.attribute("pnm:binary", 1);
-    ospec.attribute("oiio:UnassociatedAlpha", 1);
-    ospec.attribute("jpeg:subsampling", "4:4:4");
-    ospec.attribute("Compression", "jpeg:100");
-    if (settings.fileFormat == 5)
-        ospec.attribute("Compression", "heic:100");
-    if (settings.fileFormat == 6)
-		ospec.attribute("Compression", "jpegxl:100");
-
-    ospec.attribute("png:compressionLevel", 4);
-    //ospec.attribute("tiff:write_exif", 0);
-    //rspec.attribute("tiff:bigtiff", 1);
-    //rspec.set_format(TypeDesc::FLOAT); // temporary
-    //spdlog::info) << "Channels: " << rspec.nchannels << " Alpha channel: " << rspec.alpha_channel << std::endl;
-//
-    //ospec.format = getTypeDesc(settings.bitDepth);
     if (getTypeDesc(settings.bitDepth) == TypeDesc::UNKNOWN) {
         ospec.set_format(orig_format);
 	} else {
 		ospec.set_format(getTypeDesc(settings.bitDepth));
     }
+    applyEncoderSettings(ospec, outputFileName, settings);
 
     spdlog::info("Output file format: {}", formatText(ospec.format));
 

@@ -29,6 +29,45 @@ typedef unsigned short ushort;
 typedef unsigned int uint;
 typedef unsigned long ulong;
 
+enum TiffCompressionMode : int {
+    TiffCompression_Zip = 0,
+    TiffCompression_Lzw,
+    TiffCompression_PackBits,
+    TiffCompression_None,
+};
+
+enum ExrCompressionMode : int {
+    ExrCompression_Zip = 0,
+    ExrCompression_Zips,
+    ExrCompression_Piz,
+    ExrCompression_Pxr24,
+    ExrCompression_Rle,
+    ExrCompression_B44,
+    ExrCompression_B44A,
+    ExrCompression_Dwaa,
+    ExrCompression_Dwab,
+    ExrCompression_Htj2k256,
+    ExrCompression_Htj2k32,
+    ExrCompression_None,
+};
+
+enum PngCompressionStrategy : int {
+    PngCompression_Default = 0,
+    PngCompression_Filtered,
+    PngCompression_Huffman,
+    PngCompression_Rle,
+    PngCompression_Fixed,
+    PngCompression_Fast,
+    PngCompression_None,
+};
+
+enum JpegSubsamplingMode : int {
+    JpegSubsampling_444 = 0,
+    JpegSubsampling_422,
+    JpegSubsampling_420,
+    JpegSubsampling_411,
+};
+
 struct Settings {
     bool isSolidify, conEnable;
     uint normMode, rangeMode, repairMode, alphaMode;
@@ -40,6 +79,13 @@ struct Settings {
     uint queueLimit;
     uint verbosity;
     float grayscaleWeights[3];
+    int tiffCompression, tiffZipLevel;
+    int exrCompression, exrZipLevel, exrDwaLevel;
+    int pngStrategy, pngCompressionLevel;
+    int jpegQuality, jpegSubsampling;
+    float jpeg2000QStep;
+    int heicQuality;
+    int jpegxlQuality, jpegxlEffort, jpegxlSpeed;
 
     std::vector<std::string> normNames, mask_substr, out_formats;
 
@@ -75,10 +121,24 @@ struct Settings {
         grayscaleWeights[0] = 0.2126f;
         grayscaleWeights[1] = 0.7152f;
         grayscaleWeights[2] = 0.0722f;
+        tiffCompression = TiffCompression_Zip;
+        tiffZipLevel = 6;
+        exrCompression = ExrCompression_Zip;
+        exrZipLevel = 4;
+        exrDwaLevel = 45;
+        pngStrategy = PngCompression_Default;
+        pngCompressionLevel = 4;
+        jpegQuality = 100;
+        jpegSubsampling = JpegSubsampling_444;
+        jpeg2000QStep = -1.0f;
+        heicQuality = 100;
+        jpegxlQuality = 100;
+        jpegxlEffort = 7;
+        jpegxlSpeed = 0;
 
         normNames   = { "normal", "tangent", "object", "world" };
         mask_substr = { "_mask.", "_mask_", "_alpha.", "_alpha_" };
-        out_formats = { "tif", "exr", "png", "jpg", "jp2", "heic", "jxl", "ppm" };
+        out_formats = { "tif", "exr", "png", "jpg", "jp2", "jph", "heic", "jxl", "ppm" };
     }
 
     int getBitDepth() const
@@ -102,6 +162,7 @@ extern Settings settingsDefaults;
 bool loadSettings(Settings& settings, const std::string& filename);
 bool loadSettingsDefaults(const std::string& filename);
 void resetSettingsToDefaults();
+void resetEncoderSettingsToDefaults();
 void printSettings(Settings& settings);
 
 #endif

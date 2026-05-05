@@ -74,9 +74,10 @@ std::string getExtension(const std::string& fileName, Settings* settings)
     case 2: return ".png";
     case 3: return ".jpg";
     case 4: return ".jp2";
-    case 5: return ".heic";
-    case 6: return ".jxl";
-    case 7: return ".ppm";
+    case 5: return ".jph";
+    case 6: return ".heic";
+    case 7: return ".jxl";
+    case 8: return ".ppm";
     default: break;
     }
 

@@ -66,9 +66,10 @@ GrayscaleWeights = [0.2126, 0.7152, 0.0722]
 # 2 - PNG
 # 3 - JPEG
 # 4 - JPEG-2000
-# 5 - HEIC
-# 6 - JPEG XL
-# 7 - PPM
+# 5 - HTJ2K (.jph)
+# 6 - HEIC
+# 7 - JPEG XL
+# 8 - PPM
 DefaultFormat = 0
 FileFormat = -1
 # Bit depth: 
@@ -82,6 +83,27 @@ FileFormat = -1
 # 6 - double (64bit float) !! most file formats have not support double precision
 DefaultBit = 1
 BitDepth = -1
+
+[Encoding]
+# TIFF: zip, deflate, lzw, packbits, none. TIFF JPEG is disabled in the current OIIO build.
+TiffCompression = "zip"
+TiffZipLevel = 6
+# OpenEXR: zip, zips, piz, pxr24, rle, b44, b44a, dwaa, dwab, htj2k256, htj2k32, none
+OpenEXRCompression = "zip"
+OpenEXRZipLevel = 4
+OpenEXRDwaLevel = 45
+# PNG strategy: default, filtered, huffman, rle, fixed, pngfast, none
+PngStrategy = "default"
+PngLevel = 4
+JpegQuality = 100
+JpegSubsampling = "4:4:4"
+# JPEG-2000 uses OpenJPEG. HTJ2K uses OpenJPH and writes .jph.
+# Jpeg2000QStep <= 0 keeps HTJ2K lossless/reversible.
+Jpeg2000QStep = -1.0
+HeicQuality = 100
+JpegXLQuality = 100
+JpegXLEffort = 7
+JpegXLSpeed = 0
 
 [CameraRaw]
 # Raw rotation:
