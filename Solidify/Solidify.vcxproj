@@ -56,6 +56,12 @@
       <AdditionalIncludeDirectories>$(ProjectDir)src;$(ProjectDir)..\external\dnd_glfw;E:\GH\imgui;E:\GH\imgui\backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:__cplusplus /utf-8 %(AdditionalOptions)</AdditionalOptions>
       <PrecompiledHeader>Use</PrecompiledHeader>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <AdditionalDependencies>advapi32.lib;Authz.lib;bcrypt.lib;comdlg32.lib;crypt32.lib;d3d11.lib;d3d12.lib;D3d9.lib;Dwmapi.lib;dxgi.lib;dxguid.lib;glfw3.lib;opengl32.lib;libglew32.lib;aom.lib;brotlicommon.lib;brotlidec.lib;brotlienc.lib;bz2.lib;deflatestatic.lib;freetype.lib;gif.lib;heif.lib;hwy.lib;Iex-3_4.lib;IlmThread-3_4.lib;Imath-3_2.lib;jasper.lib;jpeg-static.lib;jxl_cms.lib;jxl_threads.lib;jxl.lib;avcodec.lib;avdevice.lib;avfilter.lib;avformat.lib;avutil.lib;libde265.lib;libexpatMT.lib;libkvazaar.lib;libpng18_static.lib;libsharpyuv.lib;swresample.lib;swscale.lib;libwebp.lib;libwebpdecoder.lib;libwebpdemux.lib;libwebpmux.lib;lzma.lib;minizip-ng.lib;OpenColorIO.lib;OpenEXR-3_4.lib;OpenEXRCore-3_4.lib;OpenImageIO.lib;OpenImageIO_Util.lib;openjp2.lib;openjph.0.21.lib;Ptex.lib;pugixml.lib;pystring.lib;raw_r.lib;raw.lib;tiff.lib;uhdr.lib;x265-static.lib;XMPCoreStaticRelease.lib;XMPFilesStaticRelease.lib;yaml-cpp.lib;zlibstatic.lib;zstd_static.lib;e:\GH\Little-CMS\Lib\ST\lcms2_static.lib;harfbuzz-subset.lib;harfbuzz.lib;gdi32.lib;Imm32.lib;kernel32.lib;mfplat.lib;mfuuid.lib;mpr.lib;ncrypt.lib;Ole32.lib;ole32.lib;Oleaut32.lib;psapi.lib;RuntimeObject.lib;secur32.lib;Setupapi.lib;Shcore.lib;shell32.lib;Shlwapi.lib;strmiids.lib;user32.lib;userenv.lib;Uuid.lib;UxTheme.lib;Version.lib;w:\VisualStudio\dng_sdk_1_7_1\dng_sdk\projects\win\x64\Release\dng_sdk.lib;WindowsApp.lib;windowscodecs.lib;Winmm.lib;winspool.lib;Ws2_32.lib;Wtsapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
