@@ -7,7 +7,8 @@ set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "Available build conf
 option(SOLIDIFY_STATIC_LINK "Link against static third-party libraries" ON)
 set(CMAKE_DEBUG_POSTFIX "d" CACHE STRING "Postfix for Debug configuration")
 set(SOLIDIFY_TOML11_DIR "" CACHE PATH "Path to toml11 headers if not provided by your toolchain")
-set(IMGUI_INCLUDE_DIR "/mnt/e/GH/imgui" CACHE PATH "Path to Dear ImGui source directory")
+set(SOLIDIFY_DEPENDENCY_PREFIX "" CACHE PATH "Optional prefix containing Solidify dependencies")
+set(IMGUI_INCLUDE_DIR "" CACHE PATH "Path to Dear ImGui source directory")
 set(DND_GLFW_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/dnd_glfw" CACHE PATH "Path to dnd_glfw headers")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
@@ -19,33 +20,21 @@ if(UNIX AND NOT APPLE)
     if(NOT CMAKE_BUILD_TYPE)
         set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
     endif()
+endif()
 
-    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-        set(_solidify_ubc_prefix "/mnt/e/UBc/Debug")
-    else()
-        set(_solidify_ubc_prefix "/mnt/e/UBc/Release")
-    endif()
-
-    if(EXISTS "${_solidify_ubc_prefix}")
-        list(PREPEND CMAKE_PREFIX_PATH "${_solidify_ubc_prefix}")
-        list(PREPEND CMAKE_LIBRARY_PATH "${_solidify_ubc_prefix}/lib")
-        list(PREPEND CMAKE_INCLUDE_PATH "${_solidify_ubc_prefix}/include")
-    endif()
+if(SOLIDIFY_DEPENDENCY_PREFIX)
+    list(PREPEND CMAKE_PREFIX_PATH "${SOLIDIFY_DEPENDENCY_PREFIX}")
+    list(PREPEND CMAKE_LIBRARY_PATH "${SOLIDIFY_DEPENDENCY_PREFIX}/lib")
+    list(PREPEND CMAKE_INCLUDE_PATH "${SOLIDIFY_DEPENDENCY_PREFIX}/include")
 endif()
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-if(UNIX AND NOT APPLE)
-    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-stdlib=libc++>")
-        add_link_options("-stdlib=libc++")
-    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND EXISTS "${_solidify_ubc_prefix}/lib/libOpenImageIO.a")
-        message(WARNING
-            "The /mnt/e/UBc dependency prefix is built with libc++. "
-            "Use clang++ (for example -DCMAKE_CXX_COMPILER=clang++-20) for Linux builds.")
-    endif()
+if(UNIX AND NOT APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-stdlib=libc++>")
+    add_link_options("-stdlib=libc++")
 endif()
 
 if(MSVC AND NOT DEFINED CMAKE_MSVC_RUNTIME_LIBRARY)
@@ -73,7 +62,21 @@ if(UNIX AND NOT APPLE)
     find_package(OpenMP QUIET)
 endif()
 
-if(NOT EXISTS "${IMGUI_INCLUDE_DIR}/imgui.h")
+if(NOT IMGUI_INCLUDE_DIR)
+    find_path(IMGUI_INCLUDE_DIR
+        NAMES imgui.h
+        HINTS
+            "${CMAKE_CURRENT_SOURCE_DIR}/external/imgui"
+            "$ENV{IMGUI_DIR}"
+            "$ENV{IMGUI_INCLUDE_DIR}"
+        PATH_SUFFIXES
+            imgui
+    )
+endif()
+
+if(NOT EXISTS "${IMGUI_INCLUDE_DIR}/imgui.h"
+   OR NOT EXISTS "${IMGUI_INCLUDE_DIR}/backends/imgui_impl_glfw.cpp"
+   OR NOT EXISTS "${IMGUI_INCLUDE_DIR}/backends/imgui_impl_opengl3.cpp")
     message(FATAL_ERROR "ImGui not found. Set IMGUI_INCLUDE_DIR to the Dear ImGui source directory.")
 endif()
 
