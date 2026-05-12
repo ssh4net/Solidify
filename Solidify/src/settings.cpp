@@ -22,6 +22,7 @@
 
 Settings settings;
 Settings settingsDefaults;
+std::string settingsConfigPath = "sldf_config.toml";
 
 template<typename T>
 static void

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(Solidify LANGUAGES CXX C VERSION 0.1.0)
+project(Solidify LANGUAGES CXX C VERSION 2.7.5)
 
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "Available build configurations" FORCE)
 
@@ -82,6 +82,25 @@ endif()
 
 if(NOT EXISTS "${DND_GLFW_INCLUDE_DIR}/dnd_glfw.h")
     message(FATAL_ERROR "dnd_glfw.h not found. Set DND_GLFW_INCLUDE_DIR to its location.")
+endif()
+
+set(SOLIDIFY_DND_GLFW_TARGET "")
+set(SOLIDIFY_DND_GLFW_SOURCE "")
+if(APPLE)
+    enable_language(OBJCXX)
+    if(NOT TARGET dnd_glfw AND EXISTS "${DND_GLFW_INCLUDE_DIR}/CMakeLists.txt")
+        add_subdirectory("${DND_GLFW_INCLUDE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/dnd_glfw")
+    endif()
+    if(TARGET dnd_glfw)
+        if(TARGET dnd_glfw_macos)
+            target_link_libraries(dnd_glfw_macos PUBLIC glfw3::glfw3)
+        endif()
+        set(SOLIDIFY_DND_GLFW_TARGET dnd_glfw)
+    elseif(EXISTS "${DND_GLFW_INCLUDE_DIR}/dnd_glfw_macos.mm")
+        set(SOLIDIFY_DND_GLFW_SOURCE "${DND_GLFW_INCLUDE_DIR}/dnd_glfw_macos.mm")
+    else()
+        message(FATAL_ERROR "dnd_glfw macOS implementation not found. Expected dnd_glfw_macos.mm or a dnd_glfw CMake target.")
+    endif()
 endif()
 
 if(NOT SOLIDIFY_TOML11_DIR)
@@ -200,6 +219,22 @@ if(NOT TARGET BZip2::BZip2)
     endif()
 endif()
 
+find_package(freetype CONFIG QUIET)
+if(NOT TARGET Freetype::Freetype AND NOT TARGET freetype)
+    find_package(Freetype QUIET)
+endif()
+if(NOT TARGET Freetype::Freetype AND NOT TARGET freetype)
+    find_library(FREETYPE_LIBRARY NAMES freetype libfreetype HINTS ${CMAKE_LIBRARY_PATH})
+    find_path(FREETYPE_INCLUDE_DIR NAMES ft2build.h PATH_SUFFIXES freetype2 HINTS ${CMAKE_INCLUDE_PATH})
+    if(FREETYPE_LIBRARY)
+        add_library(Freetype::Freetype UNKNOWN IMPORTED)
+        set_target_properties(Freetype::Freetype PROPERTIES IMPORTED_LOCATION "${FREETYPE_LIBRARY}")
+        if(FREETYPE_INCLUDE_DIR)
+            set_target_properties(Freetype::Freetype PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${FREETYPE_INCLUDE_DIR}")
+        endif()
+    endif()
+endif()
+
 find_package(dng_sdk CONFIG QUIET)
 if(NOT TARGET dng_sdk::dng_sdk)
     find_library(DNG_SDK_LIBRARY NAMES dng_sdk HINTS ${CMAKE_LIBRARY_PATH})
@@ -245,6 +280,71 @@ if(NOT TARGET hwy::hwy)
 endif()
 find_package(spdlog CONFIG REQUIRED)
 
+find_library(SOLIDIFY_OPENJPH_LINK_LIBRARY NAMES openjph libopenjph HINTS ${CMAKE_LIBRARY_PATH})
+find_library(SOLIDIFY_BZIP2_LINK_LIBRARY NAMES bz2_static bz2 bzip2 HINTS ${CMAKE_LIBRARY_PATH})
+find_library(SOLIDIFY_PUGIXML_LINK_LIBRARY NAMES pugixml HINTS ${CMAKE_LIBRARY_PATH})
+find_library(SOLIDIFY_UHDR_LINK_LIBRARY NAMES uhdr libuhdr HINTS ${CMAKE_LIBRARY_PATH})
+
+set(SOLIDIFY_FREETYPE_LINK_ITEM "")
+if(TARGET Freetype::Freetype)
+    set(SOLIDIFY_FREETYPE_LINK_ITEM Freetype::Freetype)
+elseif(TARGET freetype)
+    set(SOLIDIFY_FREETYPE_LINK_ITEM freetype)
+endif()
+
+set(SOLIDIFY_OPENJPH_LINK_ITEM "")
+if(SOLIDIFY_OPENJPH_LINK_LIBRARY)
+    set(SOLIDIFY_OPENJPH_LINK_ITEM "${SOLIDIFY_OPENJPH_LINK_LIBRARY}")
+elseif(TARGET openjph)
+    set(SOLIDIFY_OPENJPH_LINK_ITEM openjph)
+endif()
+
+set(SOLIDIFY_PUGIXML_LINK_ITEM "")
+if(TARGET pugixml::pugixml)
+    set(SOLIDIFY_PUGIXML_LINK_ITEM pugixml::pugixml)
+elseif(SOLIDIFY_PUGIXML_LINK_LIBRARY)
+    set(SOLIDIFY_PUGIXML_LINK_ITEM "${SOLIDIFY_PUGIXML_LINK_LIBRARY}")
+endif()
+
+set(SOLIDIFY_UHDR_LINK_ITEM "")
+if(TARGET libuhdr::libuhdr)
+    set(SOLIDIFY_UHDR_LINK_ITEM libuhdr::libuhdr)
+elseif(SOLIDIFY_UHDR_LINK_LIBRARY)
+    set(SOLIDIFY_UHDR_LINK_ITEM "${SOLIDIFY_UHDR_LINK_LIBRARY}")
+endif()
+
+set(SOLIDIFY_BZIP2_LINK_ITEM "")
+if(TARGET BZip2::BZip2)
+    set(SOLIDIFY_BZIP2_LINK_ITEM BZip2::BZip2)
+elseif(SOLIDIFY_BZIP2_LINK_LIBRARY)
+    set(SOLIDIFY_BZIP2_LINK_ITEM "${SOLIDIFY_BZIP2_LINK_LIBRARY}")
+endif()
+
+function(solidify_link_oiio_static_tail target_name)
+    target_link_libraries(${target_name} PRIVATE
+        ${SOLIDIFY_FREETYPE_LINK_ITEM}
+        ${SOLIDIFY_PUGIXML_LINK_ITEM}
+        ${SOLIDIFY_UHDR_LINK_ITEM}
+        ${SOLIDIFY_BZIP2_LINK_ITEM}
+    )
+
+    if(APPLE AND SOLIDIFY_OPENJPH_LINK_LIBRARY)
+        target_link_libraries(${target_name} PRIVATE
+            "-Wl,-force_load,${SOLIDIFY_OPENJPH_LINK_LIBRARY}"
+        )
+    elseif(SOLIDIFY_OPENJPH_LINK_ITEM)
+        target_link_libraries(${target_name} PRIVATE ${SOLIDIFY_OPENJPH_LINK_ITEM})
+    endif()
+
+    if(UNIX AND NOT APPLE AND SOLIDIFY_BZIP2_LINK_LIBRARY)
+        target_link_libraries(${target_name} PRIVATE
+            "-Wl,--whole-archive"
+            "${SOLIDIFY_BZIP2_LINK_LIBRARY}"
+            "-Wl,--no-whole-archive"
+        )
+    endif()
+endfunction()
+
 file(GLOB IMGUI_SOURCES CONFIGURE_DEPENDS
     "${IMGUI_INCLUDE_DIR}/imgui.cpp"
     "${IMGUI_INCLUDE_DIR}/imgui_draw.cpp"
@@ -285,6 +385,7 @@ set(SOLIDIFY_SOURCES
     Solidify/src/pushpull.cpp
     Solidify/src/solidify.cpp
     Solidify/src/pch.cpp
+    ${SOLIDIFY_DND_GLFW_SOURCE}
     ${SOLIDIFY_EMBEDDED_FONT_SOURCE}
 )
 
@@ -312,14 +413,16 @@ target_link_libraries(Solidify PRIVATE
     OpenGL::GL
 )
 
+if(SOLIDIFY_DND_GLFW_TARGET)
+    target_link_libraries(Solidify PRIVATE "${SOLIDIFY_DND_GLFW_TARGET}")
+endif()
+
+solidify_link_oiio_static_tail(Solidify)
+
 if(UNIX AND NOT APPLE)
     target_link_libraries(Solidify PRIVATE
         dl
         m
-        $<$<TARGET_EXISTS:pugixml::pugixml>:pugixml::pugixml>
-        $<$<TARGET_EXISTS:libuhdr::libuhdr>:libuhdr::libuhdr>
-        $<$<TARGET_EXISTS:openjph>:openjph>
-        $<$<TARGET_EXISTS:BZip2::BZip2>:BZip2::BZip2>
         ${X11_LIBRARIES}
         ${X11_Xrandr_LIB}
         ${X11_Xinerama_LIB}
@@ -329,27 +432,6 @@ if(UNIX AND NOT APPLE)
 
     if(OpenMP_CXX_FOUND)
         target_link_libraries(Solidify PRIVATE OpenMP::OpenMP_CXX)
-    endif()
-
-    find_library(SOLIDIFY_OPENJPH_LINK_LIBRARY NAMES openjph libopenjph HINTS ${CMAKE_LIBRARY_PATH})
-    find_library(SOLIDIFY_BZIP2_LINK_LIBRARY NAMES bz2_static bz2 bzip2 HINTS ${CMAKE_LIBRARY_PATH})
-    find_library(SOLIDIFY_PUGIXML_LINK_LIBRARY NAMES pugixml HINTS ${CMAKE_LIBRARY_PATH})
-    find_library(SOLIDIFY_UHDR_LINK_LIBRARY NAMES uhdr libuhdr HINTS ${CMAKE_LIBRARY_PATH})
-    foreach(_solidify_tail_lib
-            ${SOLIDIFY_OPENJPH_LINK_LIBRARY}
-            ${SOLIDIFY_BZIP2_LINK_LIBRARY}
-            ${SOLIDIFY_PUGIXML_LINK_LIBRARY}
-            ${SOLIDIFY_UHDR_LINK_LIBRARY})
-        if(_solidify_tail_lib)
-            target_link_libraries(Solidify PRIVATE "${_solidify_tail_lib}")
-        endif()
-    endforeach()
-    if(SOLIDIFY_BZIP2_LINK_LIBRARY)
-        target_link_libraries(Solidify PRIVATE
-            "-Wl,--whole-archive"
-            "${SOLIDIFY_BZIP2_LINK_LIBRARY}"
-            "-Wl,--no-whole-archive"
-        )
     endif()
 endif()
 
@@ -403,25 +485,12 @@ function(solidify_configure_image_tool target_name)
         hwy::hwy
         spdlog::spdlog
     )
+    solidify_link_oiio_static_tail(${target_name})
     if(UNIX AND NOT APPLE)
         target_link_libraries(${target_name} PRIVATE
             dl
             m
-            $<$<TARGET_EXISTS:pugixml::pugixml>:pugixml::pugixml>
-            $<$<TARGET_EXISTS:libuhdr::libuhdr>:libuhdr::libuhdr>
-            $<$<TARGET_EXISTS:openjph>:openjph>
-            $<$<TARGET_EXISTS:BZip2::BZip2>:BZip2::BZip2>
-            ${SOLIDIFY_OPENJPH_LINK_LIBRARY}
-            ${SOLIDIFY_PUGIXML_LINK_LIBRARY}
-            ${SOLIDIFY_UHDR_LINK_LIBRARY}
         )
-        if(SOLIDIFY_BZIP2_LINK_LIBRARY)
-            target_link_libraries(${target_name} PRIVATE
-                "-Wl,--whole-archive"
-                "${SOLIDIFY_BZIP2_LINK_LIBRARY}"
-                "-Wl,--no-whole-archive"
-            )
-        endif()
     endif()
 endfunction()
 
@@ -440,6 +509,13 @@ if(BUILD_TESTING)
     )
     solidify_configure_image_tool(solidify_pushpull_tests)
     add_test(NAME solidify_pushpull_tests COMMAND solidify_pushpull_tests)
+
+    add_executable(solidify_settings_tests
+        tests/solidify_settings_tests.cpp
+        Solidify/src/settings.cpp
+    )
+    solidify_configure_image_tool(solidify_settings_tests)
+    add_test(NAME solidify_settings_tests COMMAND solidify_settings_tests)
 
     add_executable(solidify_pushpull_bench
         tests/solidify_pushpull_bench.cpp

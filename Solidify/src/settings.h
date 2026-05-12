@@ -155,6 +155,7 @@ struct Settings {
 
 extern Settings settings;
 extern Settings settingsDefaults;
+extern std::string settingsConfigPath;
 
 bool
 loadSettings(Settings& settings, const std::string& filename);

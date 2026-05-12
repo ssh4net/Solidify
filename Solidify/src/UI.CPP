@@ -389,7 +389,7 @@ AppMenuBar()
     if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu("Files")) {
             if (ImGui::MenuItem("Reload Config")) {
-                if (loadSettingsDefaults("sldf_config.toml")) {
+                if (loadSettingsDefaults(settingsConfigPath)) {
                     ApplyConsoleVisibility();
                     ApplyVerbosity();
                     printSettings(settings);

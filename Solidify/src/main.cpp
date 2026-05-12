@@ -18,6 +18,13 @@
 
 #include "pch.h"
 
+#if defined(__APPLE__)
+#    include <limits.h>
+#    include <mach-o/dyld.h>
+#elif !defined(_WIN32)
+#    include <limits.h>
+#endif
+
 #ifdef _WIN32
 #    include "../resource.h"
 #endif
@@ -34,6 +41,79 @@ static void
 glfw_error_callback(int error, const char* description)
 {
     spdlog::error("Glfw Error {}: {}", error, description);
+}
+
+static bool
+configPathFromExecutable(const std::filesystem::path& executablePath, std::string* outPath)
+{
+    if (outPath == nullptr || executablePath.empty()) {
+        return false;
+    }
+
+    std::error_code ec;
+    std::filesystem::path absolutePath = std::filesystem::absolute(executablePath, ec);
+    if (ec) {
+        absolutePath = executablePath;
+    }
+
+    const std::filesystem::path executableDir = absolutePath.parent_path();
+    std::filesystem::path candidate = executableDir.parent_path() / "Resources" / "sldf_config.toml";
+    ec.clear();
+    if (std::filesystem::exists(candidate, ec)) {
+        *outPath = candidate.string();
+        return true;
+    }
+
+    candidate = executableDir / "sldf_config.toml";
+    ec.clear();
+    if (std::filesystem::exists(candidate, ec)) {
+        *outPath = candidate.string();
+        return true;
+    }
+
+    return false;
+}
+
+static std::string
+resolveConfigPath(const char* argv0)
+{
+    std::string resolvedPath;
+
+#ifdef _WIN32
+    char executablePath[MAX_PATH] = {};
+    const DWORD length = GetModuleFileNameA(nullptr, executablePath, static_cast<DWORD>(sizeof(executablePath)));
+    if (length > 0 && length < static_cast<DWORD>(sizeof(executablePath))
+        && configPathFromExecutable(std::filesystem::path(executablePath), &resolvedPath)) {
+        return resolvedPath;
+    }
+#elif defined(__APPLE__)
+    uint32_t bufferSize = PATH_MAX;
+    std::vector<char> executablePath(bufferSize);
+    int result = _NSGetExecutablePath(executablePath.data(), &bufferSize);
+    if (result == -1) {
+        executablePath.assign(bufferSize, '\0');
+        result = _NSGetExecutablePath(executablePath.data(), &bufferSize);
+    }
+    if (result == 0 && configPathFromExecutable(std::filesystem::path(executablePath.data()), &resolvedPath)) {
+        return resolvedPath;
+    }
+#else
+    char executablePath[PATH_MAX] = {};
+    const ssize_t length = readlink("/proc/self/exe", executablePath, sizeof(executablePath) - 1u);
+    if (length > 0) {
+        executablePath[length] = '\0';
+        if (configPathFromExecutable(std::filesystem::path(executablePath), &resolvedPath)) {
+            return resolvedPath;
+        }
+    }
+#endif
+
+    if (argv0 != nullptr && argv0[0] != '\0'
+        && configPathFromExecutable(std::filesystem::path(argv0), &resolvedPath)) {
+        return resolvedPath;
+    }
+
+    return "sldf_config.toml";
 }
 
 static void
@@ -107,7 +187,6 @@ int
 main(int argc, char* argv[])
 {
     (void)argc;
-    (void)argv;
 
 #ifdef _WIN32
     AllocConsole();
@@ -126,8 +205,10 @@ main(int argc, char* argv[])
     spdlog::info("Build from: {} {}", __DATE__, __TIME__);
     spdlog::info("Log started at: {}", ctime(&timestamp));
 
-    if (!loadSettingsDefaults("sldf_config.toml")) {
-        spdlog::error("Can not load [sldf_config.toml]. Using default settings.");
+    settingsConfigPath = resolveConfigPath(argv != nullptr && argc > 0 ? argv[0] : nullptr);
+    spdlog::info("Config path: {}", settingsConfigPath);
+    if (!loadSettingsDefaults(settingsConfigPath)) {
+        spdlog::error("Can not load [{}]. Using default settings.", settingsConfigPath);
         settings.reSettings();
         settingsDefaults = settings;
     }
@@ -144,9 +225,19 @@ main(int argc, char* argv[])
         return 1;
     }
 
+#if defined(__APPLE__)
+    const char* glsl_version = "#version 150";
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
+#else
     const char* glsl_version = "#version 130";
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+#endif
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     glfwWindowHint(GLFW_FLOATING, GLFW_TRUE);
 
