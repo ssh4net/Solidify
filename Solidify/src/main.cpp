@@ -213,6 +213,11 @@ main(int argc, char* argv[])
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
 
+        if (glfwGetWindowAttrib(window, GLFW_ICONIFIED) != 0) {
+            ImGui_ImplGlfw_Sleep(10);
+            continue;
+        }
+
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
@@ -220,13 +225,18 @@ main(int argc, char* argv[])
         RenderUI();
 
         ImGui::Render();
+        ImDrawData* drawData     = ImGui::GetDrawData();
+        const bool mainMinimized = drawData->DisplaySize.x <= 0.0f || drawData->DisplaySize.y <= 0.0f;
+
         int display_w = 0;
         int display_h = 0;
         glfwGetFramebufferSize(window, &display_w, &display_h);
-        glViewport(0, 0, display_w, display_h);
-        glClearColor(0.45f, 0.55f, 0.60f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        if (!mainMinimized && display_w > 0 && display_h > 0) {
+            glViewport(0, 0, display_w, display_h);
+            glClearColor(0.45f, 0.55f, 0.60f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
+            ImGui_ImplOpenGL3_RenderDrawData(drawData);
+        }
 
         if ((io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) != 0) {
             GLFWwindow* backup_current_context = glfwGetCurrentContext();
@@ -235,7 +245,9 @@ main(int argc, char* argv[])
             glfwMakeContextCurrent(backup_current_context);
         }
 
-        glfwSwapBuffers(window);
+        if (!mainMinimized && display_w > 0 && display_h > 0) {
+            glfwSwapBuffers(window);
+        }
     }
 
     dnd_glfw::shutdown(window);
