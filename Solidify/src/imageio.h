@@ -36,6 +36,12 @@ struct OIIOProgressContext {
     float scale = 1.0f;
 };
 
+struct MaskBuffers {
+    ImageBuf alpha;
+    ImageBuf rgbAlpha;
+    ImageBuf originalAlpha;
+};
+
 bool
 m_progress_callback(void* opaque_data, float portion_done);
 
@@ -46,11 +52,11 @@ formatText(TypeDesc format);
 void
 formatFromBuff(ImageBuf& buf);
 
-std::pair<ImageBuf, ImageBuf>
+MaskBuffers
 mask_load(const std::string& mask_file, const SolidifyProgressCallback& progressCallback);
 bool
 img_load(ImageBuf& outBuf, const std::string& inputFileName, bool external_alpha,
-         const SolidifyProgressCallback& progressCallback);
+         ImageBuf* originalAlpha, const SolidifyProgressCallback& progressCallback);
 
 void
 debugImageBufWrite(const ImageBuf& buf, const std::string& filename);

@@ -174,11 +174,13 @@ loadSettings(Settings& outSettings, const std::string& filename)
 
         get_value(data, "Global", "Solidify", loaded.isSolidify);
         get_value(data, "Global", "UseAlpha", loaded.useAlpha);
+        get_value(data, "Global", "Premultiply", loaded.premultiplyAlpha);
         get_value(data, "Global", "ExportAlpha", loaded.alphaMode);
         get_value(data, "Global", "Console", loaded.conEnable);
         get_value(data, "Global", "Threads", loaded.numThreads);
         get_value(data, "Global", "QueueLimit", loaded.queueLimit);
         get_value(data, "Global", "Verbosity", loaded.verbosity);
+        get_value(data, "Global", "AlphaGamma", loaded.alphaGamma);
 
         if (data.contains("Global") && data.at("Global").contains("MaskNames")) {
             std::vector<std::string> values = toml::find<std::vector<std::string>>(data, "Global", "MaskNames");
@@ -238,6 +240,7 @@ loadSettings(Settings& outSettings, const std::string& filename)
         loaded.swapBasis           = std::clamp<uint>(loaded.swapBasis, 0, 5);
         loaded.swapInvertMask      = std::clamp<uint>(loaded.swapInvertMask, 0, 7);
         loaded.grayscaleMode       = std::clamp<uint>(loaded.grayscaleMode, 0, 7);
+        loaded.alphaGamma          = std::clamp(loaded.alphaGamma, 0.01f, 10.0f);
         loaded.defFormat           = std::clamp(loaded.defFormat, 0, 8);
         loaded.fileFormat          = std::clamp(loaded.fileFormat, -1, 8);
         loaded.defBDepth           = std::clamp(loaded.defBDepth, 0, 6);
@@ -405,9 +408,11 @@ printSettings(Settings& settings)
     spdlog::info("--- Current Settings ---");
     spdlog::info("Solidify: {}", settings.isSolidify ? "Enabled" : "Disabled");
     spdlog::info("Use Alpha: {}", settings.useAlpha ? "Embedded image alpha" : "External mask file");
-    spdlog::info("Alpha/Mask: {}", settings.alphaMode == 0
-                                       ? "Remove Alpha"
-                                       : (settings.alphaMode == 1 ? "Preserve Alpha" : "Export Alpha only"));
+    spdlog::info("Premultiply: {}", settings.premultiplyAlpha ? "Enabled" : "Disabled");
+    spdlog::info("Alpha Gamma: {}", settings.alphaGamma);
+    spdlog::info("Mask: {}", settings.alphaMode == 0
+                               ? "Remove Alpha"
+                               : (settings.alphaMode == 1 ? "Preserve Alpha" : "Export Alpha only"));
     spdlog::info("Parallel Threads: {}", settings.numThreads);
     spdlog::info("Queue Limit: {}", settings.queueLimit);
     spdlog::info("Normalize Mode: {}", settings.normMode);

@@ -4,6 +4,10 @@ Solidify = true
 # true uses each image's embedded alpha and ignores external mask filename matching.
 # false uses files matching MaskNames as an external mask.
 UseAlpha = true
+# true multiplies embedded-alpha RGB by alpha before push-pull.
+Premultiply = true
+# Image-app gamma value. 2.2 applies alpha^(1/2.2). 1.0 disables gamma shaping.
+AlphaGamma = 1.0
 ExportAlpha = 0
 MaskNames = ["_mask.", "_mask_", "_alpha.", "_alpha_"]
 Console = true

@@ -53,11 +53,13 @@ static void expectConfigA(const Settings& value)
 {
     EXPECT_TRUE(value.isSolidify == false);
     EXPECT_TRUE(value.useAlpha == false);
+    EXPECT_TRUE(value.premultiplyAlpha == false);
     EXPECT_TRUE(value.alphaMode == 2);
     EXPECT_TRUE(value.conEnable == false);
     EXPECT_TRUE(value.numThreads == 8);
     EXPECT_TRUE(value.queueLimit == 5);
     EXPECT_TRUE(value.verbosity == 5);
+    EXPECT_TRUE(value.alphaGamma == 2.5f);
     EXPECT_TRUE(value.mask_substr.size() == 1 && value.mask_substr[0] == "_maskA");
     EXPECT_TRUE(value.normMode == 2);
     EXPECT_TRUE(value.normNames.size() == 1 && value.normNames[0] == "normalA");
@@ -93,11 +95,13 @@ static void expectConfigB(const Settings& value)
 {
     EXPECT_TRUE(value.isSolidify == true);
     EXPECT_TRUE(value.useAlpha == true);
+    EXPECT_TRUE(value.premultiplyAlpha == true);
     EXPECT_TRUE(value.alphaMode == 1);
     EXPECT_TRUE(value.conEnable == true);
     EXPECT_TRUE(value.numThreads == 2);
     EXPECT_TRUE(value.queueLimit == 1);
     EXPECT_TRUE(value.verbosity == 1);
+    EXPECT_TRUE(value.alphaGamma == 1.0f);
     EXPECT_TRUE(value.mask_substr.size() == 2 && value.mask_substr[0] == "_maskB" && value.mask_substr[1] == "_alphaB");
     EXPECT_TRUE(value.normMode == 0);
     EXPECT_TRUE(value.normNames.size() == 2 && value.normNames[0] == "normalB" && value.normNames[1] == "worldB");
@@ -135,12 +139,14 @@ static void testReloadUpdatesSettingsAndDefaults()
 [Global]
 Solidify = false
 UseAlpha = false
+Premultiply = false
 ExportAlpha = 2
 MaskNames = ["_maskA"]
 Console = false
 Threads = 8
 QueueLimit = 5
 Verbosity = 5
+AlphaGamma = 2.5
 
 [Normalize]
 NormalizeMode = 2
@@ -185,12 +191,14 @@ RawRotation = 6
 [Global]
 Solidify = true
 UseAlpha = true
+Premultiply = true
 ExportAlpha = 1
 MaskNames = ["_maskB", "_alphaB"]
 Console = true
 Threads = 2
 QueueLimit = 1
 Verbosity = 1
+AlphaGamma = 1.0
 
 [Normalize]
 NormalizeMode = 0

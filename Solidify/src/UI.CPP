@@ -95,10 +95,19 @@ MenuRadioInt(const char* label, int& variable, int value)
 }
 
 static void
+PushCompactMenuInputFrame()
+{
+    const ImGuiStyle& style     = ImGui::GetStyle();
+    const float targetHeight    = ImGui::GetFrameHeight() / 1.5f;
+    const float compactPaddingY = std::max(0.0f, (targetHeight - ImGui::GetFontSize()) * 0.5f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(style.FramePadding.x, compactPaddingY));
+}
+
+static void
 SetAlphaMode(uint mode, const char* label)
 {
     settings.alphaMode = mode;
-    SetStatus(std::string("Alpha/Mask set to ") + label);
+    SetStatus(std::string("Mask set to ") + label);
 
     if (mode == 2) {
         settings.isSolidify = false;
@@ -410,12 +419,38 @@ AppMenuBar()
                 settings.isSolidify = !settings.isSolidify;
                 SetStatus(settings.isSolidify ? "Solidify Enabled" : "Solidify Disabled");
             }
-            if (ImGui::MenuItem("Use Alpha", nullptr, settings.useAlpha)) {
-                settings.useAlpha = !settings.useAlpha;
-                SetStatus(settings.useAlpha ? "Use Alpha Enabled" : "Use Alpha Disabled");
+
+            if (ImGui::BeginMenu("Alpha")) {
+                if (ImGui::MenuItem("Use Alpha", nullptr, settings.useAlpha)) {
+                    settings.useAlpha = !settings.useAlpha;
+                    SetStatus(settings.useAlpha ? "Use Alpha Enabled" : "Use Alpha Disabled");
+                }
+                if (ImGui::MenuItem("Premultiply", nullptr, settings.premultiplyAlpha)) {
+                    settings.premultiplyAlpha = !settings.premultiplyAlpha;
+                    SetStatus(settings.premultiplyAlpha ? "Premultiply Enabled" : "Premultiply Disabled");
+                }
+                ImGui::Separator();
+                if (ImGui::BeginTable("AlphaForm", 2, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_NoSavedSettings)) {
+                    ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, 68.0f);
+                    ImGui::TableSetupColumn("Control", ImGuiTableColumnFlags_WidthFixed, 120.0f);
+                    ImGui::TableNextRow();
+                    PushCompactMenuInputFrame();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::AlignTextToFramePadding();
+                    ImGui::TextUnformatted("Gamma");
+                    ImGui::TableSetColumnIndex(1);
+                    ImGui::SetNextItemWidth(120.0f);
+                    if (ImGui::InputFloat("##AlphaGamma", &settings.alphaGamma, 0.1f, 1.0f, "%.3f")) {
+                        settings.alphaGamma = std::clamp(settings.alphaGamma, 0.01f, 10.0f);
+                        SetStatus("Alpha Gamma Updated");
+                    }
+                    ImGui::PopStyleVar();
+                    ImGui::EndTable();
+                }
+                ImGui::EndMenu();
             }
 
-            if (ImGui::BeginMenu("Alpha/Mask")) {
+            if (ImGui::BeginMenu("Mask")) {
                 if (ImGui::MenuItem("Disable", nullptr, settings.alphaMode == 0)) {
                     SetAlphaMode(0, "Disable");
                 }
@@ -509,15 +544,23 @@ AppMenuBar()
                 if (ImGui::MenuItem("Arbitrary", nullptr, settings.grayscaleMode == 7)) {
                     SetGrayscaleMode(7, "Arbitrary");
                 }
-                const ImGuiStyle& style = ImGui::GetStyle();
-                const float targetFrameHeight = ImGui::GetFrameHeight() / 1.5f;
-                const float arbitraryPaddingY = std::max(0.0f, (targetFrameHeight - ImGui::GetFontSize()) * 0.5f);
-                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(style.FramePadding.x, arbitraryPaddingY));
-                ImGui::SetNextItemWidth(220.0f);
-                if (ImGui::InputFloat3("Weights", settings.grayscaleWeights, "%.4f")) {
-                    settings.grayscaleMode = 7;
+                if (ImGui::BeginTable("GrayscaleForm", 2,
+                                      ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_NoSavedSettings)) {
+                    ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, 68.0f);
+                    ImGui::TableSetupColumn("Control", ImGuiTableColumnFlags_WidthFixed, 220.0f);
+                    ImGui::TableNextRow();
+                    PushCompactMenuInputFrame();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::AlignTextToFramePadding();
+                    ImGui::TextUnformatted("Weights");
+                    ImGui::TableSetColumnIndex(1);
+                    ImGui::SetNextItemWidth(220.0f);
+                    if (ImGui::InputFloat3("##GrayscaleWeights", settings.grayscaleWeights, "%.4f")) {
+                        settings.grayscaleMode = 7;
+                    }
+                    ImGui::PopStyleVar();
+                    ImGui::EndTable();
                 }
-                ImGui::PopStyleVar();
                 ImGui::EndMenu();
             }
 

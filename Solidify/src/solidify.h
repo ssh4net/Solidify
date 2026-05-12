@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "imageio.h"
 #include "processing.h"
 
 #include <OpenImageIO/imagebuf.h>
@@ -28,4 +29,4 @@ using namespace OIIO;
 
 bool
 solidify_main(const std::string& inputFileName, const std::string& outputFileName,
-              const std::pair<ImageBuf, ImageBuf>& mask_pair, const SolidifyProgressCallback& progressCallback);
+              const MaskBuffers& maskBuffers, const SolidifyProgressCallback& progressCallback);

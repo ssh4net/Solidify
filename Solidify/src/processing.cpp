@@ -191,11 +191,11 @@ doProcessing(const std::vector<std::string>& filePaths, SolidifyProgressCallback
 
     std::string mask_file = checkAlpha(fileNames);
 
-    std::pair<ImageBuf, ImageBuf> mask_pair;
+    MaskBuffers maskBuffers;
     if (!mask_file.empty()) {
         spdlog::info("Mask file: {} will be used.", mask_file);
-        mask_pair = mask_load(mask_file, progressCallback);
-        if (!mask_pair.first.initialized() || !mask_pair.second.initialized()) {
+        maskBuffers = mask_load(mask_file, progressCallback);
+        if (!maskBuffers.alpha.initialized() || !maskBuffers.rgbAlpha.initialized()) {
             spdlog::error("Mask load failed: {}", mask_file);
             return false;
         }
@@ -265,7 +265,7 @@ doProcessing(const std::vector<std::string>& filePaths, SolidifyProgressCallback
                 updateProgress(i, p, std::move(status));
             };
 
-            const bool ok = solidify_main(infile, outfile, mask_pair, fileCallback);
+            const bool ok = solidify_main(infile, outfile, maskBuffers, fileCallback);
             updateProgress(i, 1.0f, ok ? ("Done: " + fileNameOnly(outfile)) : ("Failed: " + fileNameOnly(infile)));
             return ok;
         }));

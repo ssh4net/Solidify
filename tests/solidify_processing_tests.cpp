@@ -17,11 +17,13 @@
  */
 
 #include "processing.h"
+#include "imageio.h"
 #include "settings.h"
 
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imageio.h>
 
+#include <cmath>
 #include <cstdint>
 #include <filesystem>
 #include <iostream>
@@ -41,6 +43,16 @@ static void expectTrue(bool value, const char* expr, const char* file, int line)
 }
 
 #define EXPECT_TRUE(expr) expectTrue((expr), #expr, __FILE__, __LINE__)
+
+static void expectNear(float actual, float expected, float eps, const char* label, const char* file, int line)
+{
+    if (std::fabs(actual - expected) > eps) {
+        std::cerr << file << ':' << line << ": " << label << " expected " << expected << ", got " << actual << '\n';
+        ++g_failures;
+    }
+}
+
+#define EXPECT_NEAR_VALUE(actual, expected, eps, label) expectNear((actual), (expected), (eps), (label), __FILE__, __LINE__)
 
 static bool writeRgbaPng(const fs::path& path)
 {
@@ -67,6 +79,33 @@ static bool writeRgbaPng(const fs::path& path)
     return image.write(path.string());
 }
 
+static bool writeFloatMask(const fs::path& path, float alpha)
+{
+    OIIO::ImageSpec spec(1, 1, 1, OIIO::TypeDesc::FLOAT);
+    spec.channelnames[0] = "A";
+    spec.alpha_channel   = 0;
+
+    OIIO::ImageBuf image(spec);
+    float* pixels = static_cast<float*>(image.localpixels());
+    pixels[0]     = alpha;
+    return image.write(path.string());
+}
+
+static bool writeFloatRgba(const fs::path& path, float r, float g, float b, float a)
+{
+    OIIO::ImageSpec spec(1, 1, 4, OIIO::TypeDesc::FLOAT);
+    spec.channelnames[3] = "A";
+    spec.alpha_channel   = 3;
+
+    OIIO::ImageBuf image(spec);
+    float* pixels = static_cast<float*>(image.localpixels());
+    pixels[0]     = r;
+    pixels[1]     = g;
+    pixels[2]     = b;
+    pixels[3]     = a;
+    return image.write(path.string());
+}
+
 static void configureProcessing(bool useAlpha)
 {
     settings.reSettings();
@@ -86,6 +125,83 @@ static void configureProcessing(bool useAlpha)
     settings.queueLimit       = 1;
     settings.pngStrategy      = PngCompression_Default;
     settings.pngCompressionLevel = 4;
+}
+
+static void testMaskGammaUsesImageAppConventionAndPreservesOriginal()
+{
+    const fs::path testDir = fs::temp_directory_path() / "solidify_processing_gamma_tests";
+    std::error_code ec;
+    fs::remove_all(testDir, ec);
+    ec.clear();
+    fs::create_directories(testDir, ec);
+    EXPECT_TRUE(!ec);
+
+    const fs::path maskPath = testDir / "soft_mask.exr";
+    EXPECT_TRUE(writeFloatMask(maskPath, 0.25f));
+
+    settings.reSettings();
+    settings.alphaMode  = 1;
+    settings.alphaGamma = 2.0f;
+
+    MaskBuffers mask = mask_load(maskPath.string(), nullptr);
+    EXPECT_TRUE(mask.alpha.initialized());
+    EXPECT_TRUE(mask.rgbAlpha.initialized());
+    EXPECT_TRUE(mask.originalAlpha.initialized());
+
+    float gammaAlpha[1] = {};
+    float originalAlpha[1] = {};
+    float rgbAlpha[3] = {};
+    mask.alpha.getpixel(0, 0, gammaAlpha, 1);
+    mask.originalAlpha.getpixel(0, 0, originalAlpha, 1);
+    mask.rgbAlpha.getpixel(0, 0, rgbAlpha, 3);
+
+    EXPECT_NEAR_VALUE(gammaAlpha[0], 0.5f, 0.001f, "gamma alpha");
+    EXPECT_NEAR_VALUE(originalAlpha[0], 0.25f, 0.001f, "original alpha");
+    EXPECT_NEAR_VALUE(rgbAlpha[0], 0.5f, 0.001f, "rgb alpha R");
+    EXPECT_NEAR_VALUE(rgbAlpha[1], 0.5f, 0.001f, "rgb alpha G");
+    EXPECT_NEAR_VALUE(rgbAlpha[2], 0.5f, 0.001f, "rgb alpha B");
+
+    fs::remove_all(testDir, ec);
+}
+
+static void testEmbeddedAlphaGammaAndPremultiplySwitch()
+{
+    const fs::path testDir = fs::temp_directory_path() / "solidify_processing_premultiply_tests";
+    std::error_code ec;
+    fs::remove_all(testDir, ec);
+    ec.clear();
+    fs::create_directories(testDir, ec);
+    EXPECT_TRUE(!ec);
+
+    const fs::path imagePath = testDir / "embedded_alpha.exr";
+    EXPECT_TRUE(writeFloatRgba(imagePath, 0.8f, 0.4f, 0.2f, 0.25f));
+
+    settings.reSettings();
+    settings.isSolidify       = true;
+    settings.alphaGamma       = 2.0f;
+    settings.premultiplyAlpha = false;
+
+    OIIO::ImageBuf unpremultiplied(imagePath.string());
+    EXPECT_TRUE(img_load(unpremultiplied, imagePath.string(), false, nullptr, nullptr));
+    float unpremultipliedPixel[4] = {};
+    unpremultiplied.getpixel(0, 0, unpremultipliedPixel, 4);
+    EXPECT_NEAR_VALUE(unpremultipliedPixel[0], 0.8f, 0.001f, "unpremultiplied R");
+    EXPECT_NEAR_VALUE(unpremultipliedPixel[1], 0.4f, 0.001f, "unpremultiplied G");
+    EXPECT_NEAR_VALUE(unpremultipliedPixel[2], 0.2f, 0.001f, "unpremultiplied B");
+    EXPECT_NEAR_VALUE(unpremultipliedPixel[3], 0.5f, 0.001f, "unpremultiplied A");
+
+    settings.premultiplyAlpha = true;
+
+    OIIO::ImageBuf premultiplied(imagePath.string());
+    EXPECT_TRUE(img_load(premultiplied, imagePath.string(), false, nullptr, nullptr));
+    float premultipliedPixel[4] = {};
+    premultiplied.getpixel(0, 0, premultipliedPixel, 4);
+    EXPECT_NEAR_VALUE(premultipliedPixel[0], 0.4f, 0.001f, "premultiplied R");
+    EXPECT_NEAR_VALUE(premultipliedPixel[1], 0.2f, 0.001f, "premultiplied G");
+    EXPECT_NEAR_VALUE(premultipliedPixel[2], 0.1f, 0.001f, "premultiplied B");
+    EXPECT_NEAR_VALUE(premultipliedPixel[3], 0.5f, 0.001f, "premultiplied A");
+
+    fs::remove_all(testDir, ec);
 }
 
 static void testUseAlphaProcessesTextureNamedMask()
@@ -124,6 +240,8 @@ static void testUseAlphaProcessesTextureNamedMask()
 
 int main()
 {
+    testMaskGammaUsesImageAppConventionAndPreservesOriginal();
+    testEmbeddedAlphaGammaAndPremultiplySwitch();
     testUseAlphaProcessesTextureNamedMask();
 
     if (g_failures != 0) {

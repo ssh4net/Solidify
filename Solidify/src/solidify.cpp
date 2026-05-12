@@ -179,7 +179,7 @@ getTypedPointer(OIIO::ImageBuf& buf, const OIIO::TypeDesc& type)
 
 bool
 solidify_main(const std::string& inputFileName, const std::string& outputFileName,
-              const std::pair<ImageBuf, ImageBuf>& mask_pair, const SolidifyProgressCallback& progressCallback)
+              const MaskBuffers& maskBuffers, const SolidifyProgressCallback& progressCallback)
 {
     VTimer g_timer;
 
@@ -189,7 +189,7 @@ solidify_main(const std::string& inputFileName, const std::string& outputFileNam
     config["raw:user_flip"] = settings.rawRot;
     //config["oiio:reorient"] = 0;
 
-    config["oiio:UnassociatedAlpha"] = 0;
+    config["oiio:UnassociatedAlpha"] = 1;
     config["tiff:UnassociatedAlpha"] = 0;
     config["oiio:ColorSpace"]        = "Linear";
 
@@ -221,14 +221,15 @@ solidify_main(const std::string& inputFileName, const std::string& outputFileNam
     bool external_alpha = false;
     bool grayscale      = false;
 
-    if (!settings.useAlpha && mask_pair.first.initialized() && mask_pair.second.initialized()) {
+    if (!settings.useAlpha && maskBuffers.alpha.initialized() && maskBuffers.rgbAlpha.initialized()) {
         external_alpha = true;
     }
 
     // Read the image with a progress callback
 
     spdlog::info("Reading {}", inputFileName);
-    bool load_ok = img_load(input_buf, inputFileName, external_alpha, progressCallback);
+    ImageBuf original_alpha;
+    bool load_ok = img_load(input_buf, inputFileName, external_alpha, &original_alpha, progressCallback);
     if (!load_ok) {
         spdlog::error("Error reading {}", inputFileName);
         reportProgress(progressCallback, 0.0f, "Error! Check console for details");
@@ -294,7 +295,7 @@ solidify_main(const std::string& inputFileName, const std::string& outputFileNam
 
     // Create an ImageBuf object to store the result
 
-    ImageBuf result_buf, out_buf, rgba_buf, original_alpha, bit_alpha_buf;
+    ImageBuf result_buf, out_buf, rgba_buf, bit_alpha_buf, original_bit_alpha_buf;
     const ImageBuf* external_alpha_buf = nullptr;
 
     // check if filename have any of settings.normNames as substring, case insensitive
@@ -316,19 +317,30 @@ solidify_main(const std::string& inputFileName, const std::string& outputFileNam
         VTimer pushpull_timer;
 
         if (external_alpha) {
-            const ImageBuf* alpha_buf_ptr = &mask_pair.first;
+            const ImageBuf* alpha_buf_ptr = &maskBuffers.alpha;
 
             if (load_format != TypeDesc::FLOAT) {
-                bit_alpha_buf = mask_pair.first.copy(load_format);
+                bit_alpha_buf = maskBuffers.alpha.copy(load_format);
                 alpha_buf_ptr = &bit_alpha_buf;
             }
-            external_alpha_buf = alpha_buf_ptr;
 
-            bool ok = ImageBufAlgo::mul(input_buf, input_buf, grayscale ? mask_pair.first : mask_pair.second);
-            if (!ok) {
-                spdlog::error("multiplication error: {}", input_buf.geterror());
-                reportProgress(progressCallback, 0.0f, "Error! Check console for details");
-                return false;
+            const ImageBuf* preserve_alpha_buf_ptr = maskBuffers.originalAlpha.initialized()
+                                                         ? &maskBuffers.originalAlpha
+                                                         : &maskBuffers.alpha;
+            if (load_format != TypeDesc::FLOAT) {
+                original_bit_alpha_buf = preserve_alpha_buf_ptr->copy(load_format);
+                preserve_alpha_buf_ptr = &original_bit_alpha_buf;
+            }
+            external_alpha_buf = preserve_alpha_buf_ptr;
+
+            bool ok = true;
+            if (settings.premultiplyAlpha) {
+                ok = ImageBufAlgo::mul(input_buf, input_buf, grayscale ? maskBuffers.alpha : maskBuffers.rgbAlpha);
+                if (!ok) {
+                    spdlog::error("multiplication error: {}", input_buf.geterror());
+                    reportProgress(progressCallback, 0.0f, "Error! Check console for details");
+                    return false;
+                }
             }
             ok = ok && ImageBufAlgo::channel_append(rgba_buf, input_buf, *alpha_buf_ptr);
             if (!ok) {
@@ -339,9 +351,6 @@ solidify_main(const std::string& inputFileName, const std::string& outputFileNam
             // rename last channel to alpha and set alpha channel
             rgba_buf.specmod().channelnames[rgba_buf.nchannels() - 1] = "A";
             rgba_buf.specmod().alpha_channel                          = rgba_buf.nchannels() - 1;
-        } else if (settings.alphaMode
-                   == 1) {  // if Export alpha channel is enabled, copy the original alpha channel to a separate buffer
-            original_alpha = ImageBufAlgo::channels(input_buf, 1, 3);
         }
 
         ImageBuf* input_buf_ptr = external_alpha
@@ -368,7 +377,12 @@ solidify_main(const std::string& inputFileName, const std::string& outputFileNam
         }
         // reset unused buffers
         rgba_buf.clear();
-        external_alpha ? bit_alpha_buf.clear() : original_alpha.clear();
+        if (external_alpha) {
+            bit_alpha_buf.clear();
+            original_bit_alpha_buf.clear();
+        } else {
+            original_alpha.clear();
+        }
 
 #if 0
         debugImageBufWrite(result_buf, "d:/result_buf.tif");

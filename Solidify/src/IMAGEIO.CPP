@@ -83,9 +83,75 @@ debugImageBufWrite(const ImageBuf& buf, const std::string& filename)
     }
 }
 
-std::pair<ImageBuf, ImageBuf>
+static void
+setAlphaBufferSpec(ImageBuf& buf)
+{
+    if (buf.nchannels() > 0) {
+        buf.specmod().channelnames[0] = "A";
+        buf.specmod().alpha_channel   = 0;
+    }
+}
+
+static bool
+extractAlphaChannel(ImageBuf* dst, const ImageBuf& src, int alphaChannel)
+{
+    int channelorder[]    = { alphaChannel };
+    float channelvalues[] = { 1.0f };
+    *dst                  = ImageBufAlgo::channels(src, 1, channelorder, channelvalues);
+    if (!dst->initialized() || dst->has_error()) {
+        spdlog::error("Error: Could not extract alpha channel");
+        spdlog::error("{}", dst->geterror());
+        return false;
+    }
+    setAlphaBufferSpec(*dst);
+    return true;
+}
+
+static bool
+applyAlphaGamma(ImageBuf& alphaBuf)
+{
+    if (std::abs(settings.alphaGamma - 1.0f) <= 0.000001f) {
+        return true;
+    }
+
+    float minValue[] = { 0.0f };
+    float maxValue[] = { 1.0f };
+    if (!ImageBufAlgo::clamp(alphaBuf, alphaBuf, minValue, maxValue, false)) {
+        spdlog::error("Error: Could not clamp alpha before gamma");
+        spdlog::error("{}", alphaBuf.geterror());
+        return false;
+    }
+
+    const float exponent = 1.0f / std::max(settings.alphaGamma, 0.01f);
+    float powValue[]     = { exponent };
+    if (!ImageBufAlgo::pow(alphaBuf, alphaBuf, powValue)) {
+        spdlog::error("Error: Could not apply alpha gamma");
+        spdlog::error("{}", alphaBuf.geterror());
+        return false;
+    }
+
+    setAlphaBufferSpec(alphaBuf);
+    return true;
+}
+
+static ImageBuf
+makeAlphaMultiplier(const ImageBuf& alphaBuf, int channelCount)
+{
+    if (channelCount == 4) {
+        int channelorder[]    = { 0, 0, 0, -1 };
+        float channelvalues[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+        return ImageBufAlgo::channels(alphaBuf, 4, channelorder, channelvalues);
+    }
+
+    int channelorder[]    = { 0, -1 };
+    float channelvalues[] = { 1.0f, 1.0f };
+    return ImageBufAlgo::channels(alphaBuf, 2, channelorder, channelvalues);
+}
+
+MaskBuffers
 mask_load(const std::string& mask_file, const SolidifyProgressCallback& progressCallback)
 {
+    MaskBuffers result;
     ImageBuf alpha_buf(mask_file);
     spdlog::info("Reading {}", mask_file);
 
@@ -107,8 +173,15 @@ mask_load(const std::string& mask_file, const SolidifyProgressCallback& progress
     const int height = alpha_buf.spec().height;
     spdlog::info("Mask size: {}x{}", width, height);
 
-    alpha_buf.specmod().channelnames[0] = "A";
-    alpha_buf.specmod().alpha_channel   = 0;
+    setAlphaBufferSpec(alpha_buf);
+    if (settings.alphaMode == 1) {
+        result.originalAlpha = alpha_buf.copy(TypeDesc::FLOAT);
+        setAlphaBufferSpec(result.originalAlpha);
+    }
+
+    if (!applyAlphaGamma(alpha_buf)) {
+        return {};
+    }
 
     int channelorder[]    = { 0, 0, 0 };
     float channelvalues[] = { 1.0f, 1.0f, 1.0f };
@@ -120,14 +193,19 @@ mask_load(const std::string& mask_file, const SolidifyProgressCallback& progress
         return {};
     }
 
-    return { alpha_buf, rgb_alpha };
+    result.alpha    = std::move(alpha_buf);
+    result.rgbAlpha = std::move(rgb_alpha);
+    return result;
 }
 
 bool
 img_load(ImageBuf& outBuf, const std::string& inputFileName, bool external_alpha,
-         const SolidifyProgressCallback& progressCallback)
+         ImageBuf* originalAlpha, const SolidifyProgressCallback& progressCallback)
 {
     int last_channel = -1;
+    if (originalAlpha != nullptr) {
+        originalAlpha->clear();
+    }
 
     ImageSpec& spec     = outBuf.specmod();
     const int nchannels = spec.nchannels;
@@ -170,23 +248,39 @@ img_load(ImageBuf& outBuf, const std::string& inputFileName, bool external_alpha
     }
 
     if (!external_alpha && settings.isSolidify) {
-        ImageBuf alphs_rgba;
-        if (nchannels == 4) {
-            int channelorder[]    = { 3, 3, 3 };
-            float channelvalues[] = { 1.0f, 1.0f, 1.0f };
-            alphs_rgba            = ImageBufAlgo::channels(outBuf, 3, channelorder, channelvalues);
-        } else if (nchannels == 2) {
-            int channelorder[]    = { 1 };
-            float channelvalues[] = { 1.0f };
-            alphs_rgba            = ImageBufAlgo::channels(outBuf, 3, channelorder, channelvalues);
-        }
+        const int alphaChannel = nchannels == 4 ? 3 : (nchannels == 2 ? 1 : -1);
+        if (alphaChannel >= 0) {
+            if (originalAlpha != nullptr && settings.alphaMode == 1
+                && !extractAlphaChannel(originalAlpha, outBuf, alphaChannel)) {
+                return false;
+            }
 
-        if (alphs_rgba.initialized()) {
-            read_ok = ImageBufAlgo::mul(outBuf, outBuf, alphs_rgba);
-            if (!read_ok) {
-                spdlog::error("Error: Could not multiply alpha");
+            ImageBuf alphaBuf;
+            if (!extractAlphaChannel(&alphaBuf, outBuf, alphaChannel) || !applyAlphaGamma(alphaBuf)) {
+                return false;
+            }
+
+            ImageBufAlgo::paste(outBuf, 0, 0, 0, alphaChannel, alphaBuf);
+            if (outBuf.has_error()) {
+                spdlog::error("Error: Could not paste gamma-corrected alpha");
                 spdlog::error("{}", outBuf.geterror());
                 return false;
+            }
+
+            if (settings.premultiplyAlpha) {
+                ImageBuf alphaMultiplier = makeAlphaMultiplier(alphaBuf, nchannels);
+                if (!alphaMultiplier.initialized() || alphaMultiplier.has_error()) {
+                    spdlog::error("Error: Could not expand alpha multiplier");
+                    spdlog::error("{}", alphaMultiplier.geterror());
+                    return false;
+                }
+
+                read_ok = ImageBufAlgo::mul(outBuf, outBuf, alphaMultiplier);
+                if (!read_ok) {
+                    spdlog::error("Error: Could not multiply alpha");
+                    spdlog::error("{}", outBuf.geterror());
+                    return false;
+                }
             }
         }
     }

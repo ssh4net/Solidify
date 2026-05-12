@@ -69,7 +69,7 @@ enum JpegSubsamplingMode : int {
 };
 
 struct Settings {
-    bool isSolidify, useAlpha, conEnable;
+    bool isSolidify, useAlpha, premultiplyAlpha, conEnable;
     uint normMode, rangeMode, repairMode, alphaMode;
     uint swapBasis, swapInvertMask, grayscaleMode;
     int fileFormat, defFormat;
@@ -78,6 +78,7 @@ struct Settings {
     uint numThreads;
     uint queueLimit;
     uint verbosity;
+    float alphaGamma;
     float grayscaleWeights[3];
     int tiffCompression, tiffZipLevel;
     int exrCompression, exrZipLevel, exrDwaLevel;
@@ -96,14 +97,16 @@ struct Settings {
 
     void reSettings()
     {
-        conEnable  = true;
-        isSolidify = true;
-        useAlpha   = true;
+        conEnable        = true;
+        isSolidify       = true;
+        useAlpha         = true;
+        premultiplyAlpha = true;
 
         alphaMode      = 0;
         numThreads     = 3;
         queueLimit     = 0;
         verbosity      = 3;
+        alphaGamma     = 1.0f;
         normMode       = 1;
         repairMode     = 0;
         swapBasis      = 0;
