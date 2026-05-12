@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(Solidify LANGUAGES CXX C VERSION 2.7.5)
+project(Solidify LANGUAGES CXX C VERSION 2.0.5)
 
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "Available build configurations" FORCE)
 
