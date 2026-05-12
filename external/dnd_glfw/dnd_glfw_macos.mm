@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025-2026 Erium Vladlen
+
 #import <Cocoa/Cocoa.h>
 
 #define GLFW_INCLUDE_NONE
