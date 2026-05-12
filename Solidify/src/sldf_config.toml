@@ -1,6 +1,9 @@
 [Global]
 # Global app settings
 Solidify = true
+# true uses each image's embedded alpha and ignores external mask filename matching.
+# false uses files matching MaskNames as an external mask.
+UseAlpha = true
 ExportAlpha = 0
 MaskNames = ["_mask.", "_mask_", "_alpha.", "_alpha_"]
 Console = true

@@ -410,6 +410,10 @@ AppMenuBar()
                 settings.isSolidify = !settings.isSolidify;
                 SetStatus(settings.isSolidify ? "Solidify Enabled" : "Solidify Disabled");
             }
+            if (ImGui::MenuItem("Use Alpha", nullptr, settings.useAlpha)) {
+                settings.useAlpha = !settings.useAlpha;
+                SetStatus(settings.useAlpha ? "Use Alpha Enabled" : "Use Alpha Disabled");
+            }
 
             if (ImGui::BeginMenu("Alpha/Mask")) {
                 if (ImGui::MenuItem("Disable", nullptr, settings.alphaMode == 0)) {

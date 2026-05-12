@@ -517,6 +517,18 @@ if(BUILD_TESTING)
     solidify_configure_image_tool(solidify_settings_tests)
     add_test(NAME solidify_settings_tests COMMAND solidify_settings_tests)
 
+    add_executable(solidify_processing_tests
+        tests/solidify_processing_tests.cpp
+        Solidify/src/processing.cpp
+        Solidify/src/settings.cpp
+        Solidify/src/imageio.cpp
+        Solidify/src/imageops.cpp
+        Solidify/src/pushpull.cpp
+        Solidify/src/solidify.cpp
+    )
+    solidify_configure_image_tool(solidify_processing_tests)
+    add_test(NAME solidify_processing_tests COMMAND solidify_processing_tests)
+
     add_executable(solidify_pushpull_bench
         tests/solidify_pushpull_bench.cpp
         Solidify/src/pushpull.cpp

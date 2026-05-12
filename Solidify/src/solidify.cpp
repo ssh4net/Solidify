@@ -221,7 +221,7 @@ solidify_main(const std::string& inputFileName, const std::string& outputFileNam
     bool external_alpha = false;
     bool grayscale      = false;
 
-    if (mask_pair.first.initialized() && mask_pair.second.initialized()) {
+    if (!settings.useAlpha && mask_pair.first.initialized() && mask_pair.second.initialized()) {
         external_alpha = true;
     }
 

@@ -52,6 +52,7 @@ static void writeTextFile(const fs::path& path, const char* text)
 static void expectConfigA(const Settings& value)
 {
     EXPECT_TRUE(value.isSolidify == false);
+    EXPECT_TRUE(value.useAlpha == false);
     EXPECT_TRUE(value.alphaMode == 2);
     EXPECT_TRUE(value.conEnable == false);
     EXPECT_TRUE(value.numThreads == 8);
@@ -91,6 +92,7 @@ static void expectConfigA(const Settings& value)
 static void expectConfigB(const Settings& value)
 {
     EXPECT_TRUE(value.isSolidify == true);
+    EXPECT_TRUE(value.useAlpha == true);
     EXPECT_TRUE(value.alphaMode == 1);
     EXPECT_TRUE(value.conEnable == true);
     EXPECT_TRUE(value.numThreads == 2);
@@ -132,6 +134,7 @@ static void testReloadUpdatesSettingsAndDefaults()
     static constexpr const char* kConfigA = R"toml(
 [Global]
 Solidify = false
+UseAlpha = false
 ExportAlpha = 2
 MaskNames = ["_maskA"]
 Console = false
@@ -181,6 +184,7 @@ RawRotation = 6
     static constexpr const char* kConfigB = R"toml(
 [Global]
 Solidify = true
+UseAlpha = true
 ExportAlpha = 1
 MaskNames = ["_maskB", "_alphaB"]
 Console = true

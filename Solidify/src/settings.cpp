@@ -173,6 +173,7 @@ loadSettings(Settings& outSettings, const std::string& filename)
         Settings loaded;
 
         get_value(data, "Global", "Solidify", loaded.isSolidify);
+        get_value(data, "Global", "UseAlpha", loaded.useAlpha);
         get_value(data, "Global", "ExportAlpha", loaded.alphaMode);
         get_value(data, "Global", "Console", loaded.conEnable);
         get_value(data, "Global", "Threads", loaded.numThreads);
@@ -403,6 +404,7 @@ printSettings(Settings& settings)
 {
     spdlog::info("--- Current Settings ---");
     spdlog::info("Solidify: {}", settings.isSolidify ? "Enabled" : "Disabled");
+    spdlog::info("Use Alpha: {}", settings.useAlpha ? "Embedded image alpha" : "External mask file");
     spdlog::info("Alpha/Mask: {}", settings.alphaMode == 0
                                        ? "Remove Alpha"
                                        : (settings.alphaMode == 1 ? "Preserve Alpha" : "Export Alpha only"));

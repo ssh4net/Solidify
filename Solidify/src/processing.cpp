@@ -38,6 +38,10 @@ toLower(const std::string& str)
 std::string
 checkAlpha(const std::vector<std::string>& fileNames)
 {
+    if (settings.useAlpha) {
+        return "";
+    }
+
     for (const std::string& ss : settings.mask_substr) {
         const std::string lowMask = toLower(ss);
         for (const std::string& fileName : fileNames) {
@@ -195,6 +199,8 @@ doProcessing(const std::vector<std::string>& filePaths, SolidifyProgressCallback
             spdlog::error("Mask load failed: {}", mask_file);
             return false;
         }
+    } else if (settings.useAlpha) {
+        spdlog::info("Use Alpha enabled. External mask file discovery skipped.");
     }
 
     std::vector<std::string> processFiles;
