@@ -1,6 +1,6 @@
 /*
  * Solidify - texture push-pull processing utility
- * Copyright (c) 2023 Erium Vladlen.
+ * Copyright (c) 2023-2026 Erium Vladlen.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published
@@ -26,11 +26,17 @@
 
 using SolidifyProgressCallback = std::function<void(float, std::string)>;
 
-std::string toLower(const std::string& str);
-void getWritableExt(std::string* ext, Settings* settings);
-std::string getExtension(const std::string& fileName, Settings* settings);
-std::string getOutName(const std::string& fileName, Settings* settings);
+std::string
+toLower(const std::string& str);
+void
+getWritableExt(std::string* ext, Settings* settings);
+std::string
+getExtension(const std::string& fileName, Settings* settings);
+std::string
+getOutName(const std::string& fileName, Settings* settings);
 
-bool doProcessing(const std::vector<std::string>& filePaths, SolidifyProgressCallback progressCallback = nullptr);
+bool
+doProcessing(const std::vector<std::string>& filePaths, SolidifyProgressCallback progressCallback = nullptr);
 
-std::string checkAlpha(const std::vector<std::string>& fileNames);
+std::string
+checkAlpha(const std::vector<std::string>& fileNames);

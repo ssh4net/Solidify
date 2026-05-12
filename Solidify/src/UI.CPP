@@ -1,6 +1,6 @@
 /*
  * Solidify - texture push-pull processing utility
- * Copyright (c) 2023 Erium Vladlen.
+ * Copyright (c) 2023-2026 Erium Vladlen.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published
@@ -27,26 +27,30 @@ static std::atomic<bool> g_isProcessing = false;
 static std::atomic<bool> g_dragging     = false;
 static std::atomic<float> g_progress    = 0.0f;
 static std::mutex g_statusMutex;
-static std::string g_statusText = "Waiting for user inputs...";
+static std::string g_statusText   = "Waiting for user inputs...";
 static bool g_openEncoderSettings = false;
 
-static void SetStatus(std::string text)
+static void
+SetStatus(std::string text)
 {
     std::lock_guard<std::mutex> lock(g_statusMutex);
     g_statusText = std::move(text);
 }
 
-void SetDragging(bool dragging)
+void
+SetDragging(bool dragging)
 {
     g_dragging = dragging;
 }
 
-bool IsDragging()
+bool
+IsDragging()
 {
     return g_dragging;
 }
 
-void StartProcessing(const std::vector<std::string>& files)
+void
+StartProcessing(const std::vector<std::string>& files)
 {
     bool expected = false;
     if (!g_isProcessing.compare_exchange_strong(expected, true)) {
@@ -72,7 +76,8 @@ void StartProcessing(const std::vector<std::string>& files)
 }
 
 template<typename T>
-static void MenuRadio(const char* label, T& variable, T value)
+static void
+MenuRadio(const char* label, T& variable, T value)
 {
     if (ImGui::MenuItem(label, nullptr, variable == value)) {
         variable = value;
@@ -80,7 +85,8 @@ static void MenuRadio(const char* label, T& variable, T value)
     }
 }
 
-static void MenuRadioInt(const char* label, int& variable, int value)
+static void
+MenuRadioInt(const char* label, int& variable, int value)
 {
     if (ImGui::MenuItem(label, nullptr, variable == value)) {
         variable = value;
@@ -88,7 +94,8 @@ static void MenuRadioInt(const char* label, int& variable, int value)
     }
 }
 
-static void SetAlphaMode(uint mode, const char* label)
+static void
+SetAlphaMode(uint mode, const char* label)
 {
     settings.alphaMode = mode;
     SetStatus(std::string("Alpha/Mask set to ") + label);
@@ -100,7 +107,8 @@ static void SetAlphaMode(uint mode, const char* label)
     }
 }
 
-static void SetRepairMode(uint mode, const char* label)
+static void
+SetRepairMode(uint mode, const char* label)
 {
     settings.repairMode = mode;
     SetStatus(std::string("Repair mode set to ") + label);
@@ -111,20 +119,17 @@ static void SetRepairMode(uint mode, const char* label)
 
 static constexpr const char* kSwapBasisLabels[6] = { "XYZ", "XZY", "YXZ", "YZX", "ZXY", "ZYX" };
 static constexpr int kSwapBasisOrders[6][3]      = {
-    { 0, 1, 2 },
-    { 0, 2, 1 },
-    { 1, 0, 2 },
-    { 1, 2, 0 },
-    { 2, 0, 1 },
-    { 2, 1, 0 },
+    { 0, 1, 2 }, { 0, 2, 1 }, { 1, 0, 2 }, { 1, 2, 0 }, { 2, 0, 1 }, { 2, 1, 0 },
 };
 
-static char AxisName(int axis)
+static char
+AxisName(int axis)
 {
     return static_cast<char>('X' + axis);
 }
 
-static std::string SwapInvertLabel(uint basis, uint invertMask)
+static std::string
+SwapInvertLabel(uint basis, uint invertMask)
 {
     basis = std::clamp<uint>(basis, 0, 5);
     std::string label;
@@ -136,12 +141,14 @@ static std::string SwapInvertLabel(uint basis, uint invertMask)
     return label;
 }
 
-static bool SwapInvertIsDisabled()
+static bool
+SwapInvertIsDisabled()
 {
     return settings.swapBasis == 0 && settings.swapInvertMask == 0;
 }
 
-static void SetSwapBasis(uint basis)
+static void
+SetSwapBasis(uint basis)
 {
     settings.swapBasis = std::clamp<uint>(basis, 0, 5);
     if (SwapInvertIsDisabled()) {
@@ -151,7 +158,8 @@ static void SetSwapBasis(uint basis)
     }
 }
 
-static void SetSwapInvertMask(uint invertMask)
+static void
+SetSwapInvertMask(uint invertMask)
 {
     settings.swapInvertMask = std::clamp<uint>(invertMask, 0, 7);
     if (SwapInvertIsDisabled()) {
@@ -161,19 +169,22 @@ static void SetSwapInvertMask(uint invertMask)
     }
 }
 
-static void SetGrayscaleMode(uint mode, const char* label)
+static void
+SetGrayscaleMode(uint mode, const char* label)
 {
     settings.grayscaleMode = mode;
     SetStatus(std::string("Grayscale set to ") + label);
 }
 
-static void ApplyVerbosity()
+static void
+ApplyVerbosity()
 {
     const int verbosity = std::clamp<int>(static_cast<int>(settings.verbosity), 0, 5);
     spdlog::set_level(static_cast<spdlog::level::level_enum>(5 - verbosity));
 }
 
-static void ApplyConsoleVisibility()
+static void
+ApplyConsoleVisibility()
 {
 #ifdef _WIN32
     ShowWindow(GetConsoleWindow(), settings.conEnable ? SW_SHOW : SW_HIDE);
@@ -182,27 +193,29 @@ static void ApplyConsoleVisibility()
 
 static constexpr const char* kTiffCompressionLabels[] = { "ZIP/Deflate", "LZW", "PackBits", "None" };
 static constexpr const char* kExrCompressionLabels[]  = {
-    "ZIP",   "ZIPS",     "PIZ",      "PXR24", "RLE",  "B44",
-    "B44A",  "DWAA",     "DWAB",     "HTJ2K256", "HTJ2K32", "None",
+    "ZIP", "ZIPS", "PIZ", "PXR24", "RLE", "B44", "B44A", "DWAA", "DWAB", "HTJ2K256", "HTJ2K32", "None",
 };
 static constexpr const char* kPngStrategyLabels[] = {
     "Default", "Filtered", "Huffman", "RLE", "Fixed", "PNG fast", "None",
 };
 static constexpr const char* kJpegSubsamplingLabels[] = { "4:4:4", "4:2:2", "4:2:0", "4:1:1" };
 
-static void DisabledDash()
+static void
+DisabledDash()
 {
     ImGui::BeginDisabled();
     ImGui::TextUnformatted("-");
     ImGui::EndDisabled();
 }
 
-static void SetControlWidth(float width)
+static void
+SetControlWidth(float width)
 {
     ImGui::SetNextItemWidth(width);
 }
 
-static void RenderEncoderSettingsWindow()
+static void
+RenderEncoderSettingsWindow()
 {
     if (!g_openEncoderSettings) {
         return;
@@ -343,16 +356,16 @@ static void RenderEncoderSettingsWindow()
         ImGui::EndTable();
     }
 
-    settings.tiffZipLevel = std::clamp(settings.tiffZipLevel, 1, 9);
-    settings.exrZipLevel = std::clamp(settings.exrZipLevel, 1, 9);
-    settings.exrDwaLevel = std::clamp(settings.exrDwaLevel, 1, 100);
+    settings.tiffZipLevel        = std::clamp(settings.tiffZipLevel, 1, 9);
+    settings.exrZipLevel         = std::clamp(settings.exrZipLevel, 1, 9);
+    settings.exrDwaLevel         = std::clamp(settings.exrDwaLevel, 1, 100);
     settings.pngCompressionLevel = std::clamp(settings.pngCompressionLevel, 0, 9);
-    settings.jpegQuality = std::clamp(settings.jpegQuality, 1, 100);
-    settings.jpeg2000QStep = std::clamp(settings.jpeg2000QStep, -1.0f, 10.0f);
-    settings.heicQuality = std::clamp(settings.heicQuality, 1, 100);
-    settings.jpegxlQuality = std::clamp(settings.jpegxlQuality, 1, 100);
-    settings.jpegxlEffort = std::clamp(settings.jpegxlEffort, 1, 9);
-    settings.jpegxlSpeed = std::clamp(settings.jpegxlSpeed, 0, 4);
+    settings.jpegQuality         = std::clamp(settings.jpegQuality, 1, 100);
+    settings.jpeg2000QStep       = std::clamp(settings.jpeg2000QStep, -1.0f, 10.0f);
+    settings.heicQuality         = std::clamp(settings.heicQuality, 1, 100);
+    settings.jpegxlQuality       = std::clamp(settings.jpegxlQuality, 1, 100);
+    settings.jpegxlEffort        = std::clamp(settings.jpegxlEffort, 1, 9);
+    settings.jpegxlSpeed         = std::clamp(settings.jpegxlSpeed, 0, 4);
 
     ImGui::Separator();
     if (ImGui::Button("Reset", ImVec2(120.0f, 0.0f))) {
@@ -366,7 +379,8 @@ static void RenderEncoderSettingsWindow()
     ImGui::End();
 }
 
-void AppMenuBar()
+void
+AppMenuBar()
 {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 10.0f));
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.0f, 10.0f));
@@ -491,10 +505,15 @@ void AppMenuBar()
                 if (ImGui::MenuItem("Arbitrary", nullptr, settings.grayscaleMode == 7)) {
                     SetGrayscaleMode(7, "Arbitrary");
                 }
+                const ImGuiStyle& style = ImGui::GetStyle();
+                const float targetFrameHeight = ImGui::GetFrameHeight() / 1.5f;
+                const float arbitraryPaddingY = std::max(0.0f, (targetFrameHeight - ImGui::GetFontSize()) * 0.5f);
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(style.FramePadding.x, arbitraryPaddingY));
                 ImGui::SetNextItemWidth(220.0f);
                 if (ImGui::InputFloat3("Weights", settings.grayscaleWeights, "%.4f")) {
                     settings.grayscaleMode = 7;
                 }
+                ImGui::PopStyleVar();
                 ImGui::EndMenu();
             }
 
@@ -591,7 +610,8 @@ void AppMenuBar()
     ImGui::PopStyleVar(3);
 }
 
-void RenderUI()
+void
+RenderUI()
 {
     ApplyVerbosity();
 
@@ -622,8 +642,8 @@ void RenderUI()
         const float content_width     = regionSize.x - 2.0f * pad;
         float cursor_y                = ImGui::GetFrameHeight() + pad * 3.0f;
 
-        ImVec2 dropAreaSize =
-            ImVec2(content_width, regionSize.y - progressBarHeight - statusHeight - 2.0f * pad - 2.0f * space);
+        ImVec2 dropAreaSize = ImVec2(content_width,
+                                     regionSize.y - progressBarHeight - statusHeight - 2.0f * pad - 2.0f * space);
 
         {
             ImGui::SetCursorPos(ImVec2(pad, cursor_y));
@@ -657,7 +677,8 @@ void RenderUI()
             ImGui::SetCursorPos(ImVec2(pad, cursor_y));
             ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.094f, 0.094f, 0.094f, 1.0f));
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(pad, pad));
-            ImGui::BeginChild("StatusArea", ImVec2(content_width, statusHeight), ImGuiChildFlags_AlwaysUseWindowPadding);
+            ImGui::BeginChild("StatusArea", ImVec2(content_width, statusHeight),
+                              ImGuiChildFlags_AlwaysUseWindowPadding);
 
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.88f, 0.88f, 0.88f, 1.0f));
             std::string statusTextCopy;

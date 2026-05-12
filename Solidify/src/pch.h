@@ -1,6 +1,6 @@
 /*
  * Solidify - texture push-pull processing utility
- * Copyright (c) 2023 Erium Vladlen.
+ * Copyright (c) 2023-2026 Erium Vladlen.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published

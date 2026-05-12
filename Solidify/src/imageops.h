@@ -1,6 +1,6 @@
 /*
  * Solidify - texture push-pull processing utility
- * Copyright (c) 2023 Erium Vladlen.
+ * Copyright (c) 2023-2026 Erium Vladlen.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published
@@ -20,9 +20,10 @@
 
 #include <OpenImageIO/imagebuf.h>
 
-bool applyChannelSwapInvert(OIIO::ImageBuf& dst, const OIIO::ImageBuf& src, unsigned int basis,
-                            unsigned int invertMask, bool signedRange, int nthreads = 0);
+bool
+applyChannelSwapInvert(OIIO::ImageBuf& dst, const OIIO::ImageBuf& src, unsigned int basis, unsigned int invertMask,
+                       bool signedRange, int nthreads = 0);
 
-bool applyGrayscale(OIIO::ImageBuf& dst, const OIIO::ImageBuf& src, unsigned int mode, const float weights[3],
-                    bool preserveAlpha, int nthreads = 0);
-
+bool
+applyGrayscale(OIIO::ImageBuf& dst, const OIIO::ImageBuf& src, unsigned int mode, const float weights[3],
+               bool preserveAlpha, int nthreads = 0);

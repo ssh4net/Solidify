@@ -1,6 +1,6 @@
 /*
  * Solidify - texture push-pull processing utility
- * Copyright (c) 2023 Erium Vladlen.
+ * Copyright (c) 2023-2026 Erium Vladlen.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published
@@ -30,12 +30,14 @@ extern const unsigned char solidify_embedded_font[];
 extern const unsigned int solidify_embedded_font_size;
 #endif
 
-static void glfw_error_callback(int error, const char* description)
+static void
+glfw_error_callback(int error, const char* description)
 {
     spdlog::error("Glfw Error {}: {}", error, description);
 }
 
-static void onDragEnter(GLFWwindow* window, const dnd_glfw::DragEvent& event, void* userData)
+static void
+onDragEnter(GLFWwindow* window, const dnd_glfw::DragEvent& event, void* userData)
 {
     (void)window;
     (void)userData;
@@ -44,14 +46,16 @@ static void onDragEnter(GLFWwindow* window, const dnd_glfw::DragEvent& event, vo
     }
 }
 
-static void onDragLeave(GLFWwindow* window, void* userData)
+static void
+onDragLeave(GLFWwindow* window, void* userData)
 {
     (void)window;
     (void)userData;
     SetDragging(false);
 }
 
-static void onDrop(GLFWwindow* window, const dnd_glfw::DropEvent& event, void* userData)
+static void
+onDrop(GLFWwindow* window, const dnd_glfw::DropEvent& event, void* userData)
 {
     (void)window;
     (void)userData;
@@ -61,7 +65,8 @@ static void onDrop(GLFWwindow* window, const dnd_glfw::DropEvent& event, void* u
     }
 }
 
-static bool loadEmbeddedGuiFont(ImGuiIO& io, const ImWchar* glyphRanges)
+static bool
+loadEmbeddedGuiFont(ImGuiIO& io, const ImWchar* glyphRanges)
 {
 #ifdef _WIN32
     HRSRC fontResource = FindResourceW(nullptr, MAKEINTRESOURCEW(IDR_FIRA_SANS_REGULAR), MAKEINTRESOURCEW(10));
@@ -77,13 +82,14 @@ static bool loadEmbeddedGuiFont(ImGuiIO& io, const ImWchar* glyphRanges)
     if (fontData == nullptr || fontSize == 0 || fontSize > static_cast<DWORD>(std::numeric_limits<int>::max())) {
         return false;
     }
-    void* fontBytes = const_cast<void*>(fontData);
+    void* fontBytes         = const_cast<void*>(fontData);
     const int fontByteCount = static_cast<int>(fontSize);
 #else
-    if (solidify_embedded_font_size == 0 || solidify_embedded_font_size > static_cast<unsigned int>(std::numeric_limits<int>::max())) {
+    if (solidify_embedded_font_size == 0
+        || solidify_embedded_font_size > static_cast<unsigned int>(std::numeric_limits<int>::max())) {
         return false;
     }
-    void* fontBytes = const_cast<unsigned char*>(solidify_embedded_font);
+    void* fontBytes         = const_cast<unsigned char*>(solidify_embedded_font);
     const int fontByteCount = static_cast<int>(solidify_embedded_font_size);
 #endif
 
@@ -97,7 +103,8 @@ static bool loadEmbeddedGuiFont(ImGuiIO& io, const ImWchar* glyphRanges)
     return true;
 }
 
-int main(int argc, char* argv[])
+int
+main(int argc, char* argv[])
 {
     (void)argc;
     (void)argv;
@@ -155,7 +162,7 @@ int main(int argc, char* argv[])
     GLFWmonitor* monitor    = glfwGetPrimaryMonitor();
     const GLFWvidmode* mode = glfwGetVideoMode(monitor);
     if (mode != nullptr) {
-        int windowWidth = 0;
+        int windowWidth  = 0;
         int windowHeight = 0;
         glfwGetWindowSize(window, &windowWidth, &windowHeight);
         glfwSetWindowPos(window, (mode->width - windowWidth) / 2, (mode->height - windowHeight) / 2);
@@ -177,9 +184,9 @@ int main(int argc, char* argv[])
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init(glsl_version);
 
-    ImGuiPlatformIO& platform_io = ImGui::GetPlatformIO();
+    ImGuiPlatformIO& platform_io                          = ImGui::GetPlatformIO();
     static void (*s_originalCreateWindow)(ImGuiViewport*) = platform_io.Platform_CreateWindow;
-    platform_io.Platform_CreateWindow = [](ImGuiViewport* viewport) {
+    platform_io.Platform_CreateWindow                     = [](ImGuiViewport* viewport) {
         if (s_originalCreateWindow) {
             s_originalCreateWindow(viewport);
         }

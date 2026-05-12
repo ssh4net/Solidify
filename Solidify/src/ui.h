@@ -1,6 +1,6 @@
 /*
  * Solidify - texture push-pull processing utility
- * Copyright (c) 2023 Erium Vladlen.
+ * Copyright (c) 2023-2026 Erium Vladlen.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published
@@ -21,13 +21,18 @@
 #include <string>
 #include <vector>
 
-#define VERSION_MAJOR 1
-#define VERSION_MINOR 44
+#define VERSION_MAJOR 2
+#define VERSION_MINOR 0
 #define VERSION_PATCH 0
 
-void StartProcessing(const std::vector<std::string>& files);
-void AppMenuBar();
-void RenderUI();
+void
+StartProcessing(const std::vector<std::string>& files);
+void
+AppMenuBar();
+void
+RenderUI();
 
-void SetDragging(bool dragging);
-bool IsDragging();
+void
+SetDragging(bool dragging);
+bool
+IsDragging();

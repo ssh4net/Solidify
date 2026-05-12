@@ -1,6 +1,6 @@
 /*
  * Solidify - texture push-pull processing utility
- * Copyright (c) 2023 Erium Vladlen.
+ * Copyright (c) 2023-2026 Erium Vladlen.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published
@@ -26,7 +26,8 @@
 
 namespace fs = std::filesystem;
 
-std::string toLower(const std::string& str)
+std::string
+toLower(const std::string& str)
 {
     std::string strCopy = str;
     std::transform(strCopy.begin(), strCopy.end(), strCopy.begin(),
@@ -34,7 +35,8 @@ std::string toLower(const std::string& str)
     return strCopy;
 }
 
-std::string checkAlpha(const std::vector<std::string>& fileNames)
+std::string
+checkAlpha(const std::vector<std::string>& fileNames)
 {
     for (const std::string& ss : settings.mask_substr) {
         const std::string lowMask = toLower(ss);
@@ -47,7 +49,8 @@ std::string checkAlpha(const std::vector<std::string>& fileNames)
     return "";
 }
 
-void getWritableExt(std::string* ext, Settings* settings)
+void
+getWritableExt(std::string* ext, Settings* settings)
 {
     std::unique_ptr<ImageOutput> probe;
     std::string fn = "probename" + *ext;
@@ -62,11 +65,12 @@ void getWritableExt(std::string* ext, Settings* settings)
     probe.reset();
 }
 
-std::string getExtension(const std::string& fileName, Settings* settings)
+std::string
+getExtension(const std::string& fileName, Settings* settings)
 {
     fs::path path(fileName);
     std::string extension = path.extension().string();
-    extension = toLower(extension);
+    extension             = toLower(extension);
 
     switch (settings->fileFormat) {
     case 0: return ".tif";
@@ -88,7 +92,8 @@ std::string getExtension(const std::string& fileName, Settings* settings)
     return extension;
 }
 
-std::string getOutName(const std::string& fileName, Settings* settings)
+std::string
+getOutName(const std::string& fileName, Settings* settings)
 {
     fs::path inPath(fileName);
     std::string baseName = inPath.stem().string();
@@ -128,7 +133,8 @@ std::string getOutName(const std::string& fileName, Settings* settings)
     return outPath.string();
 }
 
-static void collectInputFiles(const std::vector<std::string>& inputs, std::vector<std::string>* fileNames)
+static void
+collectInputFiles(const std::vector<std::string>& inputs, std::vector<std::string>* fileNames)
 {
     for (const std::string& input : inputs) {
         if (input.empty()) {
@@ -138,7 +144,8 @@ static void collectInputFiles(const std::vector<std::string>& inputs, std::vecto
         std::error_code ec;
         fs::path p(input);
         if (fs::is_directory(p, ec)) {
-            for (const fs::directory_entry& entry : fs::recursive_directory_iterator(p, fs::directory_options::skip_permission_denied, ec)) {
+            for (const fs::directory_entry& entry :
+                 fs::recursive_directory_iterator(p, fs::directory_options::skip_permission_denied, ec)) {
                 if (ec) {
                     spdlog::warn("Directory traversal warning for {}: {}", p.string(), ec.message());
                     ec.clear();
@@ -156,12 +163,14 @@ static void collectInputFiles(const std::vector<std::string>& inputs, std::vecto
     }
 }
 
-static std::string fileNameOnly(const std::string& path)
+static std::string
+fileNameOnly(const std::string& path)
 {
     return fs::path(path).filename().string();
 }
 
-bool doProcessing(const std::vector<std::string>& filePaths, SolidifyProgressCallback progressCallback)
+bool
+doProcessing(const std::vector<std::string>& filePaths, SolidifyProgressCallback progressCallback)
 {
     std::vector<std::string> fileNames;
     VTimer f_timer;
@@ -204,8 +213,8 @@ bool doProcessing(const std::vector<std::string>& filePaths, SolidifyProgressCal
     }
 
     const unsigned int hardwareThreads = std::max(1u, std::thread::hardware_concurrency());
-    const size_t threadCount = settings.numThreads > 0 ? settings.numThreads : hardwareThreads;
-    const size_t queueLimit  = settings.queueLimit > 0 ? settings.queueLimit : threadCount;
+    const size_t threadCount           = settings.numThreads > 0 ? settings.numThreads : hardwareThreads;
+    const size_t queueLimit            = settings.queueLimit > 0 ? settings.queueLimit : threadCount;
 
     ThreadPool pool(threadCount, queueLimit);
     std::vector<std::future<bool>> results;
@@ -240,7 +249,7 @@ bool doProcessing(const std::vector<std::string>& filePaths, SolidifyProgressCal
         const std::string infile  = processFiles[i];
         const std::string outfile = getOutName(infile, &settings);
 
-        results.emplace_back(pool.enqueue([&, i, infile, outfile, mask_pair]() mutable {
+        results.emplace_back(pool.enqueue([&, i, infile, outfile]() mutable {
             const std::string debugText = "Source: " + fileNameOnly(infile) + "\nTarget: " + fileNameOnly(outfile)
                                           + "\nMask:   " + fileNameOnly(mask_file);
             updateProgress(i, 0.0f, debugText);

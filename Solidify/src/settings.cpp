@@ -1,6 +1,6 @@
 /*
  * Solidify - texture push-pull processing utility
- * Copyright (c) 2023 Erium Vladlen.
+ * Copyright (c) 2023-2026 Erium Vladlen.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published
@@ -24,14 +24,16 @@ Settings settings;
 Settings settingsDefaults;
 
 template<typename T>
-static void get_value(const toml::value& data, const std::string& section, const std::string& key, T& var)
+static void
+get_value(const toml::value& data, const std::string& section, const std::string& key, T& var)
 {
     if (data.contains(section) && data.at(section).contains(key)) {
         var = toml::find<T>(data, section, key);
     }
 }
 
-static std::string settingsToken(const std::string& value)
+static std::string
+settingsToken(const std::string& value)
 {
     std::string result;
     result.reserve(value.size());
@@ -43,7 +45,8 @@ static std::string settingsToken(const std::string& value)
     return result;
 }
 
-static int tiffCompressionFromString(const std::string& value, int fallback)
+static int
+tiffCompressionFromString(const std::string& value, int fallback)
 {
     const std::string token = settingsToken(value);
     if (token == "zip" || token == "deflate" || token == "zipdeflate") {
@@ -61,7 +64,8 @@ static int tiffCompressionFromString(const std::string& value, int fallback)
     return fallback;
 }
 
-static int exrCompressionFromString(const std::string& value, int fallback)
+static int
+exrCompressionFromString(const std::string& value, int fallback)
 {
     const std::string token = settingsToken(value);
     if (token == "zip" || token == "deflate" || token == "zipdeflate") {
@@ -103,7 +107,8 @@ static int exrCompressionFromString(const std::string& value, int fallback)
     return fallback;
 }
 
-static int pngStrategyFromString(const std::string& value, int fallback)
+static int
+pngStrategyFromString(const std::string& value, int fallback)
 {
     const std::string token = settingsToken(value);
     if (token == "default") {
@@ -130,7 +135,8 @@ static int pngStrategyFromString(const std::string& value, int fallback)
     return fallback;
 }
 
-static int jpegSubsamplingFromString(const std::string& value, int fallback)
+static int
+jpegSubsamplingFromString(const std::string& value, int fallback)
 {
     const std::string token = settingsToken(value);
     if (token == "4:4:4" || token == "444") {
@@ -148,16 +154,18 @@ static int jpegSubsamplingFromString(const std::string& value, int fallback)
     return fallback;
 }
 
-static void get_codec_value(const toml::value& data, const std::string& section, const std::string& key, int& var,
-                            int (*decode)(const std::string&, int))
+static void
+get_codec_value(const toml::value& data, const std::string& section, const std::string& key, int& var,
+                int (*decode)(const std::string&, int))
 {
     if (data.contains(section) && data.at(section).contains(key)) {
         const std::string value = toml::find<std::string>(data, section, key);
-        var = decode(value, var);
+        var                     = decode(value, var);
     }
 }
 
-bool loadSettings(Settings& outSettings, const std::string& filename)
+bool
+loadSettings(Settings& outSettings, const std::string& filename)
 {
     try {
         const auto data = toml::parse(filename);
@@ -179,8 +187,7 @@ bool loadSettings(Settings& outSettings, const std::string& filename)
 
         get_value(data, "Normalize", "NormalizeMode", loaded.normMode);
         if (data.contains("Normalize") && data.at("Normalize").contains("NormalsNames")) {
-            std::vector<std::string> values =
-                toml::find<std::vector<std::string>>(data, "Normalize", "NormalsNames");
+            std::vector<std::string> values = toml::find<std::vector<std::string>>(data, "Normalize", "NormalsNames");
             if (!values.empty()) {
                 loaded.normNames = std::move(values);
             }
@@ -222,36 +229,36 @@ bool loadSettings(Settings& outSettings, const std::string& filename)
 
         get_value(data, "CameraRaw", "RawRotation", loaded.rawRot);
 
-        loaded.alphaMode  = std::clamp<uint>(loaded.alphaMode, 0, 2);
-        loaded.normMode   = std::clamp<uint>(loaded.normMode, 0, 2);
-        loaded.repairMode = std::clamp<uint>(loaded.repairMode, 0, 6);
-        loaded.rangeMode  = std::clamp<uint>(loaded.rangeMode, 0, 3);
-        loaded.swapBasis = std::clamp<uint>(loaded.swapBasis, 0, 5);
-        loaded.swapInvertMask = std::clamp<uint>(loaded.swapInvertMask, 0, 7);
-        loaded.grayscaleMode = std::clamp<uint>(loaded.grayscaleMode, 0, 7);
-        loaded.defFormat  = std::clamp(loaded.defFormat, 0, 8);
-        loaded.fileFormat = std::clamp(loaded.fileFormat, -1, 8);
-        loaded.defBDepth  = std::clamp(loaded.defBDepth, 0, 6);
-        loaded.bitDepth   = std::clamp(loaded.bitDepth, -1, 6);
-        loaded.verbosity  = std::clamp<uint>(loaded.verbosity, 0, 5);
-        loaded.tiffCompression = std::clamp(loaded.tiffCompression, static_cast<int>(TiffCompression_Zip),
-                                            static_cast<int>(TiffCompression_None));
-        loaded.tiffZipLevel = std::clamp(loaded.tiffZipLevel, 1, 9);
-        loaded.exrCompression = std::clamp(loaded.exrCompression, static_cast<int>(ExrCompression_Zip),
-                                           static_cast<int>(ExrCompression_None));
-        loaded.exrZipLevel = std::clamp(loaded.exrZipLevel, 1, 9);
-        loaded.exrDwaLevel = std::clamp(loaded.exrDwaLevel, 1, 100);
-        loaded.pngStrategy = std::clamp(loaded.pngStrategy, static_cast<int>(PngCompression_Default),
-                                        static_cast<int>(PngCompression_None));
+        loaded.alphaMode           = std::clamp<uint>(loaded.alphaMode, 0, 2);
+        loaded.normMode            = std::clamp<uint>(loaded.normMode, 0, 2);
+        loaded.repairMode          = std::clamp<uint>(loaded.repairMode, 0, 6);
+        loaded.rangeMode           = std::clamp<uint>(loaded.rangeMode, 0, 3);
+        loaded.swapBasis           = std::clamp<uint>(loaded.swapBasis, 0, 5);
+        loaded.swapInvertMask      = std::clamp<uint>(loaded.swapInvertMask, 0, 7);
+        loaded.grayscaleMode       = std::clamp<uint>(loaded.grayscaleMode, 0, 7);
+        loaded.defFormat           = std::clamp(loaded.defFormat, 0, 8);
+        loaded.fileFormat          = std::clamp(loaded.fileFormat, -1, 8);
+        loaded.defBDepth           = std::clamp(loaded.defBDepth, 0, 6);
+        loaded.bitDepth            = std::clamp(loaded.bitDepth, -1, 6);
+        loaded.verbosity           = std::clamp<uint>(loaded.verbosity, 0, 5);
+        loaded.tiffCompression     = std::clamp(loaded.tiffCompression, static_cast<int>(TiffCompression_Zip),
+                                                static_cast<int>(TiffCompression_None));
+        loaded.tiffZipLevel        = std::clamp(loaded.tiffZipLevel, 1, 9);
+        loaded.exrCompression      = std::clamp(loaded.exrCompression, static_cast<int>(ExrCompression_Zip),
+                                                static_cast<int>(ExrCompression_None));
+        loaded.exrZipLevel         = std::clamp(loaded.exrZipLevel, 1, 9);
+        loaded.exrDwaLevel         = std::clamp(loaded.exrDwaLevel, 1, 100);
+        loaded.pngStrategy         = std::clamp(loaded.pngStrategy, static_cast<int>(PngCompression_Default),
+                                                static_cast<int>(PngCompression_None));
         loaded.pngCompressionLevel = std::clamp(loaded.pngCompressionLevel, 0, 9);
-        loaded.jpegQuality = std::clamp(loaded.jpegQuality, 1, 100);
-        loaded.jpegSubsampling = std::clamp(loaded.jpegSubsampling, static_cast<int>(JpegSubsampling_444),
-                                            static_cast<int>(JpegSubsampling_411));
-        loaded.jpeg2000QStep = std::clamp(loaded.jpeg2000QStep, -1.0f, 10.0f);
-        loaded.heicQuality = std::clamp(loaded.heicQuality, 1, 100);
-        loaded.jpegxlQuality = std::clamp(loaded.jpegxlQuality, 1, 100);
-        loaded.jpegxlEffort = std::clamp(loaded.jpegxlEffort, 1, 9);
-        loaded.jpegxlSpeed = std::clamp(loaded.jpegxlSpeed, 0, 4);
+        loaded.jpegQuality         = std::clamp(loaded.jpegQuality, 1, 100);
+        loaded.jpegSubsampling     = std::clamp(loaded.jpegSubsampling, static_cast<int>(JpegSubsampling_444),
+                                                static_cast<int>(JpegSubsampling_411));
+        loaded.jpeg2000QStep       = std::clamp(loaded.jpeg2000QStep, -1.0f, 10.0f);
+        loaded.heicQuality         = std::clamp(loaded.heicQuality, 1, 100);
+        loaded.jpegxlQuality       = std::clamp(loaded.jpegxlQuality, 1, 100);
+        loaded.jpegxlEffort        = std::clamp(loaded.jpegxlEffort, 1, 9);
+        loaded.jpegxlSpeed         = std::clamp(loaded.jpegxlSpeed, 0, 4);
 
         outSettings = loaded;
         return true;
@@ -261,7 +268,8 @@ bool loadSettings(Settings& outSettings, const std::string& filename)
     }
 }
 
-bool loadSettingsDefaults(const std::string& filename)
+bool
+loadSettingsDefaults(const std::string& filename)
 {
     Settings loaded;
     if (!loadSettings(loaded, filename)) {
@@ -273,30 +281,33 @@ bool loadSettingsDefaults(const std::string& filename)
     return true;
 }
 
-void resetSettingsToDefaults()
+void
+resetSettingsToDefaults()
 {
     settings = settingsDefaults;
 }
 
-void resetEncoderSettingsToDefaults()
+void
+resetEncoderSettingsToDefaults()
 {
-    settings.tiffCompression = settingsDefaults.tiffCompression;
-    settings.tiffZipLevel = settingsDefaults.tiffZipLevel;
-    settings.exrCompression = settingsDefaults.exrCompression;
-    settings.exrZipLevel = settingsDefaults.exrZipLevel;
-    settings.exrDwaLevel = settingsDefaults.exrDwaLevel;
-    settings.pngStrategy = settingsDefaults.pngStrategy;
+    settings.tiffCompression     = settingsDefaults.tiffCompression;
+    settings.tiffZipLevel        = settingsDefaults.tiffZipLevel;
+    settings.exrCompression      = settingsDefaults.exrCompression;
+    settings.exrZipLevel         = settingsDefaults.exrZipLevel;
+    settings.exrDwaLevel         = settingsDefaults.exrDwaLevel;
+    settings.pngStrategy         = settingsDefaults.pngStrategy;
     settings.pngCompressionLevel = settingsDefaults.pngCompressionLevel;
-    settings.jpegQuality = settingsDefaults.jpegQuality;
-    settings.jpegSubsampling = settingsDefaults.jpegSubsampling;
-    settings.jpeg2000QStep = settingsDefaults.jpeg2000QStep;
-    settings.heicQuality = settingsDefaults.heicQuality;
-    settings.jpegxlQuality = settingsDefaults.jpegxlQuality;
-    settings.jpegxlEffort = settingsDefaults.jpegxlEffort;
-    settings.jpegxlSpeed = settingsDefaults.jpegxlSpeed;
+    settings.jpegQuality         = settingsDefaults.jpegQuality;
+    settings.jpegSubsampling     = settingsDefaults.jpegSubsampling;
+    settings.jpeg2000QStep       = settingsDefaults.jpeg2000QStep;
+    settings.heicQuality         = settingsDefaults.heicQuality;
+    settings.jpegxlQuality       = settingsDefaults.jpegxlQuality;
+    settings.jpegxlEffort        = settingsDefaults.jpegxlEffort;
+    settings.jpegxlSpeed         = settingsDefaults.jpegxlSpeed;
 }
 
-static const char* formatName(int fileFormat)
+static const char*
+formatName(int fileFormat)
 {
     switch (fileFormat) {
     case 0: return "TIFF";
@@ -312,7 +323,8 @@ static const char* formatName(int fileFormat)
     }
 }
 
-static const char* bitDepthName(int bitDepth)
+static const char*
+bitDepthName(int bitDepth)
 {
     switch (bitDepth) {
     case 0: return "uint8";
@@ -326,7 +338,8 @@ static const char* bitDepthName(int bitDepth)
     }
 }
 
-static const char* tiffCompressionName(int compression)
+static const char*
+tiffCompressionName(int compression)
 {
     switch (compression) {
     case TiffCompression_Zip: return "ZIP/Deflate";
@@ -337,7 +350,8 @@ static const char* tiffCompressionName(int compression)
     }
 }
 
-static const char* exrCompressionName(int compression)
+static const char*
+exrCompressionName(int compression)
 {
     switch (compression) {
     case ExrCompression_Zip: return "ZIP";
@@ -356,7 +370,8 @@ static const char* exrCompressionName(int compression)
     }
 }
 
-static const char* pngStrategyName(int strategy)
+static const char*
+pngStrategyName(int strategy)
 {
     switch (strategy) {
     case PngCompression_Default: return "Default";
@@ -370,7 +385,8 @@ static const char* pngStrategyName(int strategy)
     }
 }
 
-static const char* jpegSubsamplingName(int subsampling)
+static const char*
+jpegSubsamplingName(int subsampling)
 {
     switch (subsampling) {
     case JpegSubsampling_444: return "4:4:4";
@@ -381,12 +397,14 @@ static const char* jpegSubsamplingName(int subsampling)
     }
 }
 
-void printSettings(Settings& settings)
+void
+printSettings(Settings& settings)
 {
     spdlog::info("--- Current Settings ---");
     spdlog::info("Solidify: {}", settings.isSolidify ? "Enabled" : "Disabled");
-    spdlog::info("Alpha/Mask: {}", settings.alphaMode == 0 ? "Remove Alpha" :
-                                      (settings.alphaMode == 1 ? "Preserve Alpha" : "Export Alpha only"));
+    spdlog::info("Alpha/Mask: {}", settings.alphaMode == 0
+                                       ? "Remove Alpha"
+                                       : (settings.alphaMode == 1 ? "Preserve Alpha" : "Export Alpha only"));
     spdlog::info("Parallel Threads: {}", settings.numThreads);
     spdlog::info("Queue Limit: {}", settings.queueLimit);
     spdlog::info("Normalize Mode: {}", settings.normMode);
@@ -401,12 +419,10 @@ void printSettings(Settings& settings)
     spdlog::info("Default File Format: {}", formatName(settings.defFormat));
     spdlog::info("Export Bit Depth: {}", bitDepthName(settings.bitDepth));
     spdlog::info("Default Export Bit Depth: {}", bitDepthName(settings.defBDepth));
-    spdlog::info("TIFF Compression: {} level {}", tiffCompressionName(settings.tiffCompression),
-                 settings.tiffZipLevel);
+    spdlog::info("TIFF Compression: {} level {}", tiffCompressionName(settings.tiffCompression), settings.tiffZipLevel);
     spdlog::info("OpenEXR Compression: {} zip level {} dwa level {}", exrCompressionName(settings.exrCompression),
                  settings.exrZipLevel, settings.exrDwaLevel);
-    spdlog::info("PNG Compression: {} level {}", pngStrategyName(settings.pngStrategy),
-                 settings.pngCompressionLevel);
+    spdlog::info("PNG Compression: {} level {}", pngStrategyName(settings.pngStrategy), settings.pngCompressionLevel);
     spdlog::info("JPEG Quality: {} subsampling {}", settings.jpegQuality,
                  jpegSubsamplingName(settings.jpegSubsampling));
     spdlog::info("JPEG-2000 Codec: OpenJPEG");

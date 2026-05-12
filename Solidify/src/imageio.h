@@ -1,6 +1,6 @@
 /*
  * Solidify - texture push-pull processing utility
- * Copyright (c) 2023 Erium Vladlen.
+ * Copyright (c) 2023-2026 Erium Vladlen.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published
@@ -36,19 +36,28 @@ struct OIIOProgressContext {
     float scale = 1.0f;
 };
 
-bool m_progress_callback(void* opaque_data, float portion_done);
+bool
+m_progress_callback(void* opaque_data, float portion_done);
 
-TypeDesc getTypeDesc(int bit_depth);
-std::string formatText(TypeDesc format);
-void formatFromBuff(ImageBuf& buf);
+TypeDesc
+getTypeDesc(int bit_depth);
+std::string
+formatText(TypeDesc format);
+void
+formatFromBuff(ImageBuf& buf);
 
-std::pair<ImageBuf, ImageBuf> mask_load(const std::string& mask_file, const SolidifyProgressCallback& progressCallback);
-bool img_load(ImageBuf& outBuf, const std::string& inputFileName, bool external_alpha,
-              const SolidifyProgressCallback& progressCallback);
+std::pair<ImageBuf, ImageBuf>
+mask_load(const std::string& mask_file, const SolidifyProgressCallback& progressCallback);
+bool
+img_load(ImageBuf& outBuf, const std::string& inputFileName, bool external_alpha,
+         const SolidifyProgressCallback& progressCallback);
 
-void debugImageBufWrite(const ImageBuf& buf, const std::string& filename);
+void
+debugImageBufWrite(const ImageBuf& buf, const std::string& filename);
 
-bool recalc_normal(ImageBuf& dst, const ImageBuf& A, uint channel, int sign, float inCenter, float outCenter,
-                   float scale, ROI roi, int nthreads);
-ImageBuf recalc_normal(const ImageBuf& A, uint channel, int sign, float inCenter, float outCenter, float scale,
-                       ROI roi, int nthreads);
+bool
+recalc_normal(ImageBuf& dst, const ImageBuf& A, uint channel, int sign, float inCenter, float outCenter, float scale,
+              ROI roi, int nthreads);
+ImageBuf
+recalc_normal(const ImageBuf& A, uint channel, int sign, float inCenter, float outCenter, float scale, ROI roi,
+              int nthreads);

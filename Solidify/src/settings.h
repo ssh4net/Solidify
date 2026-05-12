@@ -1,6 +1,6 @@
 /*
  * Solidify - texture push-pull processing utility
- * Copyright (c) 2023 Erium Vladlen.
+ * Copyright (c) 2023-2026 Erium Vladlen.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published
@@ -19,10 +19,10 @@
 #pragma once
 
 #ifndef SETTINGS_H
-#define SETTINGS_H
+#    define SETTINGS_H
 
-#include <string>
-#include <vector>
+#    include <string>
+#    include <vector>
 
 typedef unsigned char uchar;
 typedef unsigned short ushort;
@@ -89,52 +89,49 @@ struct Settings {
 
     std::vector<std::string> normNames, mask_substr, out_formats;
 
-    static constexpr int raw_rot[5] = { -1, 0, 3, 5, 6 };
+    static constexpr int raw_rot[5]  = { -1, 0, 3, 5, 6 };
     static constexpr uint rngConv[4] = { 0, 1, 2, 3 };
 
-    Settings()
-    {
-        reSettings();
-    }
+    Settings() { reSettings(); }
 
     void reSettings()
     {
         conEnable  = true;
         isSolidify = true;
 
-        alphaMode  = 0;
-        numThreads = 3;
-        queueLimit = 0;
-        verbosity  = 3;
-        normMode   = 1;
-        repairMode = 0;
-        swapBasis = 0;
+        alphaMode      = 0;
+        numThreads     = 3;
+        queueLimit     = 0;
+        verbosity      = 3;
+        normMode       = 1;
+        repairMode     = 0;
+        swapBasis      = 0;
         swapInvertMask = 0;
-        grayscaleMode = 0;
+        grayscaleMode  = 0;
 
-        rangeMode = 0;
-        fileFormat = -1;
-        defFormat  = 0;
-        bitDepth   = -1;
-        defBDepth  = 1;
-        rawRot     = -1;
+        rangeMode           = 0;
+        fileFormat          = -1;
+        defFormat           = 0;
+        bitDepth            = -1;
+        defBDepth           = 1;
+        rawRot              = -1;
         grayscaleWeights[0] = 0.2126f;
         grayscaleWeights[1] = 0.7152f;
         grayscaleWeights[2] = 0.0722f;
-        tiffCompression = TiffCompression_Zip;
-        tiffZipLevel = 6;
-        exrCompression = ExrCompression_Zip;
-        exrZipLevel = 4;
-        exrDwaLevel = 45;
-        pngStrategy = PngCompression_Default;
+        tiffCompression     = TiffCompression_Zip;
+        tiffZipLevel        = 6;
+        exrCompression      = ExrCompression_Zip;
+        exrZipLevel         = 4;
+        exrDwaLevel         = 45;
+        pngStrategy         = PngCompression_Default;
         pngCompressionLevel = 4;
-        jpegQuality = 100;
-        jpegSubsampling = JpegSubsampling_444;
-        jpeg2000QStep = -1.0f;
-        heicQuality = 100;
-        jpegxlQuality = 100;
-        jpegxlEffort = 7;
-        jpegxlSpeed = 0;
+        jpegQuality         = 100;
+        jpegSubsampling     = JpegSubsampling_444;
+        jpeg2000QStep       = -1.0f;
+        heicQuality         = 100;
+        jpegxlQuality       = 100;
+        jpegxlEffort        = 7;
+        jpegxlSpeed         = 0;
 
         normNames   = { "normal", "tangent", "object", "world" };
         mask_substr = { "_mask.", "_mask_", "_alpha.", "_alpha_" };
@@ -159,10 +156,15 @@ struct Settings {
 extern Settings settings;
 extern Settings settingsDefaults;
 
-bool loadSettings(Settings& settings, const std::string& filename);
-bool loadSettingsDefaults(const std::string& filename);
-void resetSettingsToDefaults();
-void resetEncoderSettingsToDefaults();
-void printSettings(Settings& settings);
+bool
+loadSettings(Settings& settings, const std::string& filename);
+bool
+loadSettingsDefaults(const std::string& filename);
+void
+resetSettingsToDefaults();
+void
+resetEncoderSettingsToDefaults();
+void
+printSettings(Settings& settings);
 
 #endif

@@ -1,6 +1,6 @@
 /*
  * Solidify - texture push-pull processing utility
- * Copyright (c) 2023 Erium Vladlen.
+ * Copyright (c) 2023-2026 Erium Vladlen.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published
@@ -22,7 +22,8 @@
 
 #include "settings.h"
 
-bool m_progress_callback(void* opaque_data, float portion_done)
+bool
+m_progress_callback(void* opaque_data, float portion_done)
 {
     OIIOProgressContext* ctx = static_cast<OIIOProgressContext*>(opaque_data);
     if (ctx != nullptr && ctx->callback != nullptr && *ctx->callback) {
@@ -32,7 +33,8 @@ bool m_progress_callback(void* opaque_data, float portion_done)
     return false;
 }
 
-TypeDesc getTypeDesc(int bit_depth)
+TypeDesc
+getTypeDesc(int bit_depth)
 {
     switch (bit_depth) {
     case 0: return OIIO::TypeDesc::UINT8;
@@ -46,7 +48,8 @@ TypeDesc getTypeDesc(int bit_depth)
     }
 }
 
-std::string formatText(TypeDesc format)
+std::string
+formatText(TypeDesc format)
 {
     switch (format.basetype) {
     case TypeDesc::UINT8: return "8bit integer";
@@ -64,12 +67,14 @@ std::string formatText(TypeDesc format)
     }
 }
 
-void formatFromBuff(ImageBuf& buf)
+void
+formatFromBuff(ImageBuf& buf)
 {
     spdlog::info("Format: {}", buf.file_format_name().str());
 }
 
-void debugImageBufWrite(const ImageBuf& buf, const std::string& filename)
+void
+debugImageBufWrite(const ImageBuf& buf, const std::string& filename)
 {
     const bool write_ok = buf.write(filename);
     if (!write_ok) {
@@ -78,7 +83,8 @@ void debugImageBufWrite(const ImageBuf& buf, const std::string& filename)
     }
 }
 
-std::pair<ImageBuf, ImageBuf> mask_load(const std::string& mask_file, const SolidifyProgressCallback& progressCallback)
+std::pair<ImageBuf, ImageBuf>
+mask_load(const std::string& mask_file, const SolidifyProgressCallback& progressCallback)
 {
     ImageBuf alpha_buf(mask_file);
     spdlog::info("Reading {}", mask_file);
@@ -117,12 +123,13 @@ std::pair<ImageBuf, ImageBuf> mask_load(const std::string& mask_file, const Soli
     return { alpha_buf, rgb_alpha };
 }
 
-bool img_load(ImageBuf& outBuf, const std::string& inputFileName, bool external_alpha,
-              const SolidifyProgressCallback& progressCallback)
+bool
+img_load(ImageBuf& outBuf, const std::string& inputFileName, bool external_alpha,
+         const SolidifyProgressCallback& progressCallback)
 {
     int last_channel = -1;
 
-    ImageSpec& spec = outBuf.specmod();
+    ImageSpec& spec     = outBuf.specmod();
     const int nchannels = spec.nchannels;
     if (!external_alpha) {
         if (nchannels == 4) {
@@ -167,11 +174,11 @@ bool img_load(ImageBuf& outBuf, const std::string& inputFileName, bool external_
         if (nchannels == 4) {
             int channelorder[]    = { 3, 3, 3 };
             float channelvalues[] = { 1.0f, 1.0f, 1.0f };
-            alphs_rgba           = ImageBufAlgo::channels(outBuf, 3, channelorder, channelvalues);
+            alphs_rgba            = ImageBufAlgo::channels(outBuf, 3, channelorder, channelvalues);
         } else if (nchannels == 2) {
             int channelorder[]    = { 1 };
             float channelvalues[] = { 1.0f };
-            alphs_rgba           = ImageBufAlgo::channels(outBuf, 3, channelorder, channelvalues);
+            alphs_rgba            = ImageBufAlgo::channels(outBuf, 3, channelorder, channelvalues);
         }
 
         if (alphs_rgba.initialized()) {
@@ -188,8 +195,9 @@ bool img_load(ImageBuf& outBuf, const std::string& inputFileName, bool external_
 }
 
 template<class Rtype>
-static bool recalc_normal_impl(ImageBuf& R, const ImageBuf& A, uint channel, int sign, float inCenter,
-                               float outCenter, float scale, ROI roi, int nthreads)
+static bool
+recalc_normal_impl(ImageBuf& R, const ImageBuf& A, uint channel, int sign, float inCenter, float outCenter, float scale,
+                   ROI roi, int nthreads)
 {
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         ImageBuf::ConstIterator<Rtype> a(A, roi);
@@ -224,8 +232,9 @@ static bool recalc_normal_impl(ImageBuf& R, const ImageBuf& A, uint channel, int
     return true;
 }
 
-bool recalc_normal(ImageBuf& dst, const ImageBuf& A, uint channel, int sign, float inCenter, float outCenter,
-                   float scale, ROI roi, int nthreads)
+bool
+recalc_normal(ImageBuf& dst, const ImageBuf& A, uint channel, int sign, float inCenter, float outCenter, float scale,
+              ROI roi, int nthreads)
 {
     if (!ImageBufAlgo::IBAprep(roi, &dst, &A)) {
         return false;
@@ -236,8 +245,9 @@ bool recalc_normal(ImageBuf& dst, const ImageBuf& A, uint channel, int sign, flo
     return ok;
 }
 
-ImageBuf recalc_normal(const ImageBuf& A, uint channel, int sign, float inCenter, float outCenter, float scale,
-                       ROI roi, int nthreads)
+ImageBuf
+recalc_normal(const ImageBuf& A, uint channel, int sign, float inCenter, float outCenter, float scale, ROI roi,
+              int nthreads)
 {
     ImageBuf result;
     const bool ok = recalc_normal(result, A, channel, sign, inCenter, outCenter, scale, roi, nthreads);

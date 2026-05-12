@@ -26,5 +26,6 @@
 
 using namespace OIIO;
 
-bool solidify_main(const std::string& inputFileName, const std::string& outputFileName,
-                   std::pair<ImageBuf, ImageBuf> mask_pair, const SolidifyProgressCallback& progressCallback);
+bool
+solidify_main(const std::string& inputFileName, const std::string& outputFileName,
+              const std::pair<ImageBuf, ImageBuf>& mask_pair, const SolidifyProgressCallback& progressCallback);
