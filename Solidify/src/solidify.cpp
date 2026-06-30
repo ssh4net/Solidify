@@ -32,6 +32,7 @@
 #include "solidify.h"
 #include "imageio.h"
 #include "imageops.h"
+#include "pathutils.h"
 #include "pushpull.h"
 #include "settings.h"
 #include "processing.h"
@@ -117,7 +118,7 @@ setCompressionAttribute(ImageSpec& spec, const std::string& compression)
 static void
 applyEncoderSettings(ImageSpec& spec, const std::string& outputFileName, const Settings& cfg)
 {
-    const std::string ext = toLower(std::filesystem::path(outputFileName).extension().string());
+    const std::string ext = toLower(pathToUtf8(pathFromUtf8(outputFileName).extension()));
 
     spec.attribute("pnm:binary", 1);
     spec.attribute("oiio:UnassociatedAlpha", 1);
@@ -221,7 +222,7 @@ solidify_main(const std::string& inputFileName, const std::string& outputFileNam
     bool external_alpha = false;
     bool grayscale      = false;
 
-    if (!settings.useAlpha && maskBuffers.alpha.initialized() && maskBuffers.rgbAlpha.initialized()) {
+    if (settings.useMask && maskBuffers.alpha.initialized() && maskBuffers.rgbAlpha.initialized()) {
         external_alpha = true;
     }
 
@@ -655,7 +656,7 @@ solidify_main(const std::string& inputFileName, const std::string& outputFileNam
     bool ok = false;
     OIIOProgressContext writeCtx;
     writeCtx.callback       = &progressCallback;
-    writeCtx.status         = "Writing: " + std::filesystem::path(outputFileName).filename().string();
+    writeCtx.status         = "Writing: " + pathFilenameUtf8(outputFileName);
     writeCtx.base           = 0.65f;
     writeCtx.scale          = 0.35f;
     void* writeProgressData = progressCallback ? &writeCtx : nullptr;
@@ -687,7 +688,7 @@ solidify_main(const std::string& inputFileName, const std::string& outputFileNam
 
     spdlog::info("File processing time : {}", g_timer.nowText());
 
-    reportProgress(progressCallback, 1.0f, "Written: " + std::filesystem::path(outputFileName).filename().string());
+    reportProgress(progressCallback, 1.0f, "Written: " + pathFilenameUtf8(outputFileName));
 
     return true;
 }

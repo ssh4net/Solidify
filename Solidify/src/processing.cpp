@@ -21,6 +21,7 @@
 #include "processing.h"
 
 #include "imageio.h"
+#include "pathutils.h"
 #include "solidify.h"
 #include "threadpool.h"
 
@@ -38,7 +39,7 @@ toLower(const std::string& str)
 std::string
 checkAlpha(const std::vector<std::string>& fileNames)
 {
-    if (settings.useAlpha) {
+    if (!settings.useMask) {
         return "";
     }
 
@@ -72,8 +73,8 @@ getWritableExt(std::string* ext, Settings* settings)
 std::string
 getExtension(const std::string& fileName, Settings* settings)
 {
-    fs::path path(fileName);
-    std::string extension = path.extension().string();
+    fs::path path = pathFromUtf8(fileName);
+    std::string extension = pathToUtf8(path.extension());
     extension             = toLower(extension);
 
     switch (settings->fileFormat) {
@@ -99,8 +100,8 @@ getExtension(const std::string& fileName, Settings* settings)
 std::string
 getOutName(const std::string& fileName, Settings* settings)
 {
-    fs::path inPath(fileName);
-    std::string baseName = inPath.stem().string();
+    fs::path inPath = pathFromUtf8(fileName);
+    std::string baseName = pathToUtf8(inPath.stem());
     std::string proc_sfx;
 
     if (settings->isSolidify) {
@@ -133,8 +134,9 @@ getOutName(const std::string& fileName, Settings* settings)
         proc_sfx = "_conv";
     }
 
-    fs::path outPath = inPath.parent_path() / (baseName + proc_sfx + getExtension(fileName, settings));
-    return outPath.string();
+    const std::string outputName = baseName + proc_sfx + getExtension(fileName, settings);
+    fs::path outPath          = inPath.parent_path() / pathFromUtf8(outputName);
+    return pathToUtf8(outPath);
 }
 
 static void
@@ -146,21 +148,21 @@ collectInputFiles(const std::vector<std::string>& inputs, std::vector<std::strin
         }
 
         std::error_code ec;
-        fs::path p(input);
+        fs::path p = pathFromUtf8(input);
         if (fs::is_directory(p, ec)) {
             for (const fs::directory_entry& entry :
                  fs::recursive_directory_iterator(p, fs::directory_options::skip_permission_denied, ec)) {
                 if (ec) {
-                    spdlog::warn("Directory traversal warning for {}: {}", p.string(), ec.message());
+                    spdlog::warn("Directory traversal warning for {}: {}", pathToUtf8(p), ec.message());
                     ec.clear();
                     continue;
                 }
                 if (entry.is_regular_file(ec)) {
-                    fileNames->push_back(entry.path().string());
+                    fileNames->push_back(pathToUtf8(entry.path()));
                 }
             }
         } else if (fs::is_regular_file(p, ec)) {
-            fileNames->push_back(p.string());
+            fileNames->push_back(pathToUtf8(p));
         } else {
             spdlog::warn("Skipping non-file input: {}", input);
         }
@@ -170,7 +172,7 @@ collectInputFiles(const std::vector<std::string>& inputs, std::vector<std::strin
 static std::string
 fileNameOnly(const std::string& path)
 {
-    return fs::path(path).filename().string();
+    return pathFilenameUtf8(path);
 }
 
 bool
@@ -199,8 +201,8 @@ doProcessing(const std::vector<std::string>& filePaths, SolidifyProgressCallback
             spdlog::error("Mask load failed: {}", mask_file);
             return false;
         }
-    } else if (settings.useAlpha) {
-        spdlog::info("Use Alpha enabled. External mask file discovery skipped.");
+    } else if (!settings.useMask) {
+        spdlog::info("Use Mask disabled. External mask file discovery skipped.");
     }
 
     std::vector<std::string> processFiles;

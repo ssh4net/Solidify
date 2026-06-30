@@ -325,7 +325,6 @@ function(solidify_link_oiio_static_tail target_name)
         ${SOLIDIFY_FREETYPE_LINK_ITEM}
         ${SOLIDIFY_PUGIXML_LINK_ITEM}
         ${SOLIDIFY_UHDR_LINK_ITEM}
-        ${SOLIDIFY_BZIP2_LINK_ITEM}
     )
 
     if(APPLE AND SOLIDIFY_OPENJPH_LINK_LIBRARY)
@@ -342,6 +341,8 @@ function(solidify_link_oiio_static_tail target_name)
             "${SOLIDIFY_BZIP2_LINK_LIBRARY}"
             "-Wl,--no-whole-archive"
         )
+    elseif(SOLIDIFY_BZIP2_LINK_ITEM)
+        target_link_libraries(${target_name} PRIVATE ${SOLIDIFY_BZIP2_LINK_ITEM})
     endif()
 endfunction()
 

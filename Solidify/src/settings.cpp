@@ -173,7 +173,13 @@ loadSettings(Settings& outSettings, const std::string& filename)
         Settings loaded;
 
         get_value(data, "Global", "Solidify", loaded.isSolidify);
-        get_value(data, "Global", "UseAlpha", loaded.useAlpha);
+        get_value(data, "Global", "UseMask", loaded.useMask);
+        if (data.contains("Global") && !data.at("Global").contains("UseMask")
+            && data.at("Global").contains("UseAlpha")) {
+            bool legacyUseAlpha = !loaded.useMask;
+            get_value(data, "Global", "UseAlpha", legacyUseAlpha);
+            loaded.useMask = !legacyUseAlpha;
+        }
         get_value(data, "Global", "Premultiply", loaded.premultiplyAlpha);
         get_value(data, "Global", "ExportAlpha", loaded.alphaMode);
         get_value(data, "Global", "Console", loaded.conEnable);
@@ -407,7 +413,7 @@ printSettings(Settings& settings)
 {
     spdlog::info("--- Current Settings ---");
     spdlog::info("Solidify: {}", settings.isSolidify ? "Enabled" : "Disabled");
-    spdlog::info("Use Alpha: {}", settings.useAlpha ? "Embedded image alpha" : "External mask file");
+    spdlog::info("Use Mask: {}", settings.useMask ? "External mask file" : "Ignore mask names");
     spdlog::info("Premultiply: {}", settings.premultiplyAlpha ? "Enabled" : "Disabled");
     spdlog::info("Alpha Gamma: {}", settings.alphaGamma);
     spdlog::info("Mask: {}", settings.alphaMode == 0

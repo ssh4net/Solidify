@@ -421,9 +421,9 @@ AppMenuBar()
             }
 
             if (ImGui::BeginMenu("Alpha")) {
-                if (ImGui::MenuItem("Use Alpha", nullptr, settings.useAlpha)) {
-                    settings.useAlpha = !settings.useAlpha;
-                    SetStatus(settings.useAlpha ? "Use Alpha Enabled" : "Use Alpha Disabled");
+                if (ImGui::MenuItem("Use Mask", nullptr, settings.useMask)) {
+                    settings.useMask = !settings.useMask;
+                    SetStatus(settings.useMask ? "Use Mask Enabled" : "Use Mask Disabled");
                 }
                 if (ImGui::MenuItem("Premultiply", nullptr, settings.premultiplyAlpha)) {
                     settings.premultiplyAlpha = !settings.premultiplyAlpha;

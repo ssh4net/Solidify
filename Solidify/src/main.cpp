@@ -29,6 +29,7 @@
 #    include "../resource.h"
 #endif
 
+#include "pathutils.h"
 #include "settings.h"
 #include "ui.h"
 
@@ -60,14 +61,14 @@ configPathFromExecutable(const std::filesystem::path& executablePath, std::strin
     std::filesystem::path candidate = executableDir.parent_path() / "Resources" / "sldf_config.toml";
     ec.clear();
     if (std::filesystem::exists(candidate, ec)) {
-        *outPath = candidate.string();
+        *outPath = pathToUtf8(candidate);
         return true;
     }
 
     candidate = executableDir / "sldf_config.toml";
     ec.clear();
     if (std::filesystem::exists(candidate, ec)) {
-        *outPath = candidate.string();
+        *outPath = pathToUtf8(candidate);
         return true;
     }
 
@@ -80,9 +81,9 @@ resolveConfigPath(const char* argv0)
     std::string resolvedPath;
 
 #ifdef _WIN32
-    char executablePath[MAX_PATH] = {};
-    const DWORD length = GetModuleFileNameA(nullptr, executablePath, static_cast<DWORD>(sizeof(executablePath)));
-    if (length > 0 && length < static_cast<DWORD>(sizeof(executablePath))
+    wchar_t executablePath[MAX_PATH] = {};
+    const DWORD length = GetModuleFileNameW(nullptr, executablePath, static_cast<DWORD>(std::size(executablePath)));
+    if (length > 0 && length < static_cast<DWORD>(std::size(executablePath))
         && configPathFromExecutable(std::filesystem::path(executablePath), &resolvedPath)) {
         return resolvedPath;
     }
@@ -94,7 +95,7 @@ resolveConfigPath(const char* argv0)
         executablePath.assign(bufferSize, '\0');
         result = _NSGetExecutablePath(executablePath.data(), &bufferSize);
     }
-    if (result == 0 && configPathFromExecutable(std::filesystem::path(executablePath.data()), &resolvedPath)) {
+    if (result == 0 && configPathFromExecutable(pathFromUtf8(executablePath.data()), &resolvedPath)) {
         return resolvedPath;
     }
 #else
@@ -102,14 +103,14 @@ resolveConfigPath(const char* argv0)
     const ssize_t length = readlink("/proc/self/exe", executablePath, sizeof(executablePath) - 1u);
     if (length > 0) {
         executablePath[length] = '\0';
-        if (configPathFromExecutable(std::filesystem::path(executablePath), &resolvedPath)) {
+        if (configPathFromExecutable(pathFromUtf8(executablePath), &resolvedPath)) {
             return resolvedPath;
         }
     }
 #endif
 
     if (argv0 != nullptr && argv0[0] != '\0'
-        && configPathFromExecutable(std::filesystem::path(argv0), &resolvedPath)) {
+        && configPathFromExecutable(pathFromUtf8(argv0), &resolvedPath)) {
         return resolvedPath;
     }
 

@@ -20,6 +20,7 @@
 
 #include "imageio.h"
 
+#include "pathutils.h"
 #include "settings.h"
 
 bool
@@ -157,7 +158,7 @@ mask_load(const std::string& mask_file, const SolidifyProgressCallback& progress
 
     OIIOProgressContext ctx;
     ctx.callback = &progressCallback;
-    ctx.status   = "Reading mask: " + std::filesystem::path(mask_file).filename().string();
+    ctx.status   = "Reading mask: " + pathFilenameUtf8(mask_file);
     ctx.base     = 0.0f;
     ctx.scale    = 1.0f;
 
@@ -235,7 +236,7 @@ img_load(ImageBuf& outBuf, const std::string& inputFileName, bool external_alpha
 
     OIIOProgressContext ctx;
     ctx.callback = &progressCallback;
-    ctx.status   = "Reading: " + std::filesystem::path(inputFileName).filename().string();
+    ctx.status   = "Reading: " + pathFilenameUtf8(inputFileName);
     ctx.base     = 0.0f;
     ctx.scale    = 0.35f;
 
